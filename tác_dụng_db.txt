@@ -1,0 +1,191 @@
+# Mô tả chức năng các bảng trong Database Hệ thống Đặt Vé Xem Phim
+
+## Nhóm người dùng và phân quyền
+
+### users
+
+Lưu thông tin tài khoản của khách hàng, nhân viên và quản trị viên trong hệ thống.
+
+### roles
+
+Lưu danh sách các vai trò như CUSTOMER, STAFF, ADMIN, SUPER_ADMIN.
+
+### user_roles
+
+Liên kết người dùng với vai trò để thực hiện phân quyền.
+
+### permissions
+
+Lưu danh sách các quyền thao tác chi tiết trong hệ thống.
+
+### role_permissions
+
+Liên kết quyền với từng vai trò theo mô hình phân quyền RBAC.
+
+---
+
+## Nhóm phim
+
+### movies
+
+Lưu thông tin phim như tên phim, mô tả, thời lượng, poster, trailer và trạng thái chiếu.
+
+### genres
+
+Lưu danh sách thể loại phim như Hành động, Kinh dị, Hoạt hình, Tình cảm.
+
+### movie_genres
+
+Liên kết nhiều-nhiều giữa phim và thể loại.
+
+---
+
+## Nhóm rạp, phòng và ghế
+
+### cinemas
+
+Lưu thông tin các chi nhánh rạp chiếu phim.
+
+### rooms
+
+Lưu thông tin các phòng chiếu thuộc từng rạp.
+
+### seats
+
+Lưu sơ đồ ghế vật lý cố định trong từng phòng chiếu.
+
+---
+
+## Nhóm suất chiếu
+
+### showtimes
+
+Lưu lịch chiếu của phim theo rạp, phòng và thời gian cụ thể.
+
+### showtime_seats
+
+Lưu trạng thái từng ghế trong từng suất chiếu như còn trống, đang giữ hoặc đã bán.
+
+### ticket_prices
+
+Lưu cấu hình giá vé theo loại ghế, loại phòng, ngày trong tuần và khung giờ.
+
+---
+
+## Nhóm đặt vé và thanh toán
+
+### bookings
+
+Lưu thông tin đơn đặt vé của khách hàng.
+
+### booking_seats
+
+Lưu danh sách các ghế được chọn trong từng đơn đặt vé.
+
+### tickets
+
+Lưu vé điện tử được phát hành sau khi thanh toán thành công.
+
+### payments
+
+Lưu lịch sử và thông tin các giao dịch thanh toán.
+
+---
+
+## Nhóm combo và sản phẩm
+
+### products
+
+Lưu các sản phẩm bán kèm như bắp rang, nước ngọt và snack.
+
+### combos
+
+Lưu các gói combo bán kèm vé xem phim.
+
+### combo_items
+
+Lưu danh sách sản phẩm và số lượng bên trong từng combo.
+
+### booking_combos
+
+Lưu các combo mà khách hàng đã mua trong đơn đặt vé.
+
+---
+
+## Nhóm khuyến mãi
+
+### promotions
+
+Lưu thông tin các chương trình khuyến mãi và sự kiện.
+
+### vouchers
+
+Lưu các mã giảm giá và điều kiện áp dụng.
+
+### voucher_usages
+
+Lưu lịch sử sử dụng voucher của khách hàng.
+
+---
+
+## Nhóm thành viên
+
+### membership_levels
+
+Lưu các hạng thành viên như Silver, Gold và Diamond.
+
+### user_memberships
+
+Lưu điểm thưởng, hạng thành viên và tổng chi tiêu của người dùng.
+
+### point_transactions
+
+Lưu lịch sử cộng điểm, trừ điểm hoặc điều chỉnh điểm.
+
+---
+
+## Nhóm nội dung
+
+### articles
+
+Lưu bài viết tin tức, sự kiện và nội dung truyền thông.
+
+### banners
+
+Lưu banner quảng cáo hiển thị trên website.
+
+### reviews
+
+Lưu đánh giá sao và bình luận của khách hàng đối với phim.
+
+---
+
+## Nhóm nhật ký hệ thống
+
+### audit_logs
+
+Lưu lịch sử thao tác của admin và nhân viên để phục vụ kiểm tra và truy vết hệ thống.
+
+---
+
+# Ba bảng quan trọng nhất trong chức năng đặt vé
+
+### seats
+
+Lưu ghế vật lý cố định trong phòng chiếu.
+
+### showtime_seats
+
+Lưu trạng thái ghế theo từng suất chiếu, giúp ngăn chặn việc bán trùng ghế.
+
+### booking_seats
+
+Lưu các ghế mà khách hàng thực sự đã đặt trong đơn vé.
+
+Luồng hoạt động:
+Seats
+→ ShowtimeSeats
+→ BookingSeats
+→ Tickets
+
+Đây là luồng dữ liệu cốt lõi của toàn bộ hệ thống đặt vé xem phim.
