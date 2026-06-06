@@ -41,7 +41,7 @@
 
     </div>
 
-    <a href="#" class="user-btn">
+    <a href="{{ route('login') }}" class="user-btn">
 
         <i class="bi bi-person-circle"></i>
 
