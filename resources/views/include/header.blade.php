@@ -42,19 +42,26 @@
     </div>
 
  @auth
-    <div class="user-btn">
-        <i class="bi bi-person-circle"></i>
-        <span>{{ Auth::user()->name }}</span>
+    <div class="user-dropdown">
+        <div class="user-btn">
+            <i class="bi bi-person-circle"></i>
+            <span>{{ Auth::user()->name }}</span>
+        </div>
+        <div class="dropdown-content">
+            <a href="#" class="dropdown-item">
+                <i class="bi bi-person"></i>
+                <span>Xem hồ sơ</span>
+            </a>
+            <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
+                @csrf
+                @method('POST')
+                <button type="submit" class="logout-btn">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </form>
+        </div>
     </div>
-
-    <form action="{{ route('logout') }}" method="POST" style="display:inline;">
-        @csrf
-        @method('POST')
-        <button type="submit" class="user-btn border-0 bg-transparent">
-            <i class="bi bi-box-arrow-right"></i>
-            <span>Đăng xuất</span>
-        </button>
-    </form>
 @else
     <a href="{{ route('login') }}" class="user-btn">
         <i class="bi bi-person-circle"></i>

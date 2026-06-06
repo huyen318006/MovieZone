@@ -18,13 +18,13 @@ class GoogleController extends Controller
 
     public function handleGoogleCallback()
     {
-        $user = Socialite::driver('google')->user();
+        $user = Socialite::driver('google')->stateless()->user();
         // Process the user data as needed
         // For example, you can create or update a user in your database
         $finduser = User::where('google_id', $user->id)->first();
         if ($finduser) {
             Auth::login($finduser);
-            return redirect()->route('/')->with('success', 'Đăng nhập thành công!');
+            return redirect('/')->with('success', 'Đăng nhập thành công!');
 
         } else {
             // Create a new user
