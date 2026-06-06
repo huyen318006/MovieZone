@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GoogleController;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -12,6 +14,15 @@ Route::get('/', function () {
     ];
     return view('home', compact('showingMovies'));
 })->name('home');
+/* ----------------LOGIN GOOGLE------------------ */
+//test đăng nhập bằng google
+Route::controller(GoogleController::class)->group(function () {
+    Route::get('auth/google', 'redirectToGoogle')->name('auth.google');
+    Route::get('auth/google/callback', 'handleGoogleCallback');
+});
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->name('logout');
+/*---------------------END---------- */
 
 // Trang chi tiết phim
 Route::get('/movie-detail', function () {

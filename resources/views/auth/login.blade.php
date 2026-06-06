@@ -14,7 +14,7 @@
 <div class="overlay"></div>
 <img src="{{ asset('assets/hero/avatar2.jpg') }}" alt="" class="bg-image">
 <div class="container">
-    
+
     <div class="left-content">
         <div class="logo">
             MOVIE<span>ZONE</span>
@@ -59,10 +59,12 @@
             <span>Hoặc</span>
         </div>
 
-        <button class="google-btn">
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="">
+
+        <a href="{{ route('auth.google') }}" class="google-btn">
+            {{-- <img src="{{ asset('assets/icons/google.svg') }}" alt="Google Icon"> --}}
             Đăng nhập với Google
-        </button>
+        </a>
+
 
         <p class="register-link">
             Chưa có tài khoản?
