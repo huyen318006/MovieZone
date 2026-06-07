@@ -6,6 +6,7 @@
     <title>MovieZone</title>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     @vite([
         'resources/css/app.css',
         'resources/js/app.js'
@@ -14,6 +15,15 @@
 <body>
 
     @include('include.header')
+
+    @if(session('success'))
+        <div class="flash-message-container">
+            <div id="success-alert" class="alert alert-success">
+                <span>{{ session('success') }}</span>
+                <button type="button" class="btn-close" aria-label="Close">&times;</button>
+            </div>
+        </div>
+    @endif
 
     @yield('content')
 
@@ -34,17 +44,17 @@
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Phải import hoặc định nghĩa các module trước (nếu bạn dùng CDN hoặc ES Modules)
     // Nếu dùng bản Bundle đầy đủ, bạn cần khai báo nó trong mảng modules:
-    
+
     new Swiper('.movieSwiper', {
         // Thêm dòng này để kích hoạt tính năng Autoplay
-        modules: [Autoplay], 
-        
+        modules: [Autoplay],
+
         loop: true,
         centeredSlides: true,
         slidesPerView: 2,
         spaceBetween: 20,
         grabCursor: true,
-        
+
         autoplay: {
             delay: 1000,
             disableOnInteraction: false,
@@ -52,6 +62,21 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         speed: 800,
     });
+
+    const alertBox = document.getElementById('success-alert');
+    if (alertBox) {
+        const closeButton = alertBox.querySelector('.btn-close');
+        const hideAlert = () => {
+            alertBox.style.opacity = '0';
+            setTimeout(() => {
+                alertBox.remove();
+            }, 300);
+        };
+        if (closeButton) {
+            closeButton.addEventListener('click', hideAlert);
+        }
+        setTimeout(hideAlert, 3000);
+    }
 });
 
 </script>
