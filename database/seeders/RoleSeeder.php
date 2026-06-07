@@ -16,12 +16,8 @@ class RoleSeeder extends Seeder
         Role::query()->delete();
 
         Role::insert([
-            [
-                'name' => 'SUPER_ADMIN',
-                'description' => 'Super administrator with full access',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+          
+            
             [
                 'name' => 'ADMIN',
                 'description' => 'Administrator with management permissions',

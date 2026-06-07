@@ -10,4 +10,17 @@ class UserRole extends Model
     /** @use HasFactory<\Database\Factories\UserRoleFactory> */
     use HasFactory;
     public $timestamps = false;
+    protected $fillable = [
+        'user_id',
+        'role_id',
+        'assigned_at'
+    ];
+    public function user()
+    {
+        return $this->belongsTo(User::class,'user_id');
+    }
+    public function role()
+    {
+        return $this->belongsTo(Role::class,'role_id');
+    }
 }
