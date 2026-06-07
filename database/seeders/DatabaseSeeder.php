@@ -21,47 +21,59 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
         $this->call([
-            RoleSeeder::class,
-            PermissionSeeder::class,
-            UserRoleSeeder::class,
-            RolePermissionSeeder::class,
+    // Master data
+    RoleSeeder::class,
+    PermissionSeeder::class,
+    GenreSeeder::class,
+    CinemaSeeder::class,
+    TicketPriceSeeder::class,
+    ProductSeeder::class,
+    PromotionSeeder::class,
+    MembershipLevelSeeder::class,
+    BannerSeeder::class,
 
-            GenreSeeder::class,
-            MovieSeeder::class,
-            MovieGenreSeeder::class,
+    // Users
+    UserSeeder::class,
 
-            CinemaSeeder::class,
-            RoomSeeder::class,
-            SeatSeeder::class,
+    // RBAC
+    UserRoleSeeder::class,
+    RolePermissionSeeder::class,
 
-            TicketPriceSeeder::class,
-            ShowtimeSeeder::class,
-            ShowtimeSeatSeeder::class,
+    // Movies
+    MovieSeeder::class,
+    MovieGenreSeeder::class,
 
-            ProductSeeder::class,
-            ComboSeeder::class,
-            ComboItemSeeder::class,
+    // Cinema structure
+    RoomSeeder::class,
+    SeatSeeder::class,
 
-            PromotionSeeder::class,
-            VoucherSeeder::class,
+    // Showtimes
+    ShowtimeSeeder::class,
+    ShowtimeSeatSeeder::class,
 
-            MembershipLevelSeeder::class,
-            UserMembershipSeeder::class,
+    // Combo
+    ComboSeeder::class,
+    ComboItemSeeder::class,
 
-            BookingSeeder::class,
-            BookingSeatSeeder::class,
-            BookingComboSeeder::class,
+    // Membership & Voucher
+    VoucherSeeder::class,
+    UserMembershipSeeder::class,
 
-            TicketSeeder::class,
-            PaymentSeeder::class,
+    // Booking
+    BookingSeeder::class,
+    BookingSeatSeeder::class,
+    BookingComboSeeder::class,
 
-            VoucherUsageSeeder::class,
-            PointTransactionSeeder::class,
+    // Payment
+    TicketSeeder::class,
+    PaymentSeeder::class,
 
-            ArticleSeeder::class,
-            BannerSeeder::class,
-            ReviewSeeder::class,
-            AuditLogSeeder::class,
-        ]);
+    // Logs
+    VoucherUsageSeeder::class,
+    PointTransactionSeeder::class,
+    ReviewSeeder::class,
+    ArticleSeeder::class,
+    AuditLogSeeder::class,
+]);
     }
 }

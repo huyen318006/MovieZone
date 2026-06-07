@@ -15,16 +15,18 @@ class AuditLogSeeder extends Seeder
     {
         AuditLog::query()->delete();
 
+        $logs = [];
         for ($i = 1; $i <= 30; $i++) {
-            AuditLog::create([
-                'user_id' => rand(1, 4),
-                'action' => 'CREATE',
+            $logs[] = [
+                'user_id'     => rand(1, 4),
+                'action'      => 'CREATE',
                 'entity_name' => 'Booking',
-                'entity_id' => (string) rand(1, 20),
-                'old_value' => null,
-                'new_value' => null,
-                'created_at' => now()->subMinutes(rand(1, 120)),
-            ]);
+                'entity_id'   => (string) rand(1, 20),
+                'old_value'   => null,
+                'new_value'   => null,
+                'created_at'  => now()->subMinutes(rand(1, 120)),
+            ];
         }
+        AuditLog::insert($logs);
     }
 }
