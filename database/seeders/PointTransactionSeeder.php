@@ -22,7 +22,6 @@ class PointTransactionSeeder extends Seeder
                 'points' => rand(50, 500),
                 'type' => 'EARN',
                 'created_at' => now(),
-                'updated_at' => now(),
             ]);
         }
     }

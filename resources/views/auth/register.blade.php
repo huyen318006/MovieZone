@@ -44,51 +44,95 @@
 
         <h2>Đăng Ký</h2>
 
-        <form>
+ <form action="{{ route('register.post') }}" method="POST">
+    @csrf
 
-            <div class="input-group">
-                <input
-                    type="text"
-                    placeholder="Họ và tên"
-                >
-            </div>
 
-            <div class="input-group">
-                <input
-                    type="email"
-                    placeholder="Email"
-                >
-            </div>
 
-            <div class="input-group">
-                <input
-                    type="text"
-                    placeholder="Số điện thoại"
-                >
-            </div>
+    <div class="input-group mb-3">
+        <input
+            type="text"
+            name="name"
+            value="{{ old('name') }}"
+            placeholder="Họ và tên"
+            class="form-control @error('name') border border-danger @enderror"
+        >
 
-            <div class="input-group">
-                <input
-                    type="password"
-                    placeholder="Mật khẩu"
-                >
-            </div>
+        @error('name')
+            <small class="text-danger d-block" style="color:red !important;">
+                {{ $message }}
+            </small>
+        @enderror
+    </div>
 
-            <div class="input-group">
-                <input
-                    type="password"
-                    placeholder="Xác nhận mật khẩu"
-                >
-            </div>
+    <div class="input-group mb-3">
+        <input
+            type="email"
+            name="email"
+            value="{{ old('email') }}"
+            placeholder="Email"
+            class="form-control @error('email') border border-danger @enderror"
+        >
 
-            <button
-                type="submit"
-                class="register-btn"
-            >
-                Tạo Tài Khoản
-            </button>
+       @error('email')
+    <small class="text-danger d-block" style="color:red !important;">
+        {{ $message }}
+    </small>
+@enderror
+    </div>
 
-        </form>
+    <div class="input-group mb-3">
+        <input
+            type="text"
+            name="phone"
+            value="{{ old('phone') }}"
+            placeholder="Số điện thoại"
+            class="form-control @error('phone') border border-danger @enderror"
+        >
+
+        @error('phone')
+            <small class="text-danger d-block" style="color:red !important;">
+                {{ $message }}
+            </small>
+        @enderror
+    </div>
+
+    <div class="input-group mb-3">
+        <input
+            type="password"
+            name="password"
+            placeholder="Mật khẩu"
+            class="form-control @error('password') border border-danger @enderror"
+        >
+
+        @error('password')
+            <small class="text-danger d-block" style="color:red !important;">
+                {{ $message }}
+            </small>
+        @enderror
+    </div>
+
+    <div class="input-group mb-3">
+        <input
+            type="password"
+            name="password_confirmation"
+            placeholder="Xác nhận mật khẩu"
+            class="form-control"
+        >
+          @error('password.confirmed')
+            <small class="text-danger d-block" style="color:red !important;">
+                {{ $message }}
+            </small>
+        @enderror
+    </div>
+
+    <button
+        type="submit"
+        class="register-btn">
+        Tạo Tài Khoản
+    </button>
+
+</form>
 
         <p class="login-link">
             Đã có tài khoản?

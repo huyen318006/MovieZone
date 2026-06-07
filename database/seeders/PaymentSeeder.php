@@ -21,6 +21,7 @@ class PaymentSeeder extends Seeder
                 'amount' => rand(100000, 500000),
                 'payment_method' => 'VNPAY',
                 'transaction_code' => 'TRX' . strtoupper(uniqid()),
+                'status' => 'SUCCESS',
                 'raw_response' => json_encode(['status' => 'SUCCESS']),
                 'paid_at' => now(),
                 'created_at' => now(),
