@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,9 +15,65 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+
+        // User::factory()->create([
+        //     'name' => 'Test User',
+        //     'email' => 'test@example.com',
+        // ]);
+        $this->call([
+    // Master data
+    RoleSeeder::class,
+    PermissionSeeder::class,
+    GenreSeeder::class,
+    CinemaSeeder::class,
+    TicketPriceSeeder::class,
+    ProductSeeder::class,
+    PromotionSeeder::class,
+    MembershipLevelSeeder::class,
+    BannerSeeder::class,
+
+    // Users
+    UserSeeder::class,
+
+    // RBAC
+    UserRoleSeeder::class,
+    RolePermissionSeeder::class,
+
+    // Movies
+    MovieSeeder::class,
+    MovieGenreSeeder::class,
+
+    // Cinema structure
+    RoomSeeder::class,
+    SeatSeeder::class,
+
+    // Showtimes
+    ShowtimeSeeder::class,
+    ShowtimeSeatSeeder::class,
+
+    // Combo
+    ComboSeeder::class,
+    ComboItemSeeder::class,
+
+    // Membership & Voucher
+    VoucherSeeder::class,
+    UserMembershipSeeder::class,
+
+    // Booking
+    BookingSeeder::class,
+    BookingSeatSeeder::class,
+    BookingComboSeeder::class,
+
+    // Payment
+    TicketSeeder::class,
+    PaymentSeeder::class,
+
+    // Logs
+    VoucherUsageSeeder::class,
+    PointTransactionSeeder::class,
+    ReviewSeeder::class,
+    ArticleSeeder::class,
+    AuditLogSeeder::class,
+]);
     }
 }
