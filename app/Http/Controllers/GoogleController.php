@@ -36,7 +36,7 @@ class GoogleController extends Controller
                 return redirect('/')->with('success', 'Đăng nhập thành công!');
             }
 
-            
+
 
         } else {
             // Create a new user
