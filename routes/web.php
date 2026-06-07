@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GoogleController;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -13,6 +15,39 @@ Route::get('/', function () {
 
     return view('home', compact('showingMovies'));
 })->name('home');
+ /*------------ Đăng nhập / Đăng ký / forgot*------------------*/
+Route::controller(AuthController::class)->group(function () {
+    // Đăng nhập thông thường
+    Route::get('/login', function () {
+        return view('auth.login');
+    })->name('login');
+    Route::post('/login', 'login')->name('login.post');
+// Đăng ký
+    Route::get('/register', function () {
+        return view('auth.register');
+    })->name('register');
+    Route::post('/register', 'register')->name('register.post');
+    // Quên mật khẩu
+    Route::get('/forgot-password', function () {
+        return view('auth.forgot');
+    })->name('password.request');
+    Route::post('/forgot-password', 'forgotPassword')->name('password.email');
+    Route::get('reset-password/{token}', [AuthController::class, 'reset_password'])
+        ->name('password.reset');
+    Route::post('reset-password/{token}', [AuthController::class, 'update_password'])
+        ->name('password.update');
+});
+/*---------------------END LOGIN THƯỜNG---------- */
+
+/* ----------------LOGIN GOOGLE------------------ */
+//test đăng nhập bằng google
+Route::controller(GoogleController::class)->group(function () {
+    Route::get('auth/google', 'redirectToGoogle')->name('auth.google');
+    Route::get('auth/google/callback', 'handleGoogleCallback');
+});
+Route::post('/logout', [AuthController::class, 'logout'])
+    ->name('logout');
+/*---------------------END---------- */
 
 // Trang chi tiết phim
 Route::get('/movie-detail', function () {
@@ -73,10 +108,6 @@ Route::get('/my-tickets', function () {
     return view('ticket.index');
 })->name('tickets');
 
-// Đăng nhập / Đăng ký
-Route::get('/login', function () {
-    return view('auth.login');
-})->name('login');
 
 Route::get('/register', function () {
     return view('auth.register');

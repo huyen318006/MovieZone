@@ -1,0 +1,6 @@
+*.sqlite*
+.env
+*.env.*
+/vendor
+/node_modules
+/public/hot
