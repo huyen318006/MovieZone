@@ -10,6 +10,7 @@ Route::get('/', function () {
         ['title' => 'John Wick 4', 'rating' => '8.4', 'poster' => 'johnwick.jpg'],
         ['title' => 'Oppenheimer', 'rating' => '8.8', 'poster' => 'oppenheimer.jpg'],
     ];
+
     return view('home', compact('showingMovies'));
 })->name('home');
 
@@ -80,3 +81,30 @@ Route::get('/login', function () {
 Route::get('/register', function () {
     return view('auth.register');
 })->name('register');
+
+Route::prefix('vnpay')->group(function () {
+
+    // ── Routes có middleware auth (chỉ user đã đăng nhập) ──────────────
+    Route::middleware(['auth:sanctum'])->group(function () {
+        // Tạo URL thanh toán
+        Route::post('/create-payment', [VNPayController::class, 'createPayment'])
+            ->name('vnpay.create-payment');
+
+        // Truy vấn giao dịch
+        Route::post('/query', [VNPayController::class, 'queryTransaction'])
+            ->name('vnpay.query');
+
+        // Hoàn tiền
+        Route::post('/refund', [VNPayController::class, 'refundTransaction'])
+            ->name('vnpay.refund');
+    });
+
+    // ── Routes KHÔNG có middleware auth ─────────────────────────────────
+    // IPN URL - VNPAY server gọi server của bạn (server-to-server)
+    Route::get('/ipn', [VNPayController::class, 'ipn'])
+        ->name('vnpay.ipn');
+
+    // Return URL - Redirect trình duyệt khách hàng
+    Route::get('/return', [VNPayController::class, 'paymentReturn'])
+        ->name('vnpay.return');
+});
