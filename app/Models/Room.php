@@ -8,4 +8,22 @@ use Illuminate\Database\Eloquent\Model;
 class Room extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'cinema_id',
+        'name',
+        'room_type',
+        'total_seats',
+        'status',
+    ];
+
+    public function cinema()
+    {
+        return $this->belongsTo(Cinema::class);
+    }
+
+    public function showtimes()
+    {
+        return $this->hasMany(Showtime::class);
+    }
 }
