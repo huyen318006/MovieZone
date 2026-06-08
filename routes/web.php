@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -98,10 +99,13 @@ Route::get('/news-detail', function () {
 })->name('news.detail');
 
 // Hồ sơ người dùng
-Route::get('/profile', function () {
-    return view('profile.index');
-})->name('profile');
-
+Route::middleware('auth')->group(function(){ //chưa đăng nhập thì không xem được hồ sơ
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    //cập nhật hồ sơ
+    Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+    //đổi mkhau
+    Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password.change');
+    });
 // Vé đã mua
 Route::get('/my-tickets', function () {
     return view('ticket.index');
