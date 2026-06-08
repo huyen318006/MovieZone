@@ -103,7 +103,7 @@
         </div>
 
         <a
-            href="{{ route('movie.detail') }}"
+            href="{{ route('movies') }}"
             class="book-btn">
 
             Chi Tiết
@@ -130,7 +130,7 @@
         </div>
 
         <a
-            href="{{ route('movie.detail') }}"
+            href="{{ route('movies') }}"
             class="book-btn">
 
             Chi Tiết
@@ -157,7 +157,7 @@
         </div>
 
         <a
-            href="{{ route('movie.detail') }}"
+            href="{{ route('movies') }}"
             class="book-btn">
 
             Chi Tiết
@@ -184,7 +184,7 @@
         </div>
 
         <a
-            href="{{ route('movie.detail') }}"
+            href="{{ route('movies') }}"
             class="book-btn">
 
             Chi Tiết
@@ -263,7 +263,7 @@
         </div>
 
         <a
-            href="{{ route('movie.detail') }}"
+            href="{{ route('movies') }}"
             class="book-btn">
 
             Chi Tiết
@@ -290,7 +290,7 @@
         </div>
 
         <a
-            href="{{ route('movie.detail') }}"
+            href="{{ route('movies') }}"
             class="book-btn">
 
             Chi Tiết
@@ -317,7 +317,7 @@
         </div>
 
         <a
-            href="{{ route('movie.detail') }}"
+            href="{{ route('movies') }}"
             class="book-btn">
 
             Chi Tiết
@@ -344,7 +344,7 @@
         </div>
 
         <a
-            href="{{ route('movie.detail') }}"
+            href="{{ route('movies') }}"
             class="book-btn">
 
             Chi Tiết
