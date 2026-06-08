@@ -42,7 +42,9 @@
             <select id="showtime-date" name="date">
                 <option value="">Ngày gần nhất</option>
                 @foreach($availableDates as $date)
-                    @php($dateValue = \Carbon\Carbon::parse($date)->format('Y-m-d'))
+                    @php
+                        $dateValue = \Carbon\Carbon::parse($date)->format('Y-m-d');
+                    @endphp
                     <option value="{{ $dateValue }}" @selected($selectedDateValue === $dateValue)>
                         {{ \Carbon\Carbon::parse($date)->format('d/m/Y') }}
                     </option>
