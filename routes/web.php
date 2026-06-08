@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleController;
+use App\Http\Controllers\SepayController;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -73,15 +74,22 @@ Route::get('/booking-seat', function () {
     return view('booking.seat');
 })->name('booking.seat');
 
-// Thanh toán
-Route::get('/checkout', function () {
-    return view('booking.checkout');
-})->name('booking.checkout');
+// Booking payment flow
+Route::prefix('booking')->name('booking.')->group(function () {
+    Route::post('/checkout', [SepayController::class, 'bookingCheckout'])->name('checkout');
+    Route::get('/payment/{orderCode}', [SepayController::class, 'bookingPayment'])->name('payment');
+    Route::get('/check/{orderCode}', [SepayController::class, 'checkStatus'])->name('check');
+    Route::get('/bill/{orderCode}', [SepayController::class, 'bookingBill'])->name('bill');
+});
 
-// Đặt vé thành công
-Route::get('/booking-success', function () {
-    return view('booking.success');
-})->name('booking.success');
+// route Sepay (gói nạp tiền)
+Route::prefix('sepay')->name('sepay.')->group(function () {
+    Route::get('/', [SepayController::class, 'index'])->name('index');
+    Route::post('/checkout/{packageId}', [SepayController::class, 'checkout'])->name('checkout');
+    Route::get('/payment/{orderCode}', [SepayController::class, 'payment'])->name('payment');
+    Route::get('/check/{orderCode}', [SepayController::class, 'checkStatus'])->name('check');
+    Route::get('/bill/{orderCode}', [SepayController::class, 'bill'])->name('bill');
+});
 
 // Khuyến mãi
 Route::get('/promotions', function () {
@@ -106,5 +114,3 @@ Route::get('/profile', function () {
 Route::get('/my-tickets', function () {
     return view('ticket.index');
 })->name('tickets');
-
-
