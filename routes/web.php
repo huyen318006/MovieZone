@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
+use App\Http\Controllers\ShowtimeController;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -61,9 +62,8 @@ Route::get('/movies/{slug}', [MovieController::class, 'show'])->name('movie.deta
 Route::get('/movies', [MovieController::class, 'index'])->name('movies');
 
 // Lịch chiếu
-Route::get('/showtimes', function () {
-    return view('showtime.index');
-})->name('showtimes');
+Route::get('/showtimes', [ShowtimeController::class, 'index'])->name('showtimes');
+Route::get('/showtimes/{showtime}/select', [ShowtimeController::class, 'select'])->name('showtimes.select');
 
 // Rạp chiếu
 Route::get('/cinemas', function () {
