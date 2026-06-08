@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleController;
+use App\Http\Controllers\MovieController;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -12,16 +13,17 @@ Route::get('/', function () {
         ['title' => 'John Wick 4', 'rating' => '8.4', 'poster' => 'johnwick.jpg'],
         ['title' => 'Oppenheimer', 'rating' => '8.8', 'poster' => 'oppenheimer.jpg'],
     ];
+
     return view('home', compact('showingMovies'));
 })->name('home');
- /*------------ Đăng nhập / Đăng ký / forgot*------------------*/
+/* ------------ Đăng nhập / Đăng ký / forgot*------------------ */
 Route::controller(AuthController::class)->group(function () {
     // Đăng nhập thông thường
     Route::get('/login', function () {
         return view('auth.login');
     })->name('login');
     Route::post('/login', 'login')->name('login.post');
-// Đăng ký
+    // Đăng ký
     Route::get('/register', function () {
         return view('auth.register');
     })->name('register');
@@ -36,17 +38,17 @@ Route::controller(AuthController::class)->group(function () {
     Route::post('reset-password/{token}', [AuthController::class, 'update_password'])
         ->name('password.update');
 });
-/*---------------------END LOGIN THƯỜNG---------- */
+/* ---------------------END LOGIN THƯỜNG---------- */
 
 /* ----------------LOGIN GOOGLE------------------ */
-//test đăng nhập bằng google
+// test đăng nhập bằng google
 Route::controller(GoogleController::class)->group(function () {
     Route::get('auth/google', 'redirectToGoogle')->name('auth.google');
     Route::get('auth/google/callback', 'handleGoogleCallback');
 });
 Route::post('/logout', [AuthController::class, 'logout'])
     ->name('logout');
-/*---------------------END---------- */
+/* ---------------------END---------- */
 
 // Trang chi tiết phim
 Route::get('/movie-detail', function () {
@@ -54,9 +56,7 @@ Route::get('/movie-detail', function () {
 })->name('movie.detail');
 
 // Danh sách phim
-Route::get('/movies', function () {
-    return view('movie.index');
-})->name('movies');
+Route::get('/movies', [MovieController::class, 'index'])->name('movies');
 
 // Lịch chiếu
 Route::get('/showtimes', function () {
@@ -106,5 +106,3 @@ Route::get('/profile', function () {
 Route::get('/my-tickets', function () {
     return view('ticket.index');
 })->name('tickets');
-
-
