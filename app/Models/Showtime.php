@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -33,5 +34,16 @@ class Showtime extends Model
     public function room()
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function showtimeSeats()
+    {
+        return $this->hasMany(ShowtimeSeat::class);
+    }
+
+    public function scopeAvailableForBooking(Builder $query): Builder
+    {
+        return $query->where('status', 'OPEN')
+            ->where('start_time', '>', now());
     }
 }
