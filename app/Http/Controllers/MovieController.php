@@ -98,4 +98,53 @@ class MovieController extends Controller
             ]);
         }
     }
+    public function show(string $slug)
+    {
+        $movie = Movie::query()
+            ->visible()
+            ->with([
+                'genres',
+                'approvedReviews.user',
+                'showtimes' => function ($query) {
+                    $query->where('status', 'OPEN')
+                        ->where('start_time', '>=', now())
+                        ->with(['cinema', 'room'])
+                        ->orderBy('start_time')
+                        ->limit(8);
+                },
+            ])
+            ->where('slug', $slug)
+            ->first();
+
+        if (!$movie) {
+            return redirect()
+                ->route('movies')
+                ->with('success', 'Phim không khả dụng');
+        }
+
+        $trailerEmbedUrl = $this->toYoutubeEmbedUrl($movie->trailer_url);
+
+        return view('movie.detail', compact('movie', 'trailerEmbedUrl'));
+    }
+
+    private function toYoutubeEmbedUrl(?string $url): ?string
+    {
+        if (blank($url)) {
+            return null;
+        }
+
+        if (preg_match('/youtu\.be\/([^?&]+)/', $url, $matches)) {
+            return 'https://www.youtube.com/embed/' . $matches[1];
+        }
+
+        if (preg_match('/youtube\.com\/watch\?v=([^?&]+)/', $url, $matches)) {
+            return 'https://www.youtube.com/embed/' . $matches[1];
+        }
+
+        if (str_contains($url, 'youtube.com/embed/')) {
+            return $url;
+        }
+
+        return null;
+    }
 }
