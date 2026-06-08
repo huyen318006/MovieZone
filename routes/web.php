@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleController;
+use App\Http\Controllers\MovieController;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -54,9 +55,7 @@ Route::get('/movie-detail', function () {
 })->name('movie.detail');
 
 // Danh sách phim
-Route::get('/movies', function () {
-    return view('movie.index');
-})->name('movies');
+Route::get('/movies', [MovieController::class, 'index'])->name('movies');
 
 // Lịch chiếu
 Route::get('/showtimes', function () {

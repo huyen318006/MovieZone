@@ -14,7 +14,7 @@
 
         <a href="#">Trang Chủ</a>
 
-        <a href="#">Phim</a>
+        <a href="{{ route('movies') }}">Phim</a>
 
         <a href="#">Lịch Chiếu</a>
 
