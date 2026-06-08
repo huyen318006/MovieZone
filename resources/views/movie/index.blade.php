@@ -141,7 +141,7 @@
                                 <span><i class="bi bi-clock"></i>{{ $movie->duration_minutes }} phút</span>
                             </div>
 
-                            <a href="{{ route('movie.detail') }}" class="movie-detail-link">
+                            <a href="{{ route('movie.detail', $movie->slug) }}" class="movie-detail-link">
                                 Xem chi tiết <i class="bi bi-arrow-right"></i>
                             </a>
                         </div>
