@@ -16,7 +16,7 @@
 
         <a href="{{ route('movies') }}">Phim</a>
 
-        <a href="#">Lịch Chiếu</a>
+        <a href="{{ route('showtimes') }}">Lịch Chiếu</a>
 
         <a href="#">Rạp Chiếu</a>
 

@@ -55,7 +55,7 @@
             </div>
 
             <div class="movie-actions">
-                <a href="#movie-showtimes" class="btn-book">
+                <a href="{{ route('showtimes', ['movie' => $movie->id]) }}" class="btn-book">
                     <i class="fa-solid fa-ticket"></i> Xem Suất Chiếu
                 </a>
                 <button class="btn-trailer" data-bs-toggle="modal" data-bs-target="#trailerModal">
@@ -76,7 +76,7 @@
 <section id="movie-showtimes" class="movie-detail-section movie-showtime-section">
     <div class="section-title">
         <h2>Lịch Chiếu Liên Quan</h2>
-        <a href="{{ route('showtimes') }}">Xem lịch chiếu đầy đủ</a>
+        <a href="{{ route('showtimes', ['movie' => $movie->id]) }}">Xem lịch chiếu đầy đủ</a>
     </div>
 
     @if($movie->showtimes->isEmpty())
