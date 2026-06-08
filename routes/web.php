@@ -52,8 +52,10 @@ Route::post('/logout', [AuthController::class, 'logout'])
 
 // Trang chi tiết phim
 Route::get('/movie-detail', function () {
-    return view('movie.detail');
-})->name('movie.detail');
+    return redirect()->route('movies');
+})->name('movie.detail.legacy');
+
+Route::get('/movies/{slug}', [MovieController::class, 'show'])->name('movie.detail');
 
 // Danh sách phim
 Route::get('/movies', [MovieController::class, 'index'])->name('movies');

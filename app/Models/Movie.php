@@ -40,6 +40,16 @@ class Movie extends Model
         return $this->hasMany(Showtime::class);
     }
 
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function approvedReviews()
+    {
+        return $this->hasMany(Review::class)->where('status', 'APPROVED');
+    }
+
     public function scopeVisible(Builder $query): Builder
     {
         return $query->where('status', '!=', 'HIDDEN');
