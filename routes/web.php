@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -107,8 +108,7 @@ Route::middleware('auth')->group(function(){ //chưa đăng nhập thì không x
     Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password.change');
     });
 // Vé đã mua
-Route::get('/my-tickets', function () {
-    return view('ticket.index');
-})->name('tickets');
-
+Route::middleware('auth')->group(function(){
+    Route::get('/my-tickets', [TicketController::class, 'index']) ->name('tickets');
+});
 

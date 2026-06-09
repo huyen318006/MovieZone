@@ -1,6 +1,20 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <div class="profile-container">
 
     <h2>Hồ sơ cá nhân</h2>
+    <div class="profile-actions">
+
+        <a href="{{ route('home') }}" class="action-btn">
+            <i class="bi bi-house-door-fill"></i>
+            <span>Trang chủ</span>
+        </a>
+
+        <a href="{{ route('tickets') }}" class="action-btn action-btn-secondary">
+            <i class="bi bi-receipt-cutoff"></i>
+            <span>Lịch sử giao dịch</span>
+        </a>
+
+    </div>
 
     <div class="avatar-box">
         @if(auth()->user()->avatar)
@@ -10,6 +24,18 @@
         @endif
     </div>
 
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+    
+    @if($errors->any())
+        <div class="alert alert-danger">
+            @foreach ($errors->all() as $error)
+                <div>{{ $error }}</div>
+            @endforeach
+        </div>
+    @endif
+    
     <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="form-group">
@@ -43,17 +69,6 @@
 
     <h3>Đổi mật khẩu</h3>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-    
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach ($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
 
     <form action="{{ route('profile.password.change') }}" method="POST">
         @csrf
@@ -304,5 +319,22 @@
     background: rgba(239, 68, 68, 0.1);
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.action-btn {
+    text-decoration: none !important; 
+    color: #ffffff !important;       
+}
+.action-btn i .action-btn span{
+    color: inherit; 
+    text-decoration: none;
+}
+.action-btn i{
+    font-size:18px;
+}
+.profile-actions{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;            
+    width: 100%;
 }
 </style>
