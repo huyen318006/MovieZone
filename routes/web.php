@@ -108,3 +108,22 @@ Route::get('/profile', function () {
 Route::get('/my-tickets', function () {
     return view('ticket.index');
 })->name('tickets');
+
+
+
+
+
+
+
+/* --------------------- KHU VỰC CỦA ADMIN ------------------ */
+Route::get('/admin',function(){
+    return view('admin.dashboard');
+})->name('admin.dashboard');
+
+
+// Quản lý phim - FILM MANAGEMENT
+Route::get('/admin/film/management',
+function (){
+    return view('admin.film_management');
+})->name('admin.film');
+
