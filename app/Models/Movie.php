@@ -28,6 +28,7 @@ class Movie extends Model
         'banner_url',
         'trailer_url',
         'status',
+        'rating',
     ];
 
     public function genres()
@@ -65,5 +66,16 @@ class Movie extends Model
             $query->where('title', 'like', "%{$keyword}%")
                 ->orWhere('original_title', 'like', "%{$keyword}%");
         });
+    }
+    
+    //tính lại điểm trung bình của phim
+    public function recalculateRating()
+    {
+        $avg = $this->reviews()
+            ->where('status', 'APPROVED')
+            ->avg('rating');
+
+        $this->rating = $avg ? round($avg, 2) : 0.00;
+        $this->save();
     }
 }

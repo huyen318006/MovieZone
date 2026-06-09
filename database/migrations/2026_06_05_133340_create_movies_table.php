@@ -47,6 +47,8 @@ return new class extends Migration
 
             $table->string('trailer_url')->nullable();
 
+            $table->decimal('rating', 3, 2)->default(0.00);
+            
             $table->enum('status', [
                 'COMING_SOON',
                 'NOW_SHOWING',

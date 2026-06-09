@@ -3,21 +3,27 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\MovieController;
 use App\Http\Controllers\ShowtimeController;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
-Route::get('/', function () {
-    $showingMovies = [
-        ['title' => 'Avatar 2', 'rating' => '8.9', 'poster' => 'avatar.jpg'],
-        ['title' => 'Dune Part Two', 'rating' => '8.7', 'poster' => 'dune.jpg'],
-        ['title' => 'John Wick 4', 'rating' => '8.4', 'poster' => 'johnwick.jpg'],
-        ['title' => 'Oppenheimer', 'rating' => '8.8', 'poster' => 'oppenheimer.jpg'],
-    ];
+// Route::get('/', function () {
+//     $showingMovies = [
+//         ['title' => 'Avatar 2', 'rating' => '8.9', 'poster' => 'avatar.jpg'],
+//         ['title' => 'Dune Part Two', 'rating' => '8.7', 'poster' => 'dune.jpg'],
+//         ['title' => 'John Wick 4', 'rating' => '8.4', 'poster' => 'johnwick.jpg'],
+//         ['title' => 'Oppenheimer', 'rating' => '8.8', 'poster' => 'oppenheimer.jpg'],
+//     ];
 
-    return view('home', compact('showingMovies'));
+//     return view('home', compact('showingMovies'));
+// })->name('home');
+Route::get('/', function () {
+    $showingMovies = \App\Models\Movie::where('status', 'NOW_SHOWING')->get();
+    $upcomingMovies = \App\Models\Movie::where('status', 'COMING_SOON')->get();
+    return view('home', compact('showingMovies', 'upcomingMovies'));
 })->name('home');
 /* ------------ Đăng nhập / Đăng ký / forgot*------------------ */
 Route::controller(AuthController::class)->group(function () {
@@ -59,7 +65,15 @@ Route::get('/movie-detail', function () {
 })->name('movie.detail.legacy');
 
 Route::get('/movies/{slug}', [MovieController::class, 'show'])->name('movie.detail');
-
+//đánh giá phim
+Route::middleware('auth')->group(function () {
+    // Luồng gửi đánh giá - Gọi vào storeReview của ReviewController
+    Route::post('/movies/{movie}/review', [ReviewController::class, 'store'])->name('movies.review.store');
+    
+    //  Sửa/Xóa đánh giá viết ở ReviewController 
+    Route::put('/reviews/{review}', [ReviewController::class, 'update'])->name('reviews.update');
+    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy'])->name('reviews.destroy');
+});
 // Danh sách phim
 Route::get('/movies', [MovieController::class, 'index'])->name('movies');
 
