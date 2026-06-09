@@ -195,6 +195,7 @@ return array(
     'Database\\Seeders\\TicketSeeder' => $baseDir . '/database/seeders/TicketSeeder.php',
     'Database\\Seeders\\UserMembershipSeeder' => $baseDir . '/database/seeders/UserMembershipSeeder.php',
     'Database\\Seeders\\UserRoleSeeder' => $baseDir . '/database/seeders/UserRoleSeeder.php',
+    'Database\\Seeders\\UserSeeder' => $baseDir . '/database/seeders/UserSeeder.php',
     'Database\\Seeders\\VoucherSeeder' => $baseDir . '/database/seeders/VoucherSeeder.php',
     'Database\\Seeders\\VoucherUsageSeeder' => $baseDir . '/database/seeders/VoucherUsageSeeder.php',
     'DateError' => $vendorDir . '/symfony/polyfill-php83/Resources/stubs/DateError.php',

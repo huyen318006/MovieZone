@@ -1,34 +1,63 @@
 @extends('layout.app')
 
 @section('content')
+@php
+    $poster = $movie->poster_url ? asset($movie->poster_url) : asset('assets/hero/avatar.jpg');
+    $banner = $movie->banner_url ? asset($movie->banner_url) : asset('assets/hero/avatar2.jpg');
+    $averageRating = $movie->approvedReviews->avg('rating');
+@endphp
 
-<section class="movie-detail">
+<section class="movie-detail" style="--movie-banner: url('{{ $banner }}')">
     <div class="movie-backdrop"></div>
     <div class="movie-detail-card" data-aos="fade-up">
         <div class="movie-content">
-            <h1 class="movie-title">Avatar: Dòng Chảy Của Nước</h1>
+            <h1 class="movie-title">{{ $movie->title }}</h1>
+
             <div class="movie-tags">
-                <span>Hành Động</span> <span>Phiêu Lưu</span> <span>Viễn Tưởng</span>
+                @forelse($movie->genres as $genre)
+                    <span>{{ $genre->name }}</span>
+                @empty
+                    <span>Chưa cập nhật thể loại</span>
+                @endforelse
             </div>
+
             <div class="movie-stats">
-                <span><i class="fa-solid fa-star"></i> 8.9 / 10</span>
-                <span><i class="fa-regular fa-clock"></i> 192 phút</span>
-                <span>T13</span>
+                <span>
+                    <i class="fa-solid fa-star"></i>
+                    {{ $averageRating ? number_format($averageRating, 1) : 'Chưa có' }} / 5
+                </span>
+                <span><i class="fa-regular fa-clock"></i> {{ $movie->duration_minutes }} phút</span>
+                <span>{{ $movie->age_rating }}</span>
+                <span>{{ $movie->language }}</span>
             </div>
+
             <p class="movie-description">
-                Jake Sully cùng gia đình mình tiếp tục sinh sống trên Pandora. 
-                Khi một hiểm họa mới xuất hiện, họ phải chiến đấu để bảo vệ quê hương.
+                {{ $movie->description ?: 'Nội dung phim đang được cập nhật.' }}
             </p>
-            <div class="movie-gallery swiper movieSwiper">
-            <div class="swiper-wrapper">
-                <div class="swiper-slide"><img src="{{ asset('assets/gallery/1.jpg') }}" alt=""></div>
-                <div class="swiper-slide"><img src="{{ asset('assets/gallery/2.jpeg') }}" alt=""></div>
-                <div class="swiper-slide"><img src="{{ asset('assets/gallery/3.jpg') }}" alt=""></div>
-                <div class="swiper-slide"><img src="{{ asset('assets/gallery/4.jpg') }}" alt=""></div>
+
+            <div class="movie-facts">
+                <div>
+                    <strong>Đạo diễn</strong>
+                    <span>{{ $movie->director ?: 'Đang cập nhật' }}</span>
+                </div>
+                <div>
+                    <strong>Diễn viên</strong>
+                    <span>{{ $movie->cast ?: 'Đang cập nhật' }}</span>
+                </div>
+                <div>
+                    <strong>Phụ đề</strong>
+                    <span>{{ $movie->subtitle ?: 'Không có' }}</span>
+                </div>
+                <div>
+                    <strong>Khởi chiếu</strong>
+                    <span>{{ $movie->release_date ? \Carbon\Carbon::parse($movie->release_date)->format('d/m/Y') : 'Đang cập nhật' }}</span>
                 </div>
             </div>
+
             <div class="movie-actions">
-                <button class="btn-book"><i class="fa-solid fa-ticket"></i> Đặt Vé Ngay</button>
+                <a href="{{ route('showtimes', ['movie' => $movie->id]) }}" class="btn-book">
+                    <i class="fa-solid fa-ticket"></i> Xem Suất Chiếu
+                </a>
                 <button class="btn-trailer" data-bs-toggle="modal" data-bs-target="#trailerModal">
                     <i class="fa-solid fa-play"></i> Xem Trailer
                 </button>
@@ -36,7 +65,7 @@
         </div>
 
         <div class="movie-poster">
-            <img src="{{ asset('assets/hero/avatar.jpg') }}" alt="Avatar">
+            <img src="{{ $poster }}" alt="Poster {{ $movie->title }}">
             <button class="poster-play-btn" data-bs-toggle="modal" data-bs-target="#trailerModal">
                 <i class="fa-solid fa-play"></i>
             </button>
@@ -44,252 +73,84 @@
     </div>
 </section>
 
-<section class="booking-bar">
-
-    <div class="booking-grid">
-
-        <!-- DATE -->
-
-        <div class="booking-column">
-
-            <div class="booking-title">
-
-                Ngày Chiếu
-
-            </div>
-
-            <div class="date-list">
-
-                <button
-                    onclick="selectDate(this)"
-                    class="date-active">
-
-                    <span>Hôm Nay</span>
-
-                    <strong>11</strong>
-
-                    <small>Th5</small>
-
-                </button>
-
-                <button onclick="selectDate(this)">
-
-                    <span>Tháng 6</span>
-
-                    <strong>12</strong>
-
-                    <small>Th6</small>
-
-                </button>
-
-                <button onclick="selectDate(this)">
-
-                    <span>Tháng 6</span>
-
-                    <strong>13</strong>
-
-                    <small>Th7</small>
-
-                </button>
-
-                <button onclick="selectDate(this)">
-
-                    <span>Tháng 6</span>
-
-                    <strong>14</strong>
-
-                    <small>CN</small>
-
-                </button>
-
-            </div>
-
-        </div>
-
-        <!-- TIME -->
-
-        <div
-            class="booking-column disabled"
-            id="timeBlock">
-
-            <div class="booking-title">
-
-                Suất Chiếu
-
-            </div>
-
-            <div class="option-list">
-
-                <button onclick="selectTime(this)">
-                    09:00
-                </button>
-
-                <button onclick="selectTime(this)">
-                    13:30
-                </button>
-
-                <button onclick="selectTime(this)">
-                    18:00
-                </button>
-
-                <button onclick="selectTime(this)">
-                    20:00
-                </button>
-
-            </div>
-
-        </div>
-
-        <!-- TYPE -->
-
-        <div
-            class="booking-column disabled"
-            id="typeBlock">
-
-            <div class="booking-title">
-
-                Định Dạng
-
-            </div>
-
-            <div class="option-list">
-
-                <button onclick="selectType(this)">
-                    2D
-                </button>
-
-                <button onclick="selectType(this)">
-                    3D
-                </button>
-
-                <button onclick="selectType(this)">
-                    IMAX
-                </button>
-
-            </div>
-
-        </div>
-
-        <!-- CINEMA -->
-
-        <div
-            class="booking-column disabled"
-            id="cinemaBlock">
-
-            <div class="booking-title">
-
-                Rạp Chiếu
-
-            </div>
-
-            <div class="option-list">
-
-                <button onclick="selectCinema(this)">
-                    CGV Vincom
-                </button>
-
-                <button onclick="selectCinema(this)">
-                    Lotte Cinema
-                </button>
-
-                <button onclick="selectCinema(this)">
-                    Galaxy Cinema
-                </button>
-
-            </div>
-
-        </div>
-
+<section id="movie-showtimes" class="movie-detail-section movie-showtime-section">
+    <div class="section-title">
+        <h2>Lịch Chiếu Liên Quan</h2>
+        <a href="{{ route('showtimes', ['movie' => $movie->id]) }}">Xem lịch chiếu đầy đủ</a>
     </div>
 
+    @if($movie->showtimes->isEmpty())
+        <div class="movie-detail-empty">
+            <i class="bi bi-calendar-x"></i>
+            <h3>Chưa có suất chiếu phù hợp</h3>
+            <p>Lịch chiếu chi tiết sẽ được cập nhật ở UC-CUS-07.</p>
+        </div>
+    @else
+        <div class="detail-showtime-grid">
+            @foreach($movie->showtimes as $showtime)
+                <article class="detail-showtime-card">
+                    <div>
+                        <span class="showtime-date">{{ $showtime->start_time ? \Carbon\Carbon::parse($showtime->start_time)->format('d/m/Y') : 'Đang cập nhật' }}</span>
+                        <strong>{{ $showtime->start_time ? \Carbon\Carbon::parse($showtime->start_time)->format('H:i') : '--:--' }}</strong>
+                    </div>
+                    <p>{{ $showtime->cinema?->name ?: 'Rạp đang cập nhật' }}</p>
+                    <span>{{ $showtime->room?->name ?: 'Phòng đang cập nhật' }} • {{ $showtime->format }} • {{ $showtime->language_type }}</span>
+                    <a href="{{ route('booking.seat', ['showtime_id' => $showtime->id]) }}">Chọn suất</a>
+                </article>
+            @endforeach
+        </div>
+    @endif
 </section>
 
-<div
-    class="continue-area"
-    id="continueArea">
+<section class="movie-detail-section movie-review-section">
+    <div class="section-title">
+        <h2>Đánh Giá Từ Khán Giả</h2>
+    </div>
 
-    <a
-        href="{{ route('booking.seat') }}"
-        class="continue-btn">
+    @if($movie->approvedReviews->isEmpty())
+        <div class="movie-detail-empty">
+            <i class="bi bi-chat-square-heart"></i>
+            <h3>Chưa có đánh giá</h3>
+            <p>Hãy quay lại sau để xem nhận xét từ người dùng khác.</p>
+        </div>
+    @else
+        <div class="detail-review-grid">
+            @foreach($movie->approvedReviews as $review)
+                <article class="detail-review-card">
+                    <div class="review-head">
+                        <strong>{{ $review->user?->name ?: 'Khách hàng MovieZone' }}</strong>
+                        <span><i class="fa-solid fa-star"></i> {{ $review->rating }}/5</span>
+                    </div>
+                    <p>{{ $review->comment ?: 'Người dùng chưa để lại bình luận.' }}</p>
+                    <small>{{ $review->created_at?->format('d/m/Y') }}</small>
+                </article>
+            @endforeach
+        </div>
+    @endif
+</section>
 
-        Tiếp Tục Chọn Ghế
-
-    </a>
-
+<div class="modal fade" id="trailerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content trailer-modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Trailer - {{ $movie->title }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if($trailerEmbedUrl)
+                    <iframe
+                        src="{{ $trailerEmbedUrl }}"
+                        title="Trailer {{ $movie->title }}"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowfullscreen></iframe>
+                @else
+                    <div class="trailer-error">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <p>Không thể tải trailer</p>
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
 </div>
-
-<script>
-
-function selectDate(btn){
-
-    // Active ngày
-    document.querySelectorAll('.date-list button').forEach(el=>el.classList.remove('date-active'));
-    btn.classList.add('date-active');
-
-    // Mở bước 2
-
-    document.getElementById('timeBlock').classList.remove('disabled');
-
-    // RESET GIỜ
-
-    document.querySelectorAll('#timeBlock button').forEach(el=>el.classList.remove('active-option'));
-
-    // RESET ĐỊNH DẠNG
-
-    document.querySelectorAll('#typeBlock button').forEach(el=>el.classList.remove('active-option'));
-
-    // RESET RẠP
-
-    document.querySelectorAll('#cinemaBlock button').forEach(el=>el.classList.remove('active-option'));
-
-    // KHÓA LẠI BƯỚC 3
-    document.getElementById('typeBlock').classList.add('disabled');
-    // KHÓA LẠI BƯỚC 4
-    document.getElementById('cinemaBlock').classList.add('disabled');
-
-    // ẨN NÚT TIẾP TỤC
-    document.getElementById('continueArea').style.display='none';
-}
-
-function selectTime(btn){
-
-    document
-    .querySelectorAll('#timeBlock button')
-    .forEach(el=>el.classList.remove('active-option'));
-
-    btn.classList.add('active-option');
-
-    document
-    .getElementById('typeBlock')
-    .classList.remove('disabled');
-}
-
-function selectType(btn){
-
-    document
-    .querySelectorAll('#typeBlock button')
-    .forEach(el=>el.classList.remove('active-option'));
-
-    btn.classList.add('active-option');
-
-    document
-    .getElementById('cinemaBlock')
-    .classList.remove('disabled');
-}
-
-function selectCinema(btn){
-
-    document
-    .querySelectorAll('#cinemaBlock button')
-    .forEach(el=>el.classList.remove('active-option'));
-
-    btn.classList.add('active-option');
-
-    document
-    .getElementById('continueArea')
-    .style.display='flex';
-}
-
-</script>
-
 @endsection
