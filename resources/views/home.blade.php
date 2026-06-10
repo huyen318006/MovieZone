@@ -84,26 +84,20 @@
         </div>
 
         <div class="movie-row">
-
+@foreach($showingMovies as $m)            
     <div class="movie-card">
 
-        <img
-            src="{{ asset('assets/movies/dune.jpg') }}"
-            alt="Dune Messiah"
-        >
+        <img src="{{ $m->poster_url ? asset('assets/' . $m->poster_url) : asset('assets/hero/avatar.jpg') }}" alt="{{ $m->title }}">
 
         <div class="info">
 
-            <h4>Dune Messiah</h4>
-
-            <span>
-                Khởi chiếu: 25/08/2025
-            </span>
+            <h4>{{ $m->title }}</h4>
+            <span>Khởi chiếu: {{ \Carbon\Carbon::parse($m->release_date)->format('d/m/Y') }}</span>
 
         </div>
 
         <a
-            href="{{ route('movies') }}"
+            href="{{ route('movie.detail', $m->slug) }}"
             class="book-btn">
 
             Chi Tiết
@@ -112,87 +106,7 @@
 
     </div>
 
-    <div class="movie-card">
-
-        <img
-            src="{{ asset('assets/movies/johnwick.jpg') }}"
-            alt="John Wick 5"
-        >
-
-        <div class="info">
-
-            <h4>John Wick 5</h4>
-
-            <span>
-                Khởi chiếu: 01/09/2025
-            </span>
-
-        </div>
-
-        <a
-            href="{{ route('movies') }}"
-            class="book-btn">
-
-            Chi Tiết
-
-        </a>
-
-    </div>
-
-    <div class="movie-card">
-
-        <img
-            src="{{ asset('assets/movies/oppenheimer.jpg') }}"
-            alt="New Nolan Movie"
-        >
-
-        <div class="info">
-
-            <h4>New Nolan Movie</h4>
-
-            <span>
-                Khởi chiếu: 12/09/2025
-            </span>
-
-        </div>
-
-        <a
-            href="{{ route('movies') }}"
-            class="book-btn">
-
-            Chi Tiết
-
-        </a>
-
-    </div>
-
-    <div class="movie-card">
-
-        <img
-            src="{{ asset('assets/hero/avatar.jpg') }}"
-            alt="Avatar 3"
-        >
-
-        <div class="info">
-
-            <h4>Avatar 3</h4>
-
-            <span>
-                Khởi chiếu: 20/09/2025
-            </span>
-
-        </div>
-
-        <a
-            href="{{ route('movies') }}"
-            class="book-btn">
-
-            Chi Tiết
-
-        </a>
-
-    </div>
-
+@endforeach
 </div>
 
     </div>
@@ -244,115 +158,23 @@
         </div>
 
         <div class="movie-row">
-
+@foreach($upcomingMovies as $m)
     <div class="movie-card">
 
-        <img
-            src="{{ asset('assets/movies/dune.jpg') }}"
-            alt="Dune Messiah"
-        >
+        <img src="{{ $m->poster_url ? asset('assets/' . $m->poster_url) : asset('assets/hero/avatar.jpg') }}" alt="{{ $m->title }}">
 
         <div class="info">
 
-            <h4>Dune Messiah</h4>
-
-            <span>
-                Khởi chiếu: 25/08/2025
-            </span>
+            <h4>{{ $m->title }}</h4>
+                        <span>Khởi chiếu: {{ \Carbon\Carbon::parse($m->release_date)->format('d/m/Y') }}</span>
 
         </div>
 
-        <a
-            href="{{ route('movies') }}"
-            class="book-btn">
-
-            Chi Tiết
-
-        </a>
+        <a href="{{ route('movie.detail', $m->slug) }}" class="book-btn">Chi Tiết</a>
 
     </div>
 
-    <div class="movie-card">
-
-        <img
-            src="{{ asset('assets/movies/johnwick.jpg') }}"
-            alt="John Wick 5"
-        >
-
-        <div class="info">
-
-            <h4>John Wick 5</h4>
-
-            <span>
-                Khởi chiếu: 01/09/2025
-            </span>
-
-        </div>
-
-        <a
-            href="{{ route('movies') }}"
-            class="book-btn">
-
-            Chi Tiết
-
-        </a>
-
-    </div>
-
-    <div class="movie-card">
-
-        <img
-            src="{{ asset('assets/movies/oppenheimer.jpg') }}"
-            alt="New Nolan Movie"
-        >
-
-        <div class="info">
-
-            <h4>New Nolan Movie</h4>
-
-            <span>
-                Khởi chiếu: 12/09/2025
-            </span>
-
-        </div>
-
-        <a
-            href="{{ route('movies') }}"
-            class="book-btn">
-
-            Chi Tiết
-
-        </a>
-
-    </div>
-
-    <div class="movie-card">
-
-        <img
-            src="{{ asset('assets/hero/avatar.jpg') }}"
-            alt="Avatar 3"
-        >
-
-        <div class="info">
-
-            <h4>Avatar 3</h4>
-
-            <span>
-                Khởi chiếu: 20/09/2025
-            </span>
-
-        </div>
-
-        <a
-            href="{{ route('movies') }}"
-            class="book-btn">
-
-            Chi Tiết
-
-        </a>
-
-    </div>
-
+@endforeach
 </div>
 
     </div>

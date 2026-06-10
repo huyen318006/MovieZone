@@ -33,6 +33,8 @@ return new class extends Migration
                 'HIDDEN'
             ]);
 
+            $table->softDeletes();
+
             $table->timestamps();
         });
     }

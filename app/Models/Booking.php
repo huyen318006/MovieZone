@@ -36,4 +36,8 @@ class Booking extends Model
     {
         return $this->hasMany(Ticket::class);
     }
+    public function showtime()
+    {
+        return $this->belongsTo(Showtime::class);
+    }
 }

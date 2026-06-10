@@ -3596,3 +3596,294 @@ RESPONSIVE
         align-items: stretch;
     }
 }
+
+/* =========================================
+   MOVIE REVIEW STYLES (UC-CUS-14)
+   ========================================= */
+
+.my-review-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.my-review-box, .review-form-box {
+    background: rgba(22, 29, 47, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+    margin-bottom: 25px;
+    transition: all 0.3s ease;
+}
+
+.my-review-box:hover, .review-form-box:hover {
+    border-color: rgba(126, 166, 255, 0.2);
+    box-shadow: 0 20px 40px rgba(126, 166, 255, 0.08);
+}
+
+.review-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 15px;
+}
+
+.review-user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.avatar-icon {
+    font-size: 38px;
+    color: var(--primary);
+}
+
+.review-box-header h4, .review-form-box h4 {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0;
+    color: #fff;
+}
+
+.review-actions-btns {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-edit-review, .btn-delete-review, .btn-submit-review, .btn-cancel-review {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+    outline: none;
+}
+
+.btn-edit-review {
+    background: rgba(255, 255, 255, 0.06);
+    color: #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-edit-review:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.btn-delete-review {
+    background: rgba(239, 68, 68, 0.12);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.btn-delete-review:hover {
+    background: rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+    transform: translateY(-2px);
+}
+
+.btn-submit-review {
+    background: linear-gradient(135deg, #7ea6ff, #4d7cff);
+    color: #fff;
+    box-shadow: 0 10px 20px -5px rgba(77, 124, 255, 0.4);
+}
+
+.btn-submit-review:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 25px -5px rgba(77, 124, 255, 0.55);
+}
+
+.btn-cancel-review {
+    background: rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.btn-cancel-review:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.stars-display i {
+    font-size: 18px;
+    margin-right: 2px;
+}
+
+.rating-number {
+    font-size: 15px;
+    font-weight: 700;
+    color: #a0aec0;
+}
+
+.review-comment {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #e2e8f0;
+    margin: 0;
+}
+
+/* Star Rating Selector (Pure CSS hover & checked state) */
+.star-rating {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    font-size: 32px;
+    color: #4b5563; /* Default grey */
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.star-rating label:hover,
+.star-rating label:hover ~ label,
+.star-rating input:checked ~ label {
+    color: #fbbf24; /* Active yellow */
+    text-shadow: 0 0 10px rgba(251, 191, 36, 0.35);
+}
+
+/* Custom elements for text area */
+.bg-dark-custom {
+    background-color: rgba(13, 17, 27, 0.6) !important;
+}
+.border-custom {
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+.border-custom:focus {
+    border-color: #7ea6ff !important;
+    box-shadow: 0 0 0 3px rgba(126, 166, 255, 0.15) !important;
+}
+
+/* Public Reviews Grid Styling */
+.public-reviews-container {
+    max-width: 900px;
+    margin: 40px auto 0 auto;
+}
+
+.detail-review-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+}
+
+.detail-review-card {
+    background: rgba(22, 29, 47, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    padding: 24px;
+    transition: all 0.3s ease;
+}
+
+.detail-review-card:hover {
+    background: rgba(22, 29, 47, 0.6);
+    border-color: rgba(126, 166, 255, 0.1);
+}
+
+.review-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7ea6ff, #5f8ff7);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 750;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+.badge-rating {
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    color: #fbbf24;
+    padding: 5px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.review-body {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #cbd5e1;
+    margin: 15px 0 10px 0;
+}
+
+.review-meta {
+    font-size: 13px;
+    color: #64748b;
+}
+/* Container bọc ngoài alert */
+.review-alerts-container {
+    margin-top: 15px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+/* Khung Alert cơ bản: Tối giản, bo góc, padding vừa vặn */
+.custom-alert {
+    position: relative;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid transparent;
+}
+
+/* Kiểu Đánh giá thành công: Nền tối ánh xanh, chữ xanh tươi đúng như ảnh mẫu */
+.alert-success-dark {
+    background-color: rgba(16, 37, 24, 0.65); /* Nền tối ánh xanh lá */
+    border-color: #1a4d2e;                    /* Viền xanh đậm */
+    color: #4ade80;                            /* Chữ xanh tươi */
+}
+
+/* Kiểu Vi phạm từ ngữ: Nền tối ánh đỏ, chữ đỏ tươi cảnh báo */
+.alert-danger-dark {
+    background-color: rgba(44, 19, 19, 0.65);  /* Nền tối ánh đỏ */
+    border-color: #5c1d1d;                     /* Viền đỏ đậm */
+    color: #f87171;                            /* Chữ đỏ tươi */
+}
+
+/* Nút tắt thông báo tự chế nhỏ gọn */
+.btn-close-custom {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    padding: 0 5px;
+}
+.btn-close-custom:hover {
+    opacity: 1;
+}
