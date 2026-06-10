@@ -14,9 +14,9 @@
 
         <a href="#">Trang Chủ</a>
 
-        <a href="#">Phim</a>
+        <a href="{{ route('movies') }}">Phim</a>
 
-        <a href="#">Lịch Chiếu</a>
+        <a href="{{ route('showtimes') }}">Lịch Chiếu</a>
 
         <a href="#">Rạp Chiếu</a>
 
@@ -48,7 +48,7 @@
             <span>{{ Auth::user()->name }}</span>
         </div>
         <div class="dropdown-content">
-            <a href="#" class="dropdown-item">
+            <a href="profile" class="dropdown-item">
                 <i class="bi bi-person"></i>
                 <span>Xem hồ sơ</span>
             </a>
