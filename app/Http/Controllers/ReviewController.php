@@ -182,7 +182,7 @@ class ReviewController extends Controller
         // Inappropriate / offensive / spam keywords list
         $badWords = [
             'spam', 'scam', 'lừa đảo', 'phản động', 'độc hại', 
-            'đm', 'đéo', 'vcl', 'vãi', 'chửi', 'cút', 'chó', 'nhảm', 'dcm', 'cl'
+            'đm', 'đéo', 'vcl', 'vãi', 'chửi', 'cút', 'chó', 'nhảm', 'dcm', 'cl', 'đmm', 'đm m'
         ];
 
         $textLower = mb_strtolower($text, 'UTF-8');

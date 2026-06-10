@@ -2834,3 +2834,51 @@ RESPONSIVE
     font-size: 13px;
     color: #64748b;
 }
+/* Container bọc ngoài alert */
+.review-alerts-container {
+    margin-top: 15px;
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+/* Khung Alert cơ bản: Tối giản, bo góc, padding vừa vặn */
+.custom-alert {
+    position: relative;
+    padding: 14px 20px;
+    border-radius: 10px;
+    font-size: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid transparent;
+}
+
+/* Kiểu Đánh giá thành công: Nền tối ánh xanh, chữ xanh tươi đúng như ảnh mẫu */
+.alert-success-dark {
+    background-color: rgba(16, 37, 24, 0.65); /* Nền tối ánh xanh lá */
+    border-color: #1a4d2e;                    /* Viền xanh đậm */
+    color: #4ade80;                            /* Chữ xanh tươi */
+}
+
+/* Kiểu Vi phạm từ ngữ: Nền tối ánh đỏ, chữ đỏ tươi cảnh báo */
+.alert-danger-dark {
+    background-color: rgba(44, 19, 19, 0.65);  /* Nền tối ánh đỏ */
+    border-color: #5c1d1d;                     /* Viền đỏ đậm */
+    color: #f87171;                            /* Chữ đỏ tươi */
+}
+
+/* Nút tắt thông báo tự chế nhỏ gọn */
+.btn-close-custom {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    padding: 0 5px;
+}
+.btn-close-custom:hover {
+    opacity: 1;
+}

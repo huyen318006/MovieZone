@@ -104,7 +104,29 @@
     <div class="section-title">
         <h2>Đánh Giá Từ Khán Giả</h2>
     </div>
+    <div class="review-alerts-container" data-aos="fade-up">
+    {{-- 1. Thông báo THÀNH CÔNG --}}
+    @if(session('success'))
+        <div class="custom-alert alert-success-dark alert-dismissible fade show" role="alert">
+            <span>{{ session('success') }}</span>
+            <button type="button" class="btn-close-custom" data-bs-dismiss="alert" aria-label="Close">&times;</button>
+        </div>
+    @endif
 
+    {{-- 2. Thông báo VI PHẠM TỤC TĨU / LỖI --}}
+    @if($errors->has('review') || $errors->has('comment'))
+        <div class="custom-alert alert-danger-dark alert-dismissible fade show" role="alert">
+            <span>
+                @if($errors->has('review'))
+                    {{ $errors->first('review') }}
+                @else
+                    {{ $errors->first('comment') }}
+                @endif
+            </span>
+            <button type="button" class="btn-close-custom" data-bs-dismiss="alert" aria-label="Close">&times;</button>
+        </div>
+    @endif
+</div>
     <!-- Khung hiển thị / viết đánh giá của bản thân (UC-CUS-14) -->
     <div class="my-review-container mb-5">
         @auth
@@ -192,6 +214,11 @@
                         <div class="mb-4">
                             <label for="edit-comment" class="form-label font-weight-bold text-light">Bình luận của bạn:</label>
                             <textarea class="form-control bg-dark text-white border-secondary" id="edit-comment" name="comment" rows="4" maxlength="500" placeholder="Viết bình luận của bạn...">{{ old('comment', $myReview->comment) }}</textarea>
+                            @error('comment')
+                                <div class="text-danger mt-2" style="font-size: 14px;">
+                                    <i class="fa-solid fa-circle-exclamation me-1"></i> {{ $message }}
+                                </div>
+                            @enderror
                         </div>
 
                         <div class="form-actions d-flex gap-2">
@@ -257,6 +284,11 @@
                         <div class="mb-4">
                             <label for="comment" class="form-label font-weight-bold text-light">Bình luận (không bắt buộc, tối đa 500 ký tự):</label>
                             <textarea class="form-control bg-dark text-white border-secondary" id="comment" name="comment" rows="4" placeholder="Nhập suy nghĩ của bạn về phim (tùy chọn)..." maxlength="500">{{ old('comment') }}</textarea>
+                            @error('comment')
+                                <div class="text-danger mt-2" style="font-size: 14px;">
+                                    <i class="fa-solid fa-circle-exclamation me-1"></i> {{ $message }}
+                                </div>
+                            @enderror
                         </div>
 
                         <button type="submit" class="btn-submit-review">Gửi đánh giá</button>
