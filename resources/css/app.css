@@ -2248,15 +2248,23 @@ RESPONSIVE
     flex-shrink: 0;
 }
 
+.bill-movie-detail {
+    min-width: 0;
+    overflow-wrap: break-word;
+}
+
 .bill-movie-detail h3 {
     font-size: 20px;
     font-weight: 700;
     margin-bottom: 6px;
+    word-break: break-word;
+    line-height: 1.35;
 }
 
 .bill-movie-meta {
     display: flex;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 12px 16px;
     font-size: 13px;
     color: var(--text-soft);
 }
@@ -2299,6 +2307,7 @@ RESPONSIVE
     display: block;
     font-size: 14px;
     font-weight: 600;
+    word-break: break-word;
 }
 
 .bill-price-section {
@@ -2341,6 +2350,95 @@ RESPONSIVE
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+/* ---- QR Xác Nhận Vé ---- */
+.bill-qr-section {
+    margin: 0;
+    padding: 24px 28px;
+    border-top: 1px dashed rgba(255, 255, 255, .08);
+    background: linear-gradient(135deg, rgba(126, 166, 255, .03), rgba(16, 185, 129, .03));
+    animation: fadeInUp .5s ease .45s both;
+}
+
+.bill-qr-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.bill-qr-header > i {
+    font-size: 28px;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.bill-qr-header h4 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: #fff;
+}
+
+.bill-qr-header p {
+    font-size: 13px;
+    color: var(--text-soft);
+    margin: 0;
+}
+
+.bill-qr-body {
+    text-align: center;
+}
+
+.bill-qr-frame {
+    display: inline-block;
+    padding: 14px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 1px rgba(126, 166, 255, .15),
+        0 8px 32px rgba(0, 0, 0, .25),
+        0 0 60px rgba(126, 166, 255, .08);
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.bill-qr-frame::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--primary), #10b981, var(--primary));
+    z-index: -1;
+    opacity: .5;
+}
+
+.bill-qr-frame img {
+    display: block;
+    width: 200px;
+    height: 200px;
+    border-radius: 8px;
+}
+
+.bill-qr-code-text {
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: var(--primary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.bill-qr-cinema {
+    font-size: 13px;
+    color: var(--text-soft);
+}
+
+.bill-qr-cinema i {
+    color: #10b981;
+    margin-right: 4px;
 }
 
 .bill-transaction-info {
@@ -2452,6 +2550,16 @@ RESPONSIVE
     .bill-actions-mz {
         flex-direction: column;
     }
+
+    .bill-qr-frame img {
+        width: 160px;
+        height: 160px;
+    }
+
+    .bill-qr-code-text {
+        font-size: 15px;
+        letter-spacing: 2px;
+    }
 }
 
 /* ---- PRINT ---- */
@@ -2494,8 +2602,29 @@ RESPONSIVE
     .bill-price-row,
     .bill-price-total,
     .trans-row,
-    .bill-card-bottom {
+    .bill-card-bottom,
+    .bill-qr-header h4,
+    .bill-qr-header p,
+    .bill-qr-code-text,
+    .bill-qr-cinema {
         color: #000 !important;
+    }
+
+    .bill-qr-section {
+        background: #f8f8f8 !important;
+        border-top: 2px dashed #ccc !important;
+    }
+
+    .bill-qr-frame {
+        box-shadow: 0 0 0 2px #000 !important;
+    }
+
+    .bill-qr-frame::before {
+        display: none;
+    }
+
+    .bill-qr-code-text {
+        -webkit-text-fill-color: #000 !important;
     }
 }
 

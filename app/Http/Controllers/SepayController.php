@@ -208,4 +208,42 @@ class SepayController extends Controller
 
         return view('booking.bill', compact('order'));
     }
+
+    /**
+     * Demo bill — tạo đơn hàng giả đã thanh toán để xem trang hoá đơn
+     */
+    public function demoBill()
+    {
+        // Tìm đơn demo cũ hoặc tạo mới
+        $order = \App\Models\SepayOrder::where('package_id', 'demo')->first();
+
+        if (!$order) {
+            $order = \App\Models\SepayOrder::create([
+                'order_code'   => 'DEMO' . strtoupper(\Illuminate\Support\Str::random(6)),
+                'package_id'   => 'demo',
+                'package_name' => 'Vé xem phim (Demo)',
+                'amount'       => 430000,
+                'status'       => 'paid',
+                'paid_at'      => now(),
+                'transaction_id' => 'TXN_DEMO_' . time(),
+                'metadata'     => [
+                    'movie_title' => 'Avatar: Dòng Chảy Của Nước - The Way of Water',
+                    'cinema'      => 'CGV Vincom Center Bà Triệu',
+                    'room'        => 'P05 - 2D Digital',
+                    'showtime'    => '20:00 - 23:15',
+                    'show_date'   => now()->format('d/m/Y'),
+                    'format'      => '2D',
+                    'seats'       => [
+                        ['code' => 'D7', 'type' => 'standard', 'price' => 80000],
+                        ['code' => 'D8', 'type' => 'standard', 'price' => 80000],
+                        ['code' => 'VIP3', 'type' => 'vip', 'price' => 150000],
+                        ['code' => 'SW2', 'type' => 'sweetbox', 'price' => 120000],
+                    ],
+                    'seat_count' => 4,
+                ],
+            ]);
+        }
+
+        return redirect()->route('booking.bill', $order->order_code);
+    }
 }

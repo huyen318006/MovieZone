@@ -80,6 +80,7 @@ Route::get('/booking-seat', function () {
 
 // Booking payment flow
 Route::prefix('booking')->name('booking.')->group(function () {
+    Route::get('/demo-bill', [SepayController::class, 'demoBill'])->name('demo-bill');
     Route::post('/checkout', [SepayController::class, 'bookingCheckout'])->name('checkout');
     Route::get('/payment/{orderCode}', [SepayController::class, 'bookingPayment'])->name('payment');
     Route::get('/check/{orderCode}', [SepayController::class, 'checkStatus'])->name('check');
