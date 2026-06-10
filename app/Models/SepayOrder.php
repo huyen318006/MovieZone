@@ -54,14 +54,21 @@ class SepayOrder extends Model
     /**
      * Đánh dấu đơn hàng đã thanh toán
      */
-    public function markAsPaid(string $transactionId, ?array $metadata = null): void
+    public function markAsPaid(string $transactionId, ?array $transactionData = null): void
     {
-        $this->update([
+        $updateData = [
             'status' => 'paid',
             'transaction_id' => $transactionId,
             'paid_at' => now(),
-            'metadata' => $metadata,
-        ]);
+        ];
+
+        if ($transactionData) {
+            $metadata = $this->metadata ?? [];
+            $metadata['sepay_transaction'] = $transactionData;
+            $updateData['metadata'] = $metadata;
+        }
+
+        $this->update($updateData);
     }
 
     /**
