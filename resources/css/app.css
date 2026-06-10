@@ -1624,6 +1624,1010 @@ RESPONSIVE
     display: none !important;
 }
 
+/* ==========================================================
+   BOOKING PAYMENT FLOW - Seat Tags, Payment, Bill
+   ========================================================== */
+
+/* ---- Seat Tags ---- */
+.seat-tag {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 3px;
+    animation: tagPop .3s ease;
+}
+
+@keyframes tagPop {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.seat-tag-standard {
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
+}
+
+.seat-tag-vip {
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: #c4b5fd;
+}
+
+.seat-tag-sweetbox {
+    background: rgba(251, 191, 36, 0.15);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fde68a;
+}
+
+.vip-seat-btn.selected {
+    background: #8b5cf6 !important;
+    border-color: #8b5cf6 !important;
+    color: #fff !important;
+    box-shadow: 0 0 18px rgba(139, 92, 246, 0.4);
+}
+
+.sweet-seat-btn.selected {
+    background: #f59e0b !important;
+    border-color: #f59e0b !important;
+    color: #000 !important;
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.4);
+}
+
+.vip-seat-btn,
+.sweet-seat-btn {
+    cursor: pointer;
+    transition: .3s;
+}
+
+.vip-seat-btn:hover {
+    transform: translateY(-2px);
+    border-color: #a78bfa !important;
+}
+
+.sweet-seat-btn:hover {
+    transform: translateY(-2px);
+    border-color: #fbbf24 !important;
+}
+
+.btn-payment:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* =============================================
+   PAYMENT PAGE
+   ============================================= */
+
+.payment-page {
+    min-height: 100vh;
+    padding: 40px;
+    margin-top: 80px;
+    background: #050b18;
+}
+
+.payment-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 30px;
+    animation: fadeInUp .6s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.payment-info-panel {
+    background: var(--card);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    padding: 28px;
+    height: fit-content;
+    position: sticky;
+    top: 100px;
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.panel-header i {
+    font-size: 24px;
+    color: var(--primary);
+}
+
+.panel-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.order-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: rgba(126, 166, 255, 0.1);
+    border: 1px solid rgba(126, 166, 255, 0.2);
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 20px;
+    font-family: monospace;
+}
+
+.booking-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .05);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 14px;
+    color: var(--text-soft);
+    flex-shrink: 0;
+}
+
+.detail-label i {
+    width: 18px;
+    color: var(--primary);
+    margin-right: 6px;
+}
+
+.detail-value {
+    font-size: 14px;
+    font-weight: 600;
+    text-align: right;
+    color: #fff;
+}
+
+.seat-price-breakdown {
+    margin-top: 20px;
+    padding: 18px;
+    background: rgba(255, 255, 255, .03);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, .06);
+}
+
+.seat-price-breakdown h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 14px;
+    color: var(--text-soft);
+}
+
+.price-row small {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.price-total-row {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 12px;
+    margin-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, .1);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* ---- QR Panel ---- */
+.payment-qr-panel {
+    background: var(--card);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    padding: 35px;
+    text-align: center;
+}
+
+.payment-timer-wrapper {
+    margin-bottom: 20px;
+}
+
+.payment-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 100px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #fca5a5;
+    font-family: monospace;
+}
+
+.payment-timer i {
+    font-size: 16px;
+}
+
+.payment-timer.timer-danger {
+    animation: timerPulse 1s infinite;
+}
+
+@keyframes timerPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.payment-amount-big {
+    margin-bottom: 24px;
+}
+
+.amount-value {
+    font-size: 48px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff, var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.amount-currency {
+    font-size: 18px;
+    color: var(--text-soft);
+    margin-left: 4px;
+}
+
+.qr-box {
+    margin-bottom: 24px;
+}
+
+.qr-frame {
+    display: inline-block;
+    padding: 16px;
+    background: #ffffff;
+    border-radius: 16px;
+    margin-bottom: 10px;
+}
+
+.qr-frame img {
+    width: 220px;
+    height: 220px;
+    display: block;
+    border-radius: 8px;
+}
+
+.qr-hint {
+    font-size: 13px;
+    color: var(--text-soft);
+}
+
+.bank-transfer-info {
+    background: rgba(255, 255, 255, .03);
+    border: 1px solid rgba(255, 255, 255, .06);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 24px;
+    text-align: left;
+}
+
+.transfer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, .04);
+}
+
+.transfer-row:last-child {
+    border-bottom: none;
+}
+
+.transfer-row span:first-child {
+    color: var(--text-soft);
+}
+
+.fw-bold {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.copy-btn-mz {
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: .3s;
+    font-size: 12px;
+}
+
+.copy-btn-mz:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.copy-btn-mz.copied {
+    border-color: #10b981;
+    color: #10b981;
+}
+
+.payment-status-box {
+    padding: 20px;
+    border-radius: 14px;
+    background: rgba(126, 166, 255, 0.05);
+    border: 1px solid rgba(126, 166, 255, 0.15);
+    margin-bottom: 16px;
+}
+
+.status-spinner-mz {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(126, 166, 255, 0.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin-bottom: 10px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.status-text-mz {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-soft);
+    margin-bottom: 4px;
+}
+
+.status-sub-mz {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.payment-status-box.status-success {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.25);
+}
+
+.cancel-link-mz {
+    display: block;
+    color: var(--text-soft);
+    font-size: 13px;
+    text-decoration: none;
+    transition: .3s;
+}
+
+.cancel-link-mz:hover {
+    color: var(--primary);
+}
+
+/* Expired overlay */
+.payment-expired-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 11, 24, 0.92);
+    border-radius: 20px;
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+}
+
+.payment-expired-overlay.show {
+    display: flex;
+}
+
+.expired-content {
+    text-align: center;
+}
+
+.expired-icon-big {
+    font-size: 56px;
+    color: #ef4444;
+    margin-bottom: 16px;
+}
+
+.expired-content h3 {
+    font-size: 22px;
+    margin-bottom: 8px;
+}
+
+.expired-content p {
+    color: var(--text-soft);
+    margin-bottom: 20px;
+}
+
+.btn-back-seat {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    background: var(--primary);
+    color: #000;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: .3s;
+}
+
+.btn-back-seat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(126, 166, 255, 0.3);
+}
+
+/* =============================================
+   BILL PAGE
+   ============================================= */
+
+.bill-page {
+    min-height: 100vh;
+    padding: 40px;
+    margin-top: 80px;
+    background: #050b18;
+}
+
+.bill-wrapper {
+    max-width: 620px;
+    margin: 0 auto;
+    animation: fadeInUp .6s ease;
+}
+
+.bill-success-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.success-circle-mz {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    animation: scaleIn .5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 0 40px rgba(16, 185, 129, 0.3);
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+.success-circle-mz i {
+    color: #fff;
+    font-size: 36px;
+    animation: checkPop .3s ease .3s both;
+}
+
+@keyframes checkPop {
+    from {
+        transform: scale(0) rotate(-45deg);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+.bill-success-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #6ee7b7, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+    animation: fadeInUp .5s ease .4s both;
+}
+
+.bill-success-header p {
+    color: var(--text-soft);
+    animation: fadeInUp .5s ease .5s both;
+}
+
+.bill-card-mz {
+    background: var(--card);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, .08);
+    overflow: hidden;
+    animation: fadeInUp .5s ease .3s both;
+}
+
+.bill-card-top {
+    padding: 20px 28px;
+    background: rgba(16, 185, 129, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bill-label-sm {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.bill-order-code {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--primary);
+    font-family: monospace;
+}
+
+.bill-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6ee7b7;
+}
+
+.bill-movie-section {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 28px;
+    border-bottom: 1px dashed rgba(255, 255, 255, .06);
+}
+
+.bill-movie-icon {
+    font-size: 40px;
+    flex-shrink: 0;
+}
+
+.bill-movie-detail {
+    min-width: 0;
+    overflow-wrap: break-word;
+}
+
+.bill-movie-detail h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    word-break: break-word;
+    line-height: 1.35;
+}
+
+.bill-movie-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    font-size: 13px;
+    color: var(--text-soft);
+}
+
+.bill-movie-meta i {
+    color: var(--primary);
+    margin-right: 4px;
+}
+
+.bill-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 0 28px;
+}
+
+.bill-detail-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, .04);
+}
+
+.bill-detail-item i {
+    font-size: 18px;
+    color: var(--primary);
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.bill-detail-item .label {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 2px;
+}
+
+.bill-detail-item .value {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    word-break: break-word;
+}
+
+.bill-price-section {
+    padding: 20px 28px;
+    border-top: 1px solid rgba(255, 255, 255, .06);
+}
+
+.bill-price-section h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-soft);
+    margin-bottom: 12px;
+}
+
+.bill-price-section h4 i {
+    color: var(--primary);
+    margin-right: 6px;
+}
+
+.bill-price-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 14px;
+    color: var(--text-soft);
+}
+
+.bill-price-total {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 14px;
+    margin-top: 10px;
+    border-top: 1px dashed rgba(255, 255, 255, .1);
+    font-weight: 700;
+}
+
+.total-amount {
+    font-size: 22px;
+    background: linear-gradient(135deg, #fff, #6ee7b7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* ---- QR Xác Nhận Vé ---- */
+.bill-qr-section {
+    margin: 0;
+    padding: 24px 28px;
+    border-top: 1px dashed rgba(255, 255, 255, .08);
+    background: linear-gradient(135deg, rgba(126, 166, 255, .03), rgba(16, 185, 129, .03));
+    animation: fadeInUp .5s ease .45s both;
+}
+
+.bill-qr-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.bill-qr-header > i {
+    font-size: 28px;
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.bill-qr-header h4 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    color: #fff;
+}
+
+.bill-qr-header p {
+    font-size: 13px;
+    color: var(--text-soft);
+    margin: 0;
+}
+
+.bill-qr-body {
+    text-align: center;
+}
+
+.bill-qr-frame {
+    display: inline-block;
+    padding: 14px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow:
+        0 0 0 1px rgba(126, 166, 255, .15),
+        0 8px 32px rgba(0, 0, 0, .25),
+        0 0 60px rgba(126, 166, 255, .08);
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.bill-qr-frame::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--primary), #10b981, var(--primary));
+    z-index: -1;
+    opacity: .5;
+}
+
+.bill-qr-frame img {
+    display: block;
+    width: 200px;
+    height: 200px;
+    border-radius: 8px;
+}
+
+.bill-qr-code-text {
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: var(--primary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.bill-qr-cinema {
+    font-size: 13px;
+    color: var(--text-soft);
+}
+
+.bill-qr-cinema i {
+    color: #10b981;
+    margin-right: 4px;
+}
+
+.bill-transaction-info {
+    padding: 16px 28px;
+    background: rgba(255, 255, 255, .02);
+    border-top: 1px solid rgba(255, 255, 255, .06);
+}
+
+.trans-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+}
+
+.trans-row span:first-child {
+    color: #6b7280;
+}
+
+.trans-row span:last-child {
+    font-weight: 600;
+    color: var(--text-soft);
+}
+
+.bill-card-bottom {
+    padding: 14px 28px;
+    text-align: center;
+    font-size: 12px;
+    color: #4b5563;
+    border-top: 1px solid rgba(255, 255, 255, .04);
+}
+
+.bill-actions-mz {
+    display: flex;
+    gap: 14px;
+    margin-top: 20px;
+    animation: fadeInUp .5s ease .6s both;
+}
+
+.bill-btn-secondary,
+.bill-btn-primary {
+    flex: 1;
+    padding: 14px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .3s;
+    text-decoration: none;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+}
+
+.bill-btn-secondary {
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .1);
+    color: var(--text-soft);
+}
+
+.bill-btn-secondary:hover {
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.bill-btn-primary {
+    background: linear-gradient(135deg, var(--primary), #4d7cff);
+    color: #fff;
+}
+
+.bill-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(126, 166, 255, 0.3);
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 900px) {
+    .payment-wrapper {
+        grid-template-columns: 1fr;
+    }
+
+    .payment-info-panel {
+        position: relative;
+        top: 0;
+    }
+
+    .payment-page,
+    .bill-page {
+        padding: 20px;
+    }
+
+    .amount-value {
+        font-size: 36px;
+    }
+
+    .qr-frame img {
+        width: 180px;
+        height: 180px;
+    }
+
+    .bill-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .bill-actions-mz {
+        flex-direction: column;
+    }
+
+    .bill-qr-frame img {
+        width: 160px;
+        height: 160px;
+    }
+
+    .bill-qr-code-text {
+        font-size: 15px;
+        letter-spacing: 2px;
+    }
+}
+
+/* ---- PRINT ---- */
+@media print {
+    body {
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    .header,
+    .footer,
+    .bill-actions-mz {
+        display: none !important;
+    }
+
+    .bill-page {
+        background: #fff !important;
+        margin-top: 0 !important;
+        padding: 0 !important;
+    }
+
+    .bill-card-mz {
+        border: 2px solid #000;
+        background: #fff !important;
+    }
+
+    .bill-success-header h1,
+    .total-amount,
+    .amount-value {
+        -webkit-text-fill-color: #000;
+        color: #000;
+    }
+
+    .bill-status-badge,
+    .bill-label-sm,
+    .bill-order-code,
+    .bill-movie-detail h3,
+    .bill-detail-item .label,
+    .bill-detail-item .value,
+    .bill-price-row,
+    .bill-price-total,
+    .trans-row,
+    .bill-card-bottom,
+    .bill-qr-header h4,
+    .bill-qr-header p,
+    .bill-qr-code-text,
+    .bill-qr-cinema {
+        color: #000 !important;
+    }
+
+    .bill-qr-section {
+        background: #f8f8f8 !important;
+        border-top: 2px dashed #ccc !important;
+    }
+
+    .bill-qr-frame {
+        box-shadow: 0 0 0 2px #000 !important;
+    }
+
+    .bill-qr-frame::before {
+        display: none;
+    }
+
+    .bill-qr-code-text {
+        -webkit-text-fill-color: #000 !important;
+    }
+}
+
 /* ==========================
    MOVIE LIST PAGE
 ========================== */
@@ -2561,6 +3565,7 @@ RESPONSIVE
 }
 
 @media (max-width: 1200px) {
+
     .showtime-filter-form,
     .showtime-grid {
         grid-template-columns: 1fr;

@@ -28,13 +28,24 @@
             Chưa chọn ghế
         </div>
 
-        <div class="total-price">
+        <div class="total-price" id="totalPrice">
             0đ
         </div>
 
-        <button class="btn-payment">
-            Tiếp Tục Thanh Toán
-        </button>
+        <form action="{{ route('booking.checkout') }}" method="POST" id="bookingForm">
+            @csrf
+            <input type="hidden" name="seats" id="seatsInput" value="[]">
+            <input type="hidden" name="movie_title" value="Avatar: Dòng Chảy Của Nước">
+            <input type="hidden" name="cinema" value="CGV Vincom">
+            <input type="hidden" name="room" value="P05 - 2D">
+            <input type="hidden" name="showtime" value="20:00 - 23:15">
+            <input type="hidden" name="show_date" value="{{ now()->format('d/m/Y') }}">
+            <input type="hidden" name="format" value="2D">
+
+            <button type="submit" class="btn-payment" id="btnPayment" disabled>
+                Tiếp Tục Thanh Toán
+            </button>
+        </form>
 
     </div>
 
@@ -57,7 +68,7 @@
 
             @for($i = 1; $i <= 16; $i++)
 
-                <button class="seat available-seat-btn" data-seat="{{ $row.$i }}">
+                <button type="button" class="seat available-seat-btn" data-seat="{{ $row.$i }}" data-type="standard" data-price="80000">
                     {{ $i }}
                 </button>
 
@@ -77,54 +88,37 @@
 
     <div class="vip-row">
 
-        <div class="vip-seat">VIP</div>
-        <div class="vip-seat">VIP</div>
-        <div class="vip-seat">VIP</div>
-        <div class="vip-seat">VIP</div>
+        @for($i = 1; $i <= 4; $i++)
+        <button type="button" class="seat vip-seat-btn" data-seat="VIP{{ $i }}" data-type="vip" data-price="150000">
+            VIP{{ $i }}
+        </button>
+        @endfor
 
         <div class="aisle"></div>
 
-        <div class="vip-seat">VIP</div>
-        <div class="vip-seat">VIP</div>
-        <div class="vip-seat">VIP</div>
+        @for($i = 5; $i <= 7; $i++)
+        <button type="button" class="seat vip-seat-btn" data-seat="VIP{{ $i }}" data-type="vip" data-price="150000">
+            VIP{{ $i }}
+        </button>
+        @endfor
 
     </div>
 
     <div class="sweetbox-row">
 
-        <div class="sweet-seat">
-            <i class="fa-solid fa-user"></i> 1
-        </div>
-
-        <div class="sweet-seat">
-            <i class="fa-solid fa-user"></i> 2
-        </div>
-
-        <div class="sweet-seat">
-            <i class="fa-solid fa-user"></i> 3
-        </div>
-
-        <div class="sweet-seat">
-            <i class="fa-solid fa-user"></i> 4
-        </div>
+        @for($i = 1; $i <= 4; $i++)
+        <button type="button" class="seat sweet-seat-btn" data-seat="SW{{ $i }}" data-type="sweetbox" data-price="200000">
+            <i class="fa-solid fa-heart"></i> {{ $i }}
+        </button>
+        @endfor
 
         <div class="aisle"></div>
 
-        <div class="sweet-seat">
-            <i class="fa-solid fa-user"></i> 5
-        </div>
-
-        <div class="sweet-seat">
-            <i class="fa-solid fa-user"></i> 6
-        </div>
-
-        <div class="sweet-seat">
-            <i class="fa-solid fa-user"></i> 7
-        </div>
-
-        <div class="sweet-seat">
-            <i class="fa-solid fa-user"></i> 8
-        </div>
+        @for($i = 5; $i <= 8; $i++)
+        <button type="button" class="seat sweet-seat-btn" data-seat="SW{{ $i }}" data-type="sweetbox" data-price="200000">
+            <i class="fa-solid fa-heart"></i> {{ $i }}
+        </button>
+        @endfor
 
     </div>
 
@@ -132,32 +126,27 @@
 
         <div class="legend-item">
             <i class="fa-solid fa-couch available-seat"></i>
-            <span>AVAILABLE</span>
-        </div>
-
-        <div class="legend-item">
-            <i class="fa-solid fa-couch held-seat"></i>
-            <span>HELD</span>
-        </div>
-
-        <div class="legend-item">
-            <i class="fa-solid fa-couch sold-seat"></i>
-            <span>SOLD</span>
-        </div>
-
-        <div class="legend-item">
-            <i class="fa-solid fa-lock blocked-seat"></i>
-            <span>BLOCKED</span>
+            <span>Thường - 80K</span>
         </div>
 
         <div class="legend-item">
             <i class="fa-solid fa-crown vip-seat-icon"></i>
-            <span>VIP</span>
+            <span>VIP - 150K</span>
         </div>
 
         <div class="legend-item">
             <i class="fa-solid fa-heart sweet-seat-icon"></i>
-            <span>SWEETBOX</span>
+            <span>Sweetbox - 200K</span>
+        </div>
+
+        <div class="legend-item">
+            <i class="fa-solid fa-couch held-seat"></i>
+            <span>Đã chọn</span>
+        </div>
+
+        <div class="legend-item">
+            <i class="fa-solid fa-couch sold-seat"></i>
+            <span>Đã bán</span>
         </div>
 
     </div>
@@ -167,5 +156,64 @@
 </div>
 
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const selectedSeats = new Map();
+    const selectedSeatsEl = document.getElementById('selectedSeats');
+    const totalPriceEl = document.getElementById('totalPrice');
+    const seatsInput = document.getElementById('seatsInput');
+    const btnPayment = document.getElementById('btnPayment');
+
+    document.querySelectorAll('.seat[data-seat]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const seatCode = btn.dataset.seat;
+            const seatType = btn.dataset.type;
+            const seatPrice = parseInt(btn.dataset.price);
+
+            if (selectedSeats.has(seatCode)) {
+                selectedSeats.delete(seatCode);
+                btn.classList.remove('selected');
+            } else {
+                selectedSeats.set(seatCode, {
+                    code: seatCode,
+                    type: seatType,
+                    price: seatPrice,
+                });
+                btn.classList.add('selected');
+            }
+
+            updateUI();
+        });
+    });
+
+    function updateUI() {
+        if (selectedSeats.size === 0) {
+            selectedSeatsEl.innerHTML = 'Chưa chọn ghế';
+            totalPriceEl.textContent = '0đ';
+            btnPayment.disabled = true;
+            btnPayment.textContent = 'Tiếp Tục Thanh Toán';
+        } else {
+            const seatTags = [];
+            let total = 0;
+
+            selectedSeats.forEach((seat) => {
+                total += seat.price;
+                const typeLabel = seat.type === 'vip' ? '👑' : seat.type === 'sweetbox' ? '💕' : '🎬';
+                seatTags.push(
+                    `<span class="seat-tag seat-tag-${seat.type}">${typeLabel} ${seat.code}</span>`
+                );
+            });
+
+            selectedSeatsEl.innerHTML = seatTags.join('');
+            totalPriceEl.textContent = total.toLocaleString('vi-VN') + 'đ';
+            btnPayment.disabled = false;
+            btnPayment.textContent = `Thanh Toán ${total.toLocaleString('vi-VN')}đ →`;
+        }
+
+        seatsInput.value = JSON.stringify(Array.from(selectedSeats.values()));
+    }
+});
+</script>
 
 @endsection
