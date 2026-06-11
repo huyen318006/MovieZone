@@ -127,6 +127,8 @@ Route::get('/news-detail', function () {
 // Hồ sơ người dùng
 Route::middleware('auth')->group(function(){ //chưa đăng nhập thì không xem được hồ sơ
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
+    // dòng mới: Trang hiển thị FORM chỉnh sửa hồ sơ
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
     //cập nhật hồ sơ
     Route::post('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
     //đổi mkhau
@@ -155,6 +157,6 @@ function (){
     return view('admin.film_management');
 })->name('admin.film');
 
-Route::get('/my-tickets', function () {
-    return view('ticket.index');
-})->name('tickets');
+// Route::get('/admin/my-tickets', function () {   
+//     return view('ticket.index');
+// })->name('admin.tickets');

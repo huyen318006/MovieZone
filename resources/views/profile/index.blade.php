@@ -1,192 +1,215 @@
+@extends('layout.app')
+
+@section('content')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-<div class="profile-container">
 
+    <div class="profile-container">
     <h2>Hồ sơ cá nhân</h2>
+    
     <div class="profile-actions">
-
         <a href="{{ route('home') }}" class="action-btn">
             <i class="bi bi-house-door-fill"></i>
             <span>Trang chủ</span>
         </a>
-
         <a href="{{ route('tickets') }}" class="action-btn action-btn-secondary">
             <i class="bi bi-receipt-cutoff"></i>
             <span>Lịch sử giao dịch</span>
         </a>
-
     </div>
 
-    <div class="avatar-box">
-        @if(auth()->user()->avatar)
-            <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="avatar">
-        @else
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80" alt="avatar">
-        @endif
+    <div class="avatar-wrapper">
+        <div class="avatar-box">
+            @if(auth()->user()->avatar)
+                <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="avatar">
+            @else
+                <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150&q=80" alt="avatar">
+            @endif
+        </div>
+        <h3 class="user-display-name">{{ auth()->user()->name }}</h3>
+        <span class="user-badge">Thành viên</span>
     </div>
 
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
-    
-    @if($errors->any())
-        <div class="alert alert-danger">
-            @foreach ($errors->all() as $error)
-                <div>{{ $error }}</div>
-            @endforeach
-        </div>
-    @endif
-    
-    <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
-        @csrf
-        <div class="form-group">
-            <label>Họ tên</label>
-            <input type="text" name="name" value="{{ auth()->user()->name }}">
+
+    <div class="info-card-list">
+        <div class="info-item">
+            <div class="info-label"><i class="bi bi-person-fill"></i> Họ tên</div>
+            <div class="info-value">{{ auth()->user()->name }}</div>
         </div>
 
-        <div class="form-group">
-            <label>Email</label>
-            <input type="email" value="{{ auth()->user()->email }}" readonly class="readonly-input">
+        <div class="info-item">
+            <div class="info-label"><i class="bi bi-envelope-fill"></i> Email</div>
+            <div class="info-value value-email">{{ auth()->user()->email }}</div>
         </div>
 
-        <div class="form-group">
-            <label>Số điện thoại</label>
-            <input type="text" name="phone" value="{{ auth()->user()->phone }}">
+        <div class="info-item">
+            <div class="info-label"><i class="bi bi-telephone-fill"></i> Số điện thoại</div>
+            <div class="info-value">{{ auth()->user()->phone ?? 'Chưa cập nhật' }}</div>
         </div>
+    </div>
 
-        <div class="form-group">
-            <label>Ảnh đại diện</label>
-            <div class="file-input-wrapper">
-                <input type="file" name="avatar" accept="image/*">
-            </div>
-        </div>
-
-        <button type="submit" class="btn-submit">
-            Cập nhật thông tin
-        </button>
-    </form>
-
-    <hr class="divider">
-
-    <h3>Đổi mật khẩu</h3>
-
-
-    <form action="{{ route('profile.password.change') }}" method="POST">
-        @csrf
-        @method('PUT')
-
-        <div class="form-group">
-            <label>Mật khẩu hiện tại</label>
-            <div class="input-password-wrapper">
-                <input type="password" name="current_password" placeholder="••••••••" required>
-                <span class="toggle-password"></span>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Mật khẩu mới</label>
-            <div class="input-password-wrapper">
-                <input type="password" name="new_password" placeholder="Tối thiểu 6 ký tự" required>
-                <span class="toggle-password"></span>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label>Xác nhận mật khẩu</label>
-            <div class="input-password-wrapper">
-                <input type="password" name="new_password_confirmation" placeholder="Nhập lại mật khẩu mới" required>
-                <span class="toggle-password"></span>
-            </div>
-        </div>
-
-        <button type="submit" class="btn-submit btn-secondary">
-            Đổi mật khẩu
-        </button>
-    </form>
-
+    <a href="{{ route('profile.edit') }}" class="btn-submit text-center-btn">
+        <i class="bi bi-pencil-square"></i> Chỉnh sửa hồ sơ cá nhân
+    </a>
 </div>
-
-<script>
-    // Mã SVG vẽ mắt mở và mắt đóng gạch chéo chuẩn nét
-    const eyeOpenIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>`;
-    const eyeCloseIcon = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 1-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>`;
-
-    // Khởi tạo ban đầu hiển thị mắt đóng (mật khẩu đang ẩn)
-    document.querySelectorAll('.toggle-password').forEach(span => {
-        span.innerHTML = eyeCloseIcon;
-        
-        span.addEventListener('click', function() {
-            const input = this.parentElement.querySelector('input');
-            if (input.type === 'password') {
-                input.type = 'text';
-                this.innerHTML = eyeOpenIcon; // Hiện mật khẩu -> Đổi sang mắt mở
-            } else {
-                input.type = 'password';
-                this.innerHTML = eyeCloseIcon; // Ẩn mật khẩu -> Đổi sang mắt gạch chéo
-            }
-        });
-    });
-</script>
-
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+/* Toàn bộ khung nền Đen Carbon sâu */
 .profile-container {
     font-family: 'Inter', sans-serif;
-    max-width: 650px;
-    margin: 40px auto;
-    background: #18181b; 
+    max-width: 600px;
+    background: #09090b; /* Đen kịt nền sâu cực chất */
     color: #f4f4f5; 
-    padding: 40px;
+    padding: 35px;
     border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 1px solid #27272a; 
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+    border: 1px solid #1e293b; /* Border xanh đen nhẹ */
+    margin: 150px auto 0px auto;
 }
 
-.profile-container h2, 
-.profile-container h3 {
-    font-weight: 600;
-    letter-spacing: -0.5px;
-    margin-top: 0;
-}
-
+/* Header & Tiêu đề */
 .profile-container h2 {
     color: #ffffff;
     font-size: 24px;
-    margin-bottom: 25px;
-    border-left: 4px solid #3b82f6; 
+    font-weight: 700;
+    margin: 0 0 25px 0;
+    border-left: 4px solid #2563eb; /* Thanh dọc xanh Neon nổi bật */
     padding-left: 12px;
 }
-
 .profile-container h3 {
     color: #e4e4e7;
-    font-size: 20px;
+    font-size: 18px;
+    font-weight: 600;
     margin-bottom: 20px;
 }
+.edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+.back-profile-btn {
+    text-decoration: none;
+    color: #3b82f6;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.back-profile-btn:hover {
+    color: #60a5fa;
+}
 
-.avatar-box {
+/* Top Actions Navigation */
+.profile-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 30px;
+    width: 100%;
+}
+.action-btn {
+    text-decoration: none !important; 
+    color: #ffffff !important;
+    background: #1e293b;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #334155;
+    transition: all 0.2s;
+}
+.action-btn:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+}
+.action-btn i {
+    font-size: 16px;
+}
+
+/* Avatar Box */
+.avatar-wrapper {
     text-align: center;
     margin-bottom: 30px;
-    position: relative;
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.1) 0%, rgba(0,0,0,0) 100%);
+    padding: 20px;
+    border-radius: 12px;
 }
-
+.avatar-box {
+    text-align: center;
+    margin-bottom: 12px;
+}
 .avatar-box img {
-    width: 130px;
-    height: 130px;
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #2563eb; 
-    box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
+    border: 3px solid #2563eb; /* Viền xanh biển phát sáng */
+    box-shadow: 0 0 20px rgba(37, 99, 235, 0.5);
     transition: transform 0.3s ease;
 }
-
 .avatar-box img:hover {
     transform: scale(1.05);
 }
+.user-display-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+    margin: 8px 0 4px 0 !important;
+}
+.user-badge {
+    font-size: 12px;
+    background: rgba(37, 99, 235, 0.2);
+    color: #60a5fa;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    border: 1px solid rgba(37, 99, 235, 0.3);
+}
 
+/* Thẻ hiển thị thông tin ở trang Profile chính */
+.info-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 25px;
+}
+.info-item {
+    background: #111827; /* Màu ô thông tin xanh đen tối */
+    border: 1px solid #1f2937;
+    padding: 14px 20px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.info-label {
+    font-size: 14px;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.info-label i {
+    color: #3b82f6; /* Icon màu xanh biển */
+}
+.info-value {
+    font-size: 15px;
+    font-weight: 500;
+    color: #ffffff;
+}
+.info-value.value-email {
+    color: #93c5fd; /* Highlight email màu xanh nhạt */
+}
+
+/* Các trường Input mẫu form Edit */
 .form-group {
     margin-bottom: 20px;
 }
-
 .profile-container label {
     display: block;
     margin-bottom: 8px;
@@ -194,116 +217,112 @@
     font-weight: 500;
     color: #94a3b8; 
 }
-
 .profile-container input[type="text"],
 .profile-container input[type="email"],
 .profile-container input[type="password"] {
     width: 100%;
     padding: 12px 16px;
-    background: #1e293b; 
-    border: 1px solid #3f3f46;
+    background: #111827; 
+    border: 1px solid #374151;
     border-radius: 8px;
     color: #ffffff;
     font-size: 15px;
     transition: all 0.2s ease;
     box-sizing: border-box;
 }
-
 .profile-container input:focus {
     outline: none;
-    border-color: #3b82f6; 
-    background: #202023;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    border-color: #2563eb; 
+    background: #1f2937;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
-
 .profile-container input.readonly-input {
-    background: #1f1f22;
-    border-color: #27272a;
-    color: #71717a;
+    background: #0f172a;
+    border-color: #1e293b;
+    color: #64748b;
     cursor: not-allowed;
 }
-
-.profile-container input[type="file"] {
-    color: #a1a1aa;
-    font-size: 14px;
+.file-input-wrapper {
+    background: #111827;
+    border: 1px solid #374151;
+    padding: 10px;
+    border-radius: 8px;
 }
 
+/* Phân cách */
 .divider {
     border: 0;
     height: 1px;
-    background: #27272a;
+    background: #1e293b;
     margin: 35px 0;
 }
 
+/* Nút bấm (Buttons) */
 .btn-submit {
     width: 100%;
-    background: #2563eb; 
+    background: #2563eb; /* Màu xanh chủ đạo chính */
     color: #ffffff;
     border: none;
     padding: 14px 20px;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     margin-top: 10px;
+    display: inline-block;
+    box-sizing: border-box;
 }
-
+.text-center-btn {
+    text-align: center;
+    text-decoration: none;
+}
 .btn-submit:hover {
     background: #1d4ed8;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
 }
-
-.btn-submit:active {
-    transform: translateY(1px);
-}
-
 .btn-secondary {
-    background: #1e293b;
-    border: 1px solid #334155;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: #e5e7eb;
+    box-shadow: none;
 }
-
 .btn-secondary:hover {
-    background: #334155;
+    background: #374151;
     color: #ffffff;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
-/* CSS ĐỂ ĐỊNH VỊ CON MẮT NẰM TRONG Ô INPUT */
+/* Mắt ẩn hiện password */
 .input-password-wrapper {
     position: relative;
     display: flex;
     align-items: center;
 }
-
 .input-password-wrapper input {
-    padding-right: 45px !important; /* Khoảng cách tránh chữ bị đè lên con mắt */
+    padding-right: 45px !important;
 }
-
 .toggle-password {
     position: absolute;
     right: 14px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    color: #64748b; 
+    color: #4b5563; 
     transition: color 0.2s;
     user-select: none;
 }
-
 .toggle-password:hover {
-    color: #f4f4f5; 
+    color: #3b82f6; 
 }
-
 .toggle-password svg {
     width: 20px;
     height: 20px;
 }
 
-/* Khung hiển thị thông báo alert */
+/* Alert báo lỗi / thành công */
 .alert {
     padding: 12px 16px;
     border-radius: 8px;
@@ -320,21 +339,5 @@
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.2);
 }
-.action-btn {
-    text-decoration: none !important; 
-    color: #ffffff !important;       
-}
-.action-btn i .action-btn span{
-    color: inherit; 
-    text-decoration: none;
-}
-.action-btn i{
-    font-size:18px;
-}
-.profile-actions{
-    display: flex;
-    justify-content: space-between;
-    align-items: center;            
-    width: 100%;
-}
 </style>
+@endsection

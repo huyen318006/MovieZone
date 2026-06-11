@@ -1,5 +1,18 @@
+@extends('layout.app')
+
+@section('content')
 <div class="ticket-history-container">
 
+    <div class="profile-actions">
+        <a href="{{ route('home') }}" class="action-btn">
+            <i class="bi bi-house-door-fill"></i>
+            <span>Trang chủ</span>
+        </a>
+        <a href="{{ route('profile') }}" class="action-btn">
+            <i class="bi bi-house-door-fill"></i>
+            <span>Hồ sơ cá nhân</span>
+        </a>
+    </div>
     <div class="history-header">
         <h2>Lịch sử giao dịch</h2>
         <p>Danh sách các vé và giao dịch đã thực hiện</p>
@@ -74,10 +87,37 @@
 <style>
     .ticket-history-container{
     max-width:1200px;
-    margin:40px auto;
+    margin: 150px auto 0px auto;
     padding:0 20px;
 }
-
+.profile-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 30px;
+    width: 100%;
+}
+.action-btn {
+    text-decoration: none !important; 
+    color: #000000 !important;
+    background: #c4c3c3;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #334155;
+    transition: all 0.2s;
+}
+.action-btn:hover {
+    background: #2563eb;
+    border-color: #2563eb;
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+}
+.action-btn i {
+    font-size: 16px;
+}
 .history-header{
     margin-bottom:25px;
 }
@@ -94,7 +134,7 @@
 }
 
 .history-card{
-    background:#111827;
+    background:#ffffff;
     border-radius:16px;
     overflow:hidden;
     box-shadow:0 10px 30px rgba(0,0,0,.25);
@@ -106,11 +146,11 @@
 }
 
 .history-table thead{
-    background:#0f172a;
+    background:#042369;
 }
 
 .history-table thead th{
-    color:#38bdf8;
+    color:#ffffff;
     text-align:left;
     padding:18px;
     font-size:14px;
@@ -119,21 +159,21 @@
 }
 
 .history-table tbody tr{
-    border-bottom:1px solid rgba(255,255,255,.06);
+    border-bottom:1px solid rgba(85, 93, 234, 0.06);
     transition:.3s;
 }
 
 .history-table tbody tr:hover{
-    background:#1e293b;
+    background:#cbdfff;
 }
 
 .history-table tbody td{
-    color:#f1f5f9;
+    color:#000000;
     padding:18px;
 }
 
 .price{
-    color:#38bdf8;
+    color:#ffffff;
     font-weight:700;
 }
 
@@ -161,3 +201,4 @@
     color:#94a3b8 !important;
 }
 </style>
+@endsection
