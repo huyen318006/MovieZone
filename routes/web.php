@@ -8,6 +8,7 @@ use App\Http\Controllers\TicketController;
 use App\Http\Controllers\MovieController;
 use App\Http\Controllers\ShowtimeController;
 use App\Http\Controllers\SepayController;
+use App\Http\Controllers\BookingController; 
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -88,9 +89,6 @@ Route::get('/cinemas', function () {
 })->name('cinemas');
 
 // Chọn ghế
-Route::get('/booking-seat', function () {
-    return view('booking.seat');
-})->name('booking.seat');
 
 // Booking payment flow
 Route::prefix('booking')->name('booking.')->group(function () {
@@ -158,3 +156,23 @@ function (){
 Route::get('/my-tickets', function () {
     return view('ticket.index');
 })->name('tickets');
+
+
+
+/* --------------------- UC-08 & UC-11: ĐẶT VÉ ------------------ */
+Route::middleware(['auth'])->group(function () {
+    // UC-08: Hiển thị màn hình chọn ghế (Sửa tên cho đồng bộ)
+    Route::get('/booking/showtime/{showtime_id}/seat', [BookingController::class, 'showSeats'])->name('booking.seat');
+    
+    // UC-08: AJAX xử lý giữ/hủy ghế theo thời gian thực (5 phút)
+    Route::post('/booking/hold-seat', [BookingController::class, 'holdSeat'])->name('booking.holdSeat');
+    
+    // UC-08 -> UC-11: Submit danh sách ghế đã chọn vào Session
+    Route::post('/booking/seats/submit', [BookingController::class, 'submitSeats'])->name('booking.seats.submit');
+
+    // UC-11: Hiển thị màn hình xác nhận đặt vé
+    Route::get('/booking/confirm', [BookingController::class, 'showConfirm'])->name('booking.confirm');
+    
+    // UC-11: Nút "Xác nhận đặt vé" -> Tạo DB -> Chuyển thanh toán
+    Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
+});
