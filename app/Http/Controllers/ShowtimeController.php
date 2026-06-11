@@ -117,3 +117,4 @@ class ShowtimeController extends Controller
         return redirect()->route('booking.seat', ['showtime_id' => $showtime->id]);
     }
 }
+?>

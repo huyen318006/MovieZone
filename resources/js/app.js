@@ -14,13 +14,27 @@ window.Autoplay = Autoplay;
 // chạy banner và tin tức
 
 document.addEventListener('DOMContentLoaded', ()=>{
-    const heroSlides=document.querySelectorAll('.hero-slide');
+   const heroSlides =
+document.querySelectorAll('.hero-slide');
+
+if(heroSlides.length){
+
     let heroIndex=0;
+
     setInterval(()=>{
-        heroSlides.forEach(s=>s.classList.remove('active'));
-        heroIndex=(heroIndex+1)%heroSlides.length;
-        heroSlides[heroIndex].classList.add('active');
+
+        heroSlides.forEach(slide=>{
+            slide.classList.remove('active');
+        });
+
+        heroIndex=
+        (heroIndex+1)%heroSlides.length;
+
+        heroSlides[heroIndex]
+        .classList.add('active');
+
     },5000);
+}
 
     const newsSlides=document.querySelectorAll('.news-slide');
     const newsDots=document.querySelectorAll('.news-dots span');
