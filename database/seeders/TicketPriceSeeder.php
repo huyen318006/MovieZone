@@ -22,7 +22,7 @@ class TicketPriceSeeder extends Seeder
                 'seat_type' => 'STANDARD',
                 'day_type' => 'WEEKDAY',
                 'time_type' => 'MORNING',
-                'price' => 80000,
+                'price' => 10000,
                 'status' => 'ACTIVE',
                 'created_at' => now(),
                 'updated_at' => now(),

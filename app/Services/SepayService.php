@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use App\Mail\InvoiceMail;
+use App\Models\Invoice;
 use App\Models\SepayOrder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class SepayService
@@ -59,7 +62,7 @@ class SepayService
      * Bảng giá ghế
      */
     const SEAT_PRICES = [
-        'standard' => 80000,
+        'standard' => 10000,
         'vip'      => 150000,
         'sweetbox' => 200000,
     ];
@@ -99,14 +102,16 @@ class SepayService
             'amount'       => $totalAmount,
             'status'       => 'pending',
             'metadata'     => [
-                'movie_title' => $bookingData['movie_title'] ?? '',
-                'cinema'      => $bookingData['cinema'] ?? '',
-                'room'        => $bookingData['room'] ?? '',
-                'showtime'    => $bookingData['showtime'] ?? '',
-                'show_date'   => $bookingData['show_date'] ?? '',
-                'format'      => $bookingData['format'] ?? '',
-                'seats'       => $seatDetails,
-                'seat_count'  => count($seatDetails),
+                'movie_title'    => $bookingData['movie_title'] ?? '',
+                'cinema'         => $bookingData['cinema'] ?? '',
+                'room'           => $bookingData['room'] ?? '',
+                'showtime'       => $bookingData['showtime'] ?? '',
+                'show_date'      => $bookingData['show_date'] ?? '',
+                'format'         => $bookingData['format'] ?? '',
+                'seats'          => $seatDetails,
+                'seat_count'     => count($seatDetails),
+                'customer_email' => $bookingData['customer_email'] ?? '',
+                'customer_name'  => $bookingData['customer_name'] ?? null,
             ],
         ]);
     }
@@ -214,15 +219,18 @@ class SepayService
                     $order->markAsPaid($transactionId, $transaction);
 
                     Log::info('SePay payment confirmed', [
-                        'order_code' => $orderCode,
+                        'order_code'     => $orderCode,
                         'transaction_id' => $transactionId,
-                        'amount' => $amountIn,
+                        'amount'         => $amountIn,
                     ]);
 
+                    // Tạo hoá đơn và gửi email
+                    $this->createInvoiceAndSendEmail($order->fresh());
+
                     return [
-                        'status' => 'paid',
+                        'status'  => 'paid',
                         'message' => 'Thanh toán thành công',
-                        'order' => $order->fresh(),
+                        'order'   => $order->fresh(),
                     ];
                 }
             }
@@ -245,5 +253,56 @@ class SepayService
     public function getOrderByCode(string $orderCode): ?SepayOrder
     {
         return SepayOrder::where('order_code', $orderCode)->first();
+    }
+
+    /**
+     * Tạo hoá đơn và gửi email cho khách hàng
+     */
+    protected function createInvoiceAndSendEmail(SepayOrder $order): void
+    {
+        try {
+            // Chỉ tạo invoice cho đơn booking đã thanh toán
+            if (! $order->isPaid()) {
+                return;
+            }
+
+            // Kiểm tra đã tạo invoice chưa (tránh duplicate)
+            if ($order->invoice) {
+                return;
+            }
+
+            $invoice = Invoice::createFromOrder($order);
+
+            // Lấy email khách hàng từ metadata
+            $customerEmail = $order->metadata['customer_email'] ?? '';
+
+            if (empty($customerEmail)) {
+                Log::warning('No customer email for invoice', [
+                    'order_code' => $order->order_code,
+                    'invoice_code' => $invoice->invoice_code,
+                ]);
+                return;
+            }
+
+            // Gửi email
+            Mail::to($customerEmail)->send(new InvoiceMail($invoice));
+            $invoice->markEmailSent();
+
+            Log::info('Invoice email sent successfully', [
+                'invoice_code' => $invoice->invoice_code,
+                'email' => $customerEmail,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to create invoice or send email', [
+                'order_code' => $order->order_code,
+                'error' => $e->getMessage(),
+            ]);
+
+            // Nếu invoice đã tạo nhưng gửi mail lỗi
+            if (isset($invoice)) {
+                $invoice->markEmailFailed();
+            }
+        }
     }
 }

@@ -154,4 +154,12 @@ class SepayOrder extends Model
     {
         return $this->package_id === 'booking';
     }
+
+    /**
+     * Relationship: Hoá đơn liên kết
+     */
+    public function invoice()
+    {
+        return $this->hasOne(Invoice::class);
+    }
 }
