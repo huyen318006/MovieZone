@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('seats', function (Blueprint $table) {
-
             $table->id();
 
             $table->foreignId('room_id')
@@ -20,13 +19,12 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->string('row_label', 10);
-
             $table->integer('seat_number');
-
             $table->string('seat_code', 20);
 
+            // Giữ nguyên bản gốc của cậu
             $table->enum('seat_type', [
-                'NORMAL',
+                'STANDARD', // Đổi từ NORMAL thành STANDARD cho đồng bộ với bảng giá
                 'VIP',
                 'COUPLE'
             ]);
@@ -35,7 +33,10 @@ return new class extends Migration
                 'ACTIVE',
                 'BROKEN',
                 'LOCKED'
-            ]);
+            ])->default('ACTIVE');
+
+            // THÊM: Cột lưu giá tiền theo yêu cầu mới
+            $table->decimal('price', 12, 2)->default(80000.00);
 
             $table->timestamps();
 

@@ -22,7 +22,9 @@
                 </div>
 
                 <h3>GHẾ ĐÃ CHỌN</h3>
+
                 <div id="selectedSeats">Chưa chọn ghế</div>
+
                 <div class="total-price" id="totalPrice">0đ</div>
 
                 <form action="{{ route('booking.seats.submit') }}" method="POST" id="bookingForm">
@@ -30,8 +32,23 @@
                     <input type="hidden" name="showtime_id" value="{{ $showtime->id }}">
                     <div id="hidden-seat-inputs"></div>
 
+                    <div class="email-input-group" style="margin-top: 20px; margin-bottom: 16px;">
+                        <label for="customerEmail" style="display: block; color: #94a3b8; font-size: 13px; margin-bottom: 6px;">
+                            <i class="fa-solid fa-envelope"></i> Email nhận hoá đơn <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input type="email" name="customer_email" id="customerEmail" required
+                            placeholder="Nhập email của bạn..."
+                            value="{{ auth()->check() ? auth()->user()->email : '' }}"
+                            style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s;"
+                            onfocus="this.style.borderColor='#8b5cf6'"
+                            onblur="this.style.borderColor='#334155'">
+                        <small style="color: #64748b; font-size: 11px; margin-top: 4px; display: block;">
+                            Hoá đơn sẽ được gửi đến email này sau khi thanh toán
+                        </small>
+                    </div>
+
                     <button type="submit" class="btn-payment" id="btnPayment" disabled>
-                        Tiếp Tục Xác Nhận
+                        Tiếp Tục Thanh Toán
                     </button>
                 </form>
             </div>
@@ -51,56 +68,53 @@
             <div id="ajax-error-box" style="display: none; color: white; background: #dc3545; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px;"></div>
 
             <div class="seat-map">
-               @php
+                @foreach(range('A','J') as $rowLabel)
+                    @if(!empty($seatMap[$rowLabel]))
+                        <div class="seat-row">
+                            <span class="row-label">{{ $rowLabel }}</span>
+                            
+                            @foreach($seatMap[$rowLabel] as $s)
+                                @php
+                                    $isDisabled = in_array($s['status'], ['SOLD', 'BLOCKED', 'HELD']) ? 'disabled' : '';
+                                    
+                                    // Set class and icon based on type
+                                    if ($s['type'] === 'sweetbox') {
+                                        $btnClass = 'sweet-seat-btn';
+                                        $icon = '<i class="fa-solid fa-heart"></i> ';
+                                    } elseif ($s['type'] === 'vip') {
+                                        $btnClass = 'vip-seat-btn';
+                                        $icon = '<i class="fa-solid fa-crown" style="font-size: 11px; margin-right: 2px;"></i>';
+                                    } else {
+                                        $btnClass = 'available-seat-btn';
+                                        $icon = '';
+                                    }
+                                @endphp
 
-        function getDbSeat($seats,$row,$number)
-        {
-            return $seats->first(function($seat) use ($row,$number){
+                                <button type="button" 
+                                        class="seat {{ $btnClass }} {{ $s['status'] }}" 
+                                        data-id="{{ $s['id'] }}" 
+                                        data-seat="{{ $s['code'] }}" 
+                                        data-type="{{ $s['type'] }}" 
+                                        data-price="{{ $s['price'] }}"
+                                        {{ $isDisabled }}>
+                                    {!! $icon !!}{{ $s['label'] }}
+                                </button>
 
-                return
-                    $seat->seat->row_label == $row
-                    &&
-                    $seat->seat->seat_number == $number;
-
-            });
-        }
-
-        @endphp     
-                @foreach(
-                    $seats
-                    ->pluck('seat.row_label')
-                    ->unique()
-                    ->sortDesc()
-                    as $row
-                    )
-                <div class="seat-row">
-                    <span class="row-label">{{ $row }}</span>
-                    @for($i = 1; $i <= 16; $i++)
-                        @php
-                            $dbSeat = getDbSeat($seats, $row, $i);
-                        @endphp
-                        @if($dbSeat)
-                            <button type="button"
-                                    class="seat available-seat-btn {{ $dbSeat->display_status }}"
-                                    data-id="{{ $dbSeat->id }}"
-                                    data-seat="{{ $dbSeat->seat->seat_code }}"
-                                    data-type="standard"
-                                    data-price="{{ $dbSeat->price }}"
-                                    {{ in_array($dbSeat->display_status, ['SOLD','BLOCKED','HELD']) ? 'disabled' : '' }}>
-                                {{ $i }}
-                            </button>
-                        @endif
-
-                        @if($i == 8) <div class="aisle"></div> @endif
-                    @endfor
-                    <span class="row-label">{{ $row }}</span>
-                </div>
+                                @if($s['is_aisle']) <div class="aisle"></div> @endif
+                            @endforeach
+                            
+                            <span class="row-label">{{ $rowLabel }}</span>
+                        </div>
+                    @endif
                 @endforeach
             </div>
 
-            <div class="seat-legend">
-                <div class="legend-item"><i class="fa-solid fa-couch available-seat"></i><span>Thường</span></div>
+            <div class="seat-legend" style="margin-top: 30px;">
+                <div class="legend-item"><i class="fa-solid fa-couch" style="color: #64748b;"></i><span>Thường</span></div>
+                <div class="legend-item"><i class="fa-solid fa-crown vip-seat-icon"></i><span>VIP (Hàng F)</span></div>
+                <div class="legend-item"><i class="fa-solid fa-heart sweet-seat-icon"></i><span>Sweetbox (Hàng J)</span></div>
                 <div class="legend-item"><i class="fa-solid fa-couch held-seat" style="color: #28a745;"></i><span>Đã chọn</span></div>
+                <div class="legend-item"><i class="fa-solid fa-couch" style="color: #ff9800;"></i><span>Đang giữ</span></div>
                 <div class="legend-item"><i class="fa-solid fa-couch sold-seat" style="color: #dc3545;"></i><span>Đã bán</span></div>
             </div>
         </div>
@@ -108,11 +122,18 @@
 </section>
 
 <style>
-    /* CSS Trạng thái màu sắc để map JS */
-    .HELD_BY_ME { background-color: #28a745 !important; color: white !important; border: none; }
+    .HELD_BY_ME { background-color: #28a745 !important; color: white !important; border: none !important; }
     .HELD { background-color: #ff9800 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
     .SOLD { background-color: #dc3545 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
     .BLOCKED { background-color: #343a40 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
+
+    .vip-seat-btn { background-color: #ffc107 !important; color: #1e293b !important; border: 2px solid #eab308 !important; font-weight: bold !important; }
+    .vip-seat-btn:hover { background-color: #eab308 !important; }
+    .vip-seat-icon { color: #ffc107 !important; }
+
+    .sweet-seat-btn { background-color: #ec4899 !important; color: white !important; width: 90px !important; font-weight: bold !important; border-radius: 8px !important; margin: 3px 6px !important; transition: background-color 0.2s; }
+    .sweet-seat-btn:hover { background-color: #db2777 !important; }
+    .sweet-seat-icon { color: #ec4899 !important; }
 </style>
 
 <script>
@@ -122,18 +143,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalPriceEl = document.getElementById('totalPrice');
     const hiddenSeatInputs = document.getElementById('hidden-seat-inputs');
     const btnPayment = document.getElementById('btnPayment');
-    
+
     let timerInterval;
-    let secondsLeft = 300; // 5 phút
+    let secondsLeft = 300; // 5 phút (BR02, BR03)
 
     function startTimer() {
         document.getElementById('timer-box').style.display = 'block';
-        timerInterval = setInterval(() => {
+        timerInterval = setInterval(async () => {
             secondsLeft--;
             if(secondsLeft <= 0) {
                 clearInterval(timerInterval);
-                alert('E4: Đã hết thời gian 5 phút giữ ghế! Hệ thống sẽ tải lại trang và giải phóng ghế.');
-                location.reload();
+                location.reload(); // Ngoại lệ E4: Hết thời gian giữ ghế
+                return;
             }
             let m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
             let s = (secondsLeft % 60).toString().padStart(2, '0');
@@ -141,33 +162,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 
-    document.querySelectorAll('.seat[data-seat]:not([disabled])').forEach(btn => {
-        // Gắn sẵn ghế HELD_BY_ME từ Cache nếu khách F5 lại trang
-        if (btn.classList.contains('HELD_BY_ME')) {
-            const code = btn.dataset.seat;
-            selectedSeats.set(code, { 
-                id: btn.dataset.id, 
-                code: code, 
-                type: btn.dataset.type, 
-                price: parseInt(btn.dataset.price) 
-            });
-            updateUI();
-            if(secondsLeft === 300) startTimer(); // Chạy đồng hồ
-        }
+    document.querySelector('.seat-map').addEventListener('click', async (e) => {
+        const btn = e.target.closest('.seat');
+        if (!btn || btn.disabled) return;
 
-        btn.addEventListener('click', async () => {
-            const seatId = btn.dataset.id;
-            const seatCode = btn.dataset.seat;
-            const seatType = btn.dataset.type;
-            const seatPrice = parseInt(btn.dataset.price);
-            
-            const isSelecting = !selectedSeats.has(seatCode);
-            const action = isSelecting ? 'hold' : 'release';
+        const seatIdAttr = btn.dataset.id; 
+        const seatCode = btn.dataset.seat;
+        const seatType = btn.dataset.type;
+        const seatPrice = parseInt(btn.dataset.price);
 
-            btn.disabled = true;
-            document.getElementById('ajax-error-box').style.display = 'none';
+        if (!seatIdAttr) return;
+        
+        const isSelecting = !selectedSeats.has(seatCode);
+        const action = isSelecting ? 'hold' : 'release';
 
-            try {
+        btn.disabled = true;
+        document.getElementById('ajax-error-box').style.display = 'none';
+        const seatIds = seatIdAttr.split(',');
+
+        try {
+            let allSuccess = true;
+            let lastMessage = '';
+
+            for (const sId of seatIds) {
                 const response = await fetch("{{ route('booking.holdSeat') }}", {
                     method: 'POST',
                     headers: {
@@ -176,66 +193,66 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     body: JSON.stringify({
                         showtime_id: "{{ $showtime->id }}",
-                        seat_id: seatId,
+                        seat_id: sId,
                         action: action
                     })
                 });
 
                 const res = await response.json();
-
-                if (res.success) {
-                    if (isSelecting) {
-                        if (selectedSeats.size === 0 && secondsLeft === 300) startTimer();
-                        selectedSeats.set(seatCode, { id: seatId, code: seatCode, type: seatType, price: seatPrice });
-                        btn.classList.add('HELD_BY_ME');
-                        btn.classList.remove('AVAILABLE');
-                    } else {
-                        selectedSeats.delete(seatCode);
-                        btn.classList.remove('HELD_BY_ME');
-                        btn.classList.add('AVAILABLE');
-                    }
-                    updateUI();
-                } else {
-                    document.getElementById('ajax-error-box').innerText = res.message;
-                    document.getElementById('ajax-error-box').style.display = 'block';
-                    btn.classList.remove('AVAILABLE');
-                    btn.classList.add(res.error_type); // Thêm class SOLD, HELD,...
-                }
-            } catch (error) {
-                document.getElementById('ajax-error-box').innerText = 'E5: Lỗi kết nối hệ thống. Vui lòng tải lại trang.';
-                document.getElementById('ajax-error-box').style.display = 'block';
-            } finally {
-                // Đảm bảo nút luôn được mở lại nếu không thuộc nhóm bị chặn
-                const isUnavailable = btn.classList.contains('SOLD') || 
-                                      btn.classList.contains('HELD') || 
-                                      btn.classList.contains('BLOCKED');
-                if (!isUnavailable) {
-                    btn.disabled = false;
+                if (!res.success) {
+                    allSuccess = false;
+                    lastMessage = res.message;
+                    break; 
                 }
             }
-        });
+
+            if (allSuccess) {
+                if (isSelecting) {
+                    if (selectedSeats.size === 0) startTimer();
+                    selectedSeats.set(seatCode, { id: seatIdAttr, code: seatCode, type: seatType, price: seatPrice });
+                    btn.classList.add('HELD_BY_ME');
+                } else {
+                    selectedSeats.delete(seatCode); // A2: Bỏ chọn ghế
+                    btn.classList.remove('HELD_BY_ME');
+                }
+                updateUI();
+            } else {
+                document.getElementById('ajax-error-box').innerText = lastMessage || 'Có lỗi khi giữ ghế.';
+                document.getElementById('ajax-error-box').style.display = 'block';
+                setTimeout(() => location.reload(), 1500); 
+            }
+        } catch (error) {
+            document.getElementById('ajax-error-box').innerText = 'Lỗi kết nối hệ thống.'; // E5: Lỗi kết nối
+            document.getElementById('ajax-error-box').style.display = 'block';
+        } finally {
+            btn.disabled = false;
+        }
     });
 
     function updateUI() {
         hiddenSeatInputs.innerHTML = ''; 
-
         if (selectedSeats.size === 0) {
             selectedSeatsEl.innerHTML = 'Chưa chọn ghế';
             totalPriceEl.textContent = '0đ';
             btnPayment.disabled = true;
+            btnPayment.textContent = 'Tiếp Tục Thanh Toán';
         } else {
             const seatTags = [];
             let total = 0;
-
             selectedSeats.forEach((seat) => {
                 total += seat.price;
-                seatTags.push(`<span class="seat-tag">${seat.code}</span>`);
-                hiddenSeatInputs.innerHTML += `<input type="hidden" name="seats[]" value="${seat.id}">`;
+                const typeLabel = seat.type === 'vip' ? '👑' : seat.type === 'sweetbox' ? '💕' : '🎬';
+                seatTags.push(`<span class="seat-tag seat-tag-${seat.type}">${typeLabel} ${seat.code}</span>`);
+                
+                const ids = seat.id.split(',');
+                ids.forEach(id => {
+                    hiddenSeatInputs.innerHTML += `<input type="hidden" name="seats[]" value="${id}">`;
+                });
             });
-
-            selectedSeatsEl.innerHTML = seatTags.join(', ');
+            selectedSeatsEl.innerHTML = seatTags.join(' ');
             totalPriceEl.textContent = total.toLocaleString('vi-VN') + 'đ';
             btnPayment.disabled = false;
+            btnPayment.textContent = `Thanh Toán ${total.toLocaleString('vi-VN')}đ →`;
         }
     }
 });
