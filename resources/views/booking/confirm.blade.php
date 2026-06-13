@@ -50,8 +50,19 @@
 
                     <div class="seat-list">
                         @foreach($seats as $seat)
-                            <span class="seat-badge">
-                                {{ $seat->seat->seat_code ?? $seat->seat_code }}
+                            @php
+                                $seatCode = $seat->seat->seat_code ?? $seat->seat_code;
+                                $seatType = $seat->seat->type ?? ''; // Đổi 'type' thành tên cột phân loại ghế của cậu nếu khác
+                                
+                                // Điều kiện nhận diện ghế Sweetbox: Dựa vào cột type HOẶC mã ghế chứa chữ 'SW'
+                                $isSweetbox = (strtolower($seatType) == 'sweetbox') || str_contains(strtolower($seatCode), 'sw');
+                            @endphp
+                            
+                            <span class="seat-badge {{ $isSweetbox ? 'seat-sweetbox' : '' }}">
+                                @if($isSweetbox)
+                                    <i class="fa-solid fa-heart" style="font-size: 12px; margin-right: 4px;"></i>
+                                @endif
+                                {{ $seatCode }}
                             </span>
                         @endforeach
                     </div>
@@ -61,7 +72,7 @@
                     <h4>Tổng thanh toán</h4>
 
                     <div class="total-price">
-                        {{ number_format($totalPrice,0,',','.') }}đ
+                        {{ number_format($totalPrice, 0, ',', '.') }}đ
                     </div>
                 </div>
 
@@ -79,26 +90,28 @@
                     Chọn phương thức thanh toán
                 </h4>
 
-                <label class="payment-option">
-                    <input type="radio"
-                           name="payment_method"
-                           value="ONLINE"
-                           checked>
+                <div class="payment-options-grid">
+                    <label class="payment-option">
+                        <input type="radio"
+                               name="payment_method"
+                               value="ONLINE"
+                               checked>
+                        <div class="option-content">
+                            <span class="icon">💳</span>
+                            <span class="text">Thanh toán Online</span>
+                        </div>
+                    </label>
 
-                    <span>
-                        💳 Thanh toán Online
-                    </span>
-                </label>
-
-                <label class="payment-option">
-                    <input type="radio"
-                           name="payment_method"
-                           value="CASH">
-
-                    <span>
-                        💵 Thanh toán tại quầy
-                    </span>
-                </label>
+                    <label class="payment-option">
+                        <input type="radio"
+                               name="payment_method"
+                               value="CASH">
+                        <div class="option-content">
+                            <span class="icon">💵</span>
+                            <span class="text">Thanh toán tại quầy</span>
+                        </div>
+                    </label>
+                </div>
 
             </div>
 
@@ -106,17 +119,13 @@
 
                 <a href="{{ route('booking.seat',['showtime_id'=>$showtime->id]) }}"
                    class="btn-back">
-
                     <i class="fa-solid fa-arrow-left"></i>
                     Quay lại chọn ghế
                 </a>
 
-                <button type="submit"
-                        class="btn-confirm">
-
+                <button type="submit" class="btn-confirm">
                     Xác nhận & Thanh toán
                     <i class="fa-solid fa-check"></i>
-
                 </button>
 
             </div>
@@ -127,190 +136,299 @@
 </section>
 
 <style>
-
-.confirm-page{
-    padding:60px 20px;
-    background:#0f172a;
-    min-height:100vh;
+/* Reset màu nền tổng thể về Dark Theme */
+.confirm-page {
+    padding: 60px 20px;
+    background: #090e17; /* Khớp với màu nền của trang chọn ghế */
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    color: #e2e8f0;
 }
 
-.confirm-container{
-    max-width:1100px;
-    margin:auto;
-    background:#fff;
-    border-radius:20px;
-    overflow:hidden;
-    box-shadow:0 20px 40px rgba(0,0,0,.2);
+/* Khối chứa nội dung chính */
+.confirm-container {
+    max-width: 1100px;
+    margin: auto;
+    background: #111827;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid #1f2937;
 }
 
-.confirm-header{
-    background:linear-gradient(135deg,#e50914,#b20710);
-    color:#fff;
-    text-align:center;
-    padding:30px;
+/* Phần Tiêu đề - Chuyển sang phong cách tinh tế */
+.confirm-header {
+    background: #1f2937;
+    background: linear-gradient(to right, #1f2937, #111827);
+    border-bottom: 1px solid #374151;
+    text-align: center;
+    padding: 30px;
 }
 
-.confirm-header h2{
-    margin:0;
-    font-size:32px;
-    font-weight:700;
+.confirm-header h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 1px;
 }
 
-.confirm-header p{
-    margin-top:8px;
-    opacity:.9;
+.confirm-header p {
+    margin-top: 8px;
+    color: #9ca3af;
+    font-size: 15px;
 }
 
-.confirm-content{
-    display:grid;
-    grid-template-columns:1.2fr .8fr;
-    gap:30px;
-    padding:30px;
+/* Bố cục 2 cột */
+.confirm-content {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 30px;
+    padding: 30px;
 }
 
-.confirm-movie{
-    display:flex;
-    gap:20px;
+.confirm-movie {
+    display: flex;
+    gap: 25px;
 }
 
-.movie-poster{
-    width:220px;
-    height:320px;
-    object-fit:cover;
-    border-radius:15px;
+.movie-poster {
+    width: 200px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    border: 1px solid #374151;
 }
 
-.movie-info{
-    flex:1;
+.movie-info {
+    flex: 1;
 }
 
-.movie-info h3{
-    margin-bottom:20px;
-    font-size:28px;
+.movie-info h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 26px;
+    color: #f8fafc;
 }
 
-.info-item{
-    background:#f8fafc;
-    padding:15px;
-    border-radius:10px;
-    margin-bottom:10px;
-    font-weight:600;
+/* Các thẻ thông tin rạp/suất chiếu */
+.info-item {
+    background: #1f2937;
+    color: #e2e8f0;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid #374151;
 }
 
-.confirm-ticket{
-    background:#f8fafc;
-    border-radius:15px;
-    padding:25px;
+.info-item i {
+    color: #3b82f6; /* Điểm nhấn màu xanh lam */
+    font-size: 18px;
 }
 
-.ticket-section{
-    margin-bottom:30px;
+/* Khối thông tin Vé ở bên Phải */
+.confirm-ticket {
+    background: #1f2937;
+    border-radius: 12px;
+    padding: 25px;
+    border: 1px solid #374151;
 }
 
-.ticket-section h4{
-    margin-bottom:15px;
+.ticket-section {
+    margin-bottom: 25px;
 }
 
-.seat-list{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
+.ticket-section h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #9ca3af;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.seat-badge{
-    background:#e50914;
-    color:white;
-    padding:8px 15px;
-    border-radius:8px;
-    font-weight:bold;
+.seat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
-.total-price{
-    color:#e50914;
-    font-size:38px;
-    font-weight:700;
+/* Nút ghế THƯỜNG đồng bộ với màu xanh lam */
+.seat-badge {
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    border: 1px solid #3b82f6;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    display: inline-flex;
+    align-items: center;
 }
 
-.payment-method-box{
-    margin:0 30px 30px;
-    padding:25px;
-    border:2px solid #eee;
-    border-radius:15px;
+/* Nút ghế SWEETBOX (Ghế đôi) đồng bộ với màu hồng */
+.seat-sweetbox {
+    background: rgba(236, 72, 153, 0.1); 
+    color: #ec4899; 
+    border: 1px solid #ec4899;
 }
 
-.payment-option{
-    display:block;
-    padding:15px;
-    margin-top:10px;
-    background:#f8fafc;
-    border-radius:10px;
-    cursor:pointer;
+.total-price {
+    color: #ef4444; /* Màu đỏ làm nổi bật giá tiền */
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
 }
 
-.payment-option:hover{
-    background:#eef2ff;
+/* Khối phương thức thanh toán */
+.payment-method-box {
+    margin: 0 30px 30px;
+    padding: 25px;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 12px;
 }
 
-.confirm-actions{
-    display:flex;
-    justify-content:space-between;
-    padding:0 30px 30px;
+.payment-method-box h4 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #f8fafc;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.btn-back{
-    background:#64748b;
-    color:white;
-    padding:14px 25px;
-    border-radius:10px;
-    text-decoration:none;
-    font-weight:600;
+.payment-method-box h4 i {
+    color: #3b82f6;
 }
 
-.btn-confirm{
-    background:#e50914;
-    color:white;
-    border:none;
-    padding:14px 30px;
-    border-radius:10px;
-    font-size:16px;
-    font-weight:700;
-    cursor:pointer;
+.payment-options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
 }
 
-.btn-confirm:hover{
-    background:#c50710;
+.payment-option {
+    display: block;
+    cursor: pointer;
 }
 
-@media(max-width:768px){
+.payment-option input[type="radio"] {
+    display: none; /* Ẩn nút radio mặc định */
+}
 
-    .confirm-content{
-        grid-template-columns:1fr;
+.option-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #111827;
+    border: 2px solid #374151;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.payment-option input[type="radio"]:checked + .option-content {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.option-content .icon {
+    font-size: 20px;
+}
+
+.option-content .text {
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
+.payment-option input[type="radio"]:checked + .option-content .text {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Nút bấm (Hành động) */
+.confirm-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 30px 30px;
+}
+
+.btn-back {
+    background: #374151;
+    color: #f8fafc;
+    padding: 14px 28px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.3s;
+}
+
+.btn-back:hover {
+    background: #4b5563;
+}
+
+.btn-confirm {
+    background: #ef4444; /* Giữ màu đỏ cho nút Thanh toán để nổi bật Call-to-action */
+    color: white;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: 0.3s;
+    box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39);
+}
+
+.btn-confirm:hover {
+    background: #dc2626;
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.23);
+}
+
+/* Căn chỉnh lại trên Mobile */
+@media(max-width: 768px) {
+    .confirm-content {
+        grid-template-columns: 1fr;
     }
-
-    .confirm-movie{
-        flex-direction:column;
-        align-items:center;
+    
+    .confirm-movie {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
     }
-
-    .movie-poster{
-        width:100%;
-        max-width:300px;
+    
+    .movie-poster {
+        width: 100%;
+        max-width: 250px;
     }
-
-    .confirm-actions{
-        flex-direction:column;
-        gap:15px;
+    
+    .payment-options-grid {
+        grid-template-columns: 1fr;
     }
-
+    
+    .confirm-actions {
+        flex-direction: column-reverse;
+        gap: 15px;
+    }
+    
     .btn-back,
-    .btn-confirm{
-        width:100%;
-        text-align:center;
+    .btn-confirm {
+        width: 100%;
+        justify-content: center;
     }
-}
-.confirm-container{
-    background:#ffffff;
-    color:#111827;
 }
 </style>
 
