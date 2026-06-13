@@ -40,4 +40,8 @@ class Booking extends Model
     {
         return $this->belongsTo(Showtime::class);
     }
+    public function bookingCombos()
+    {
+        return $this->hasMany(BookingCombo::class);
+    }
 }

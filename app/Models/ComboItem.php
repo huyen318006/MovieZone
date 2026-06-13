@@ -9,4 +9,10 @@ class ComboItem extends Model
 {
     use HasFactory;
     public $timestamps = false;
+
+    protected $fillable = [
+        'combo_id',
+        'product_id',
+        'quantity'
+    ];
 }
