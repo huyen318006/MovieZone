@@ -115,7 +115,25 @@ class BookingController extends Controller
             }
         }
 
-        return view('booking.seat', compact('showtime', 'seatMap'));
+        // TÍNH THỜI GIAN CÒN LẠI
+        $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtime_id;
+        $secondsLeft = 300; // Mặc định 5 phút
+        if (Cache::has($masterTimerKey)) {
+            $secondsLeft = max(0, Cache::get($masterTimerKey) - now()->timestamp);
+        }
+        $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtime_id;
+
+        $secondsLeft = 300;
+
+        if (Cache::has($masterTimerKey)) {
+
+            $secondsLeft = max(
+                0,
+                Cache::get($masterTimerKey) - now()->timestamp
+            );
+
+        }
+        return view('booking.seat',compact('showtime','seatMap','secondsLeft'));
     }
 
     // AJAX API xử lý giữ ghế Realtime (UC-08 bước 5)
@@ -145,10 +163,51 @@ class BookingController extends Controller
                 return response()->json(['success' => false, 'error_type' => 'HELD', 'message' => 'E2: Ghế đang được người khác giữ.']);
             }
 
-            // Giữ ghế trong 5 phút (BR02)
-            Cache::put($cacheKey, Auth::id(), now()->addMinutes(5));
-            return response()->json(['success' => true]);
+            // Key lưu thời gian giữ ghế tổng của user cho suất chiếu này
+            $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtimeId;
 
+            // Nếu chưa có timer tổng
+            // (nghĩa là đây là ghế đầu tiên user chọn)
+            if (!Cache::has($masterTimerKey)) {
+
+                // Tính thời điểm hết hạn sau 5 phút
+                $expireAt = now()->addMinutes(5);
+
+                // Lưu timestamp vào cache
+                // Ví dụ: 1789561200
+                // để sau này JS tính được còn bao nhiêu giây
+                Cache::put(
+                    $masterTimerKey,
+                    $expireAt->timestamp,
+                    $expireAt
+                );
+
+            } else {
+
+                // Nếu timer đã tồn tại
+                // lấy lại thời điểm hết hạn cũ
+                // KHÔNG tạo mới để tránh reset về 5 phút
+                $expireAt = \Carbon\Carbon::createFromTimestamp(
+                    Cache::get($masterTimerKey)
+                );
+            }
+
+            // Lưu trạng thái giữ ghế
+            Cache::put(
+
+                // Ví dụ:
+                // seat_held_5_12
+                // (suất chiếu 5, ghế 12)
+                $cacheKey,
+
+                // User nào đang giữ ghế
+                Auth::id(),
+
+                // Ghế sẽ hết hạn cùng lúc với timer tổng
+                // Không phải thêm 5 phút mới
+                $expireAt
+            );
+            return response()->json(['success' => true]);
         } elseif ($action === 'release') {
             // Luồng phụ A2: Bỏ chọn ghế
             if (Cache::get($cacheKey) == Auth::id()) {

@@ -72,7 +72,7 @@
                     <h4>Tổng thanh toán</h4>
 
                     <div class="total-price">
-                        {{ number_format($totalPrice, 0, ',', '.') }}đ
+                        {{ number_format($totalPrice, 0, ',', '.') }}VNĐ
                     </div>
                 </div>
 

@@ -25,7 +25,9 @@
 
                 <div id="selectedSeats">Chưa chọn ghế</div>
 
-                <div class="total-price" id="totalPrice">0đ</div>
+                <div class="total-price" id="totalPrice">0VNĐ
+                    
+                </div>
 
                 <form action="{{ route('booking.seats.submit') }}" method="POST" id="bookingForm">
                     @csrf
@@ -145,16 +147,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnPayment = document.getElementById('btnPayment');
 
     let timerInterval;
-    let secondsLeft = 300; // 5 phút (BR02, BR03)
+    let secondsLeft = {{ $secondsLeft ?? 300 }};
+
+   // 1. TỰ ĐỘNG KHÔI PHỤC GHẾ ĐANG CHỌN (Từ class HELD_BY_ME trên màn hình)
+    document.querySelectorAll('.HELD_BY_ME').forEach(btn => {
+        const seatCode = btn.dataset.seat;
+        selectedSeats.set(seatCode, { 
+            id: btn.dataset.id, 
+            code: seatCode, 
+            type: btn.dataset.type, 
+            price: parseInt(btn.dataset.price) 
+        });
+    });
+
+    // 2. NẾU CÓ GHẾ THÌ CHẠY TIMER
+    if (selectedSeats.size > 0 && secondsLeft > 0) {
+    updateUI();
+    startTimer();
+    }
 
     function startTimer() {
         document.getElementById('timer-box').style.display = 'block';
-        timerInterval = setInterval(async () => {
+        timerInterval = setInterval(() => {
             secondsLeft--;
             if(secondsLeft <= 0) {
                 clearInterval(timerInterval);
-                location.reload(); // Ngoại lệ E4: Hết thời gian giữ ghế
-                return;
+                location.reload(); 
             }
             let m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
             let s = (secondsLeft % 60).toString().padStart(2, '0');
@@ -233,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hiddenSeatInputs.innerHTML = ''; 
         if (selectedSeats.size === 0) {
             selectedSeatsEl.innerHTML = 'Chưa chọn ghế';
-            totalPriceEl.textContent = '0đ';
+            totalPriceEl.textContent = '0 VNĐ';
             btnPayment.disabled = true;
             btnPayment.textContent = 'Tiếp Tục Thanh Toán';
         } else {
@@ -250,9 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
             selectedSeatsEl.innerHTML = seatTags.join(' ');
-            totalPriceEl.textContent = total.toLocaleString('vi-VN') + 'đ';
+            totalPriceEl.textContent = total.toLocaleString('vi-VN') + 'VNĐ';
             btnPayment.disabled = false;
-            btnPayment.textContent = `Thanh Toán ${total.toLocaleString('vi-VN')}đ →`;
+            btnPayment.textContent = `Thanh Toán ${total.toLocaleString('vi-VN')}VNĐ →`;
         }
     }
 });
