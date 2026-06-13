@@ -38,6 +38,7 @@
             offset: 100
         });
     </script>
+    @stack('scripts')
 </body>
 <script>
 

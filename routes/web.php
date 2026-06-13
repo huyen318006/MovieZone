@@ -175,6 +175,10 @@ Route::middleware(['auth'])->group(function () {
     // UC-08 -> UC-11: Submit danh sách ghế đã chọn vào Session
     Route::post('/booking/seats/submit', [BookingController::class, 'submitSeats'])->name('booking.seats.submit');
 
+    // UC-09:COMBO
+    Route::get('/booking/combo',[BookingController::class, 'showCombo'])->name('booking.combo');
+    Route::post('/booking/combo',[BookingController::class, 'saveCombo'])->name('booking.combo.save');
+
     // UC-11: Hiển thị màn hình xác nhận đặt vé
     Route::get('/booking/confirm', [BookingController::class, 'showConfirm'])->name('booking.confirm');
     
