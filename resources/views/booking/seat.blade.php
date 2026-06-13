@@ -127,11 +127,11 @@
     .SOLD { background-color: #dc3545 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
     .BLOCKED { background-color: #343a40 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
 
-    .vip-seat-btn { background-color: #ffc107 !important; color: #1e293b !important; border: 2px solid #eab308 !important; font-weight: bold !important; }
+    .vip-seat-btn { color: white !important; border: 2px solid #eab308 !important; font-weight: bold !important; }
     .vip-seat-btn:hover { background-color: #eab308 !important; }
     .vip-seat-icon { color: #ffc107 !important; }
-
-    .sweet-seat-btn { background-color: #ec4899 !important; color: white !important; width: 90px !important; font-weight: bold !important; border-radius: 8px !important; margin: 3px 6px !important; transition: background-color 0.2s; }
+    
+    .sweet-seat-btn {color: white !important; width: 90px !important; font-weight: bold !important; border-radius: 8px !important; margin: 3px 6px !important; transition: background-color 0.2s; }
     .sweet-seat-btn:hover { background-color: #db2777 !important; }
     .sweet-seat-icon { color: #ec4899 !important; }
 </style>
