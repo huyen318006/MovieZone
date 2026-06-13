@@ -16,6 +16,11 @@ class ProfileController extends Controller
     {
         return view('profile.index');
     }
+    public function edit()
+    {   
+        $user = \Illuminate\Support\Facades\Auth::user();
+        return view('profile.edit'); 
+    }
 
     /**
      * Xử lý cập nhật thông tin hồ sơ và avatar

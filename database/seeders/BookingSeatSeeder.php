@@ -2,29 +2,44 @@
 
 namespace Database\Seeders;
 
+use App\Models\Booking;
 use App\Models\BookingSeat;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\ShowtimeSeat;
 use Illuminate\Database\Seeder;
 
 class BookingSeatSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         BookingSeat::query()->delete();
 
-        for ($i = 1; $i <= 50; $i++) {
+        $bookings = Booking::all();
+        $showtimeSeats = ShowtimeSeat::all();
+
+        if ($bookings->isEmpty() || $showtimeSeats->isEmpty()) {
+            $this->command->warn('Không có dữ liệu Booking hoặc ShowtimeSeat');
+            return;
+        }
+
+        foreach ($showtimeSeats->take(50) as $showtimeSeat) {
+
+            $booking = $bookings->random();
+
             BookingSeat::create([
-                'booking_id' => rand(1, 20),
-                'showtime_seat_id' => $i,
-                'seat_code' => 'S' . str_pad($i, 4, '0', STR_PAD_LEFT),
-                'seat_type' => rand(1, 2) === 1 ? 'STANDARD' : 'VIP',
-                'price' => rand(80000, 120000),
+                'booking_id'       => $booking->id,
+                'showtime_seat_id' => $showtimeSeat->id,
+
+                'seat_code' => $showtimeSeat->seat->seat_code ?? '',
+
+                'seat_type' => $showtimeSeat->seat->seat_type ?? 'STANDARD',
+
+                'price' => $showtimeSeat->price,
+
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
         }
+
+        $this->command->info('BookingSeatSeeder completed');
     }
 }
