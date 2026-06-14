@@ -114,6 +114,17 @@
                         </div>
                     @endforeach
 
+                    @if(!empty($order->metadata['combos']))
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                            @foreach($order->metadata['combos'] as $combo)
+                                <div class="bill-price-row">
+                                    <span>🍿 {{ $combo['name'] }} x{{ $combo['quantity'] }}</span>
+                                    <span>{{ number_format($combo['total_price'], 0, ',', '.') }}đ</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+
                     <div class="bill-price-total">
                         <span>Tổng thanh toán</span>
                         <span class="total-amount">{{ number_format($order->amount, 0, ',', '.') }}đ</span>

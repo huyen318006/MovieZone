@@ -60,6 +60,17 @@
                 <span>{{ number_format($seat['price'], 0, ',', '.') }}đ</span>
             </div>
             @endforeach
+
+            @if(!empty($order->metadata['combos']))
+            <h4 style="margin-top: 16px;">Combo</h4>
+            @foreach($order->metadata['combos'] as $combo)
+            <div class="price-row">
+                <span>🍿 {{ $combo['name'] }} x{{ $combo['quantity'] }}</span>
+                <span>{{ number_format($combo['total_price'], 0, ',', '.') }}đ</span>
+            </div>
+            @endforeach
+            @endif
+
             <div class="price-total-row">
                 <span>Tổng cộng</span>
                 <span>{{ number_format($order->amount, 0, ',', '.') }}đ</span>
@@ -76,7 +87,7 @@
                 <i class="fa-solid fa-clock-rotate-left expired-icon-big"></i>
                 <h3>Đơn hàng đã hết hạn</h3>
                 <p>Vui lòng quay lại chọn ghế và thử lại</p>
-                <a href="{{ route('booking.seat') }}" class="btn-back-seat">
+                <a href="{{ route('home') }}" class="btn-back-seat">
                     <i class="fa-solid fa-arrow-left"></i> Chọn ghế lại
                 </a>
             </div>
@@ -141,7 +152,7 @@
             <div class="status-sub-mz" id="statusSubtext">Hệ thống tự động kiểm tra mỗi vài giây</div>
         </div>
 
-        <a href="{{ route('booking.seat') }}" class="cancel-link-mz">
+        <a href="{{ route('home') }}" class="cancel-link-mz">
             <i class="fa-solid fa-arrow-left"></i> Huỷ và chọn ghế khác
         </a>
     </div>
