@@ -213,10 +213,30 @@ class SepayService
 
                     $order->markAsPaid($transactionId, $transaction);
 
+                    // Sync trạng thái sang Booking model (nếu có liên kết)
+                    if ($order->booking_id && $order->booking) {
+                        $order->booking->update([
+                            'status' => 'PAID',
+                            'payment_status' => 'PAID',
+                            'paid_at' => now(),
+                        ]);
+
+                        // Tạo Payment record
+                        \App\Models\Payment::create([
+                            'booking_id' => $order->booking_id,
+                            'payment_method' => 'ONLINE',
+                            'amount' => $order->amount,
+                            'transaction_code' => $transactionId,
+                            'status' => 'SUCCESS',
+                            'paid_at' => now(),
+                        ]);
+                    }
+
                     Log::info('SePay payment confirmed', [
                         'order_code' => $orderCode,
                         'transaction_id' => $transactionId,
                         'amount' => $amountIn,
+                        'booking_id' => $order->booking_id,
                     ]);
 
                     return [
