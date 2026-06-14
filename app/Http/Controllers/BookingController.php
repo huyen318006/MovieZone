@@ -382,10 +382,19 @@ class BookingController extends Controller
 
             // Lưu danh sách ghế vào bảng trung gian
             foreach ($seats as $seat) {
+                $row = $seat->seat->row_label ?? '';
+                $seatType = 'STANDARD';
+                if ($row === 'F') $seatType = 'VIP';
+                if ($row === 'J') $seatType = 'SWEETBOX';
+
                 DB::table('booking_seats')->insert([
                     'booking_id' => $booking->id,
                     'showtime_seat_id' => $seat->id,
-                    'price' => $seat->price ?? 80000 // Lấy giá lúc mua lưu vào bill
+                    'seat_code' => $seat->seat->seat_code ?? ('N/A'),
+                    'seat_type' => $seatType,
+                    'price' => $seat->price ?? 80000,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
                 
                 // Giải phóng ghế khỏi Cache sau khi lưu DB thành công
