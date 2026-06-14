@@ -90,10 +90,11 @@ Route::get('/cinemas', function () {
 
 // Chọn ghế
 
-// Booking payment flow
+// Booking payment flow (dùng SepayController cho QR + polling)
 Route::prefix('booking')->name('booking.')->group(function () {
     Route::get('/demo-bill', [SepayController::class, 'demoBill'])->name('demo-bill');
-    Route::post('/checkout', [SepayController::class, 'bookingCheckout'])->name('checkout');
+    // Route checkout cũ đã chuyển sang BookingController::checkout
+    // Route::post('/checkout', [SepayController::class, 'bookingCheckout'])->name('checkout');
     Route::get('/payment/{orderCode}', [SepayController::class, 'bookingPayment'])->name('payment');
     Route::get('/check/{orderCode}', [SepayController::class, 'checkStatus'])->name('check');
     Route::get('/bill/{orderCode}', [SepayController::class, 'bookingBill'])->name('bill');
