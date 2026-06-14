@@ -12,6 +12,7 @@ use App\Models\Combo;
 use Illuminate\Support\Str;
 use App\Models\ShowtimeSeat;
 use App\Models\BookingCombo;
+use App\Models\SepayOrder;
 
 class BookingController extends Controller
 {
@@ -281,7 +282,8 @@ class BookingController extends Controller
             'booking_tam' => $bookingTam
         ]);
 
-        return redirect()->route('booking.voucher');
+        // Skip bước voucher — chuyển thẳng sang xác nhận
+        return redirect()->route('booking.confirm');
     }
     // ==========================================
     // UC-CUS-11: XÁC NHẬN ĐẶT VÉ VÀ TẠO BOOKING
@@ -296,9 +298,17 @@ class BookingController extends Controller
             ->whereIn('id', $bookingTam['seats'])
             ->get();
 
-        $totalPrice = $seats->sum('price');
+        $totalTicketPrice = $seats->sum('price');
+        $combos = $bookingTam['combos'] ?? [];
+        $totalComboPrice = $bookingTam['total_combo_amount'] ?? 0;
+        $discountAmount = $bookingTam['discount_amount'] ?? 0;
+        $totalPrice = $totalTicketPrice + $totalComboPrice - $discountAmount;
+        if ($totalPrice < 0) $totalPrice = 0;
 
-        return view('booking.confirm', compact('showtime', 'seats', 'totalPrice'));
+        return view('booking.confirm', compact(
+            'showtime', 'seats', 'totalTicketPrice', 'combos',
+            'totalComboPrice', 'discountAmount', 'totalPrice'
+        ));
     }
 
     public function checkout(Request $request)
@@ -391,10 +401,57 @@ class BookingController extends Controller
                 ]);
             }
 
+            // Tạo SepayOrder để trang QR Payment hoạt động
+            $seatDetails = [];
+            foreach ($seats as $s) {
+                $seatCode = $s->seat->seat_code ?? 'N/A';
+                $seatType = 'standard';
+                $row = $s->seat->row_label ?? '';
+                if ($row === 'F') $seatType = 'vip';
+                if ($row === 'J') $seatType = 'sweetbox';
+
+                $seatDetails[] = [
+                    'code' => $seatCode,
+                    'type' => $seatType,
+                    'price' => (int) $s->price,
+                ];
+            }
+
+            $comboDetails = [];
+            foreach (($bookingTam['combos'] ?? []) as $comboItem) {
+                $comboDetails[] = [
+                    'name' => $comboItem['name'],
+                    'quantity' => $comboItem['quantity'],
+                    'unit_price' => $comboItem['unit_price'],
+                    'total_price' => $comboItem['total_price'],
+                ];
+            }
+
+            $sepayOrder = SepayOrder::create([
+                'order_code'   => $bookingCode,
+                'booking_id'   => $booking->id,
+                'package_id'   => 'booking',
+                'package_name' => 'Vé xem phim',
+                'amount'       => $finalAmount,
+                'status'       => 'pending',
+                'metadata'     => [
+                    'movie_title' => $showtime->movie->title ?? '',
+                    'cinema'      => $showtime->cinema->name ?? '',
+                    'room'        => $showtime->room->name ?? '',
+                    'showtime'    => \Carbon\Carbon::parse($showtime->start_time)->format('H:i') . ' - ' . \Carbon\Carbon::parse($showtime->end_time)->format('H:i'),
+                    'show_date'   => \Carbon\Carbon::parse($showtime->start_time)->format('d/m/Y'),
+                    'format'      => '2D',
+                    'seats'       => $seatDetails,
+                    'seat_count'  => count($seatDetails),
+                    'combos'      => $comboDetails,
+                    'showtime_id' => $showtimeId,
+                ],
+            ]);
+
             DB::commit();
             session()->forget('booking_tam');
 
-            return redirect()->route('sepay.payment', ['orderCode' => $booking->booking_code]);
+            return redirect()->route('booking.payment', ['orderCode' => $bookingCode]);
 
         } catch (\Exception $e) {
             DB::rollBack();
