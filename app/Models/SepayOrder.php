@@ -11,6 +11,7 @@ class SepayOrder extends Model
 
     protected $fillable = [
         'order_code',
+        'booking_id',
         'package_id',
         'package_name',
         'amount',
@@ -19,6 +20,17 @@ class SepayOrder extends Model
         'paid_at',
         'metadata',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
+
+    public function booking()
+    {
+        return $this->belongsTo(Booking::class);
+    }
 
     protected function casts(): array
     {
