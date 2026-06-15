@@ -15,8 +15,8 @@
             {{-- LEFT --}}
             <div class="confirm-movie">
 
-                <img src="{{ asset('assets/hero/avatar.jpg') }}"
-                     alt="Movie"
+                <img src="{{ $showtime->movie->poster_url ? asset($showtime->movie->poster_url) : asset('assets/hero/avatar.jpg') }}"
+                     alt="{{ $showtime->movie->title }}"
                      class="movie-poster">
 
                 <div class="movie-info">
@@ -52,9 +52,7 @@
                         @foreach($seats as $seat)
                             @php
                                 $seatCode = $seat->seat->seat_code ?? $seat->seat_code;
-                                $seatType = $seat->seat->type ?? ''; // Đổi 'type' thành tên cột phân loại ghế của cậu nếu khác
-                                
-                                // Điều kiện nhận diện ghế Sweetbox: Dựa vào cột type HOẶC mã ghế chứa chữ 'SW'
+                                $seatType = $seat->seat->type ?? '';
                                 $isSweetbox = (strtolower($seatType) == 'sweetbox') || str_contains(strtolower($seatCode), 'sw');
                             @endphp
                             
@@ -68,9 +66,57 @@
                     </div>
                 </div>
 
+                {{-- Chi tiết giá vé --}}
+                <div class="ticket-section">
+                    <h4>Chi tiết giá vé</h4>
+                    <div class="price-breakdown">
+                        @foreach($seats as $seat)
+                            <div class="price-row">
+                                <span>🎬 {{ $seat->seat->seat_code ?? '' }}</span>
+                                <span>{{ number_format($seat->price, 0, ',', '.') }}đ</span>
+                            </div>
+                        @endforeach
+                        <div class="price-subtotal-row">
+                            <span>Tổng vé</span>
+                            <span>{{ number_format($totalTicketPrice, 0, ',', '.') }}đ</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Combo đã chọn --}}
+                @if(!empty($combos))
+                <div class="ticket-section">
+                    <h4>Combo đã chọn</h4>
+                    <div class="price-breakdown">
+                        @foreach($combos as $combo)
+                            <div class="price-row">
+                                <span>🍿 {{ $combo['name'] }} x{{ $combo['quantity'] }}</span>
+                                <span>{{ number_format($combo['total_price'], 0, ',', '.') }}đ</span>
+                            </div>
+                        @endforeach
+                        <div class="price-subtotal-row">
+                            <span>Tổng combo</span>
+                            <span>{{ number_format($totalComboPrice, 0, ',', '.') }}đ</span>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Giảm giá (nếu có) --}}
+                @if($discountAmount > 0)
+                <div class="ticket-section">
+                    <div class="price-breakdown">
+                        <div class="price-row discount-row">
+                            <span>🎫 Giảm giá</span>
+                            <span>-{{ number_format($discountAmount, 0, ',', '.') }}đ</span>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Tổng thanh toán --}}
                 <div class="ticket-section">
                     <h4>Tổng thanh toán</h4>
-
                     <div class="total-price">
                         {{ number_format($totalPrice, 0, ',', '.') }}VNĐ
                     </div>
@@ -117,10 +163,10 @@
 
             <div class="confirm-actions">
 
-                <a href="{{ route('booking.seat',['showtime_id'=>$showtime->id]) }}"
+                <a href="{{ route('booking.combo') }}"
                    class="btn-back">
                     <i class="fa-solid fa-arrow-left"></i>
-                    Quay lại chọn ghế
+                    Quay lại chọn combo
                 </a>
 
                 <button type="submit" class="btn-confirm">
@@ -139,13 +185,12 @@
 /* Reset màu nền tổng thể về Dark Theme */
 .confirm-page {
     padding: 60px 20px;
-    background: #090e17; /* Khớp với màu nền của trang chọn ghế */
+    background: #090e17;
     min-height: 100vh;
     font-family: 'Inter', sans-serif;
     color: #e2e8f0;
 }
 
-/* Khối chứa nội dung chính */
 .confirm-container {
     max-width: 1100px;
     margin: auto;
@@ -156,9 +201,7 @@
     border: 1px solid #1f2937;
 }
 
-/* Phần Tiêu đề - Chuyển sang phong cách tinh tế */
 .confirm-header {
-    background: #1f2937;
     background: linear-gradient(to right, #1f2937, #111827);
     border-bottom: 1px solid #374151;
     text-align: center;
@@ -179,7 +222,6 @@
     font-size: 15px;
 }
 
-/* Bố cục 2 cột */
 .confirm-content {
     display: grid;
     grid-template-columns: 1.2fr 0.8fr;
@@ -201,9 +243,7 @@
     border: 1px solid #374151;
 }
 
-.movie-info {
-    flex: 1;
-}
+.movie-info { flex: 1; }
 
 .movie-info h3 {
     margin-top: 0;
@@ -212,7 +252,6 @@
     color: #f8fafc;
 }
 
-/* Các thẻ thông tin rạp/suất chiếu */
 .info-item {
     background: #1f2937;
     color: #e2e8f0;
@@ -226,12 +265,8 @@
     border: 1px solid #374151;
 }
 
-.info-item i {
-    color: #3b82f6; /* Điểm nhấn màu xanh lam */
-    font-size: 18px;
-}
+.info-item i { color: #3b82f6; font-size: 18px; }
 
-/* Khối thông tin Vé ở bên Phải */
 .confirm-ticket {
     background: #1f2937;
     border-radius: 12px;
@@ -239,9 +274,7 @@
     border: 1px solid #374151;
 }
 
-.ticket-section {
-    margin-bottom: 25px;
-}
+.ticket-section { margin-bottom: 25px; }
 
 .ticket-section h4 {
     margin-top: 0;
@@ -252,13 +285,8 @@
     letter-spacing: 0.5px;
 }
 
-.seat-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
+.seat-list { display: flex; flex-wrap: wrap; gap: 10px; }
 
-/* Nút ghế THƯỜNG đồng bộ với màu xanh lam */
 .seat-badge {
     background: rgba(59, 130, 246, 0.1);
     color: #60a5fa;
@@ -271,21 +299,51 @@
     align-items: center;
 }
 
-/* Nút ghế SWEETBOX (Ghế đôi) đồng bộ với màu hồng */
 .seat-sweetbox {
-    background: rgba(236, 72, 153, 0.1); 
-    color: #ec4899; 
+    background: rgba(236, 72, 153, 0.1);
+    color: #ec4899;
     border: 1px solid #ec4899;
 }
 
+.price-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #cbd5e1;
+    font-size: 14px;
+    padding: 6px 0;
+}
+
+.price-subtotal-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #60a5fa;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 10px 0 0;
+    margin-top: 8px;
+    border-top: 1px solid #374151;
+}
+
+.discount-row span:last-child {
+    color: #34d399;
+    font-weight: 600;
+}
+
 .total-price {
-    color: #ef4444; /* Màu đỏ làm nổi bật giá tiền */
+    color: #ef4444;
     font-size: 36px;
     font-weight: 700;
     letter-spacing: -0.5px;
 }
 
-/* Khối phương thức thanh toán */
 .payment-method-box {
     margin: 0 30px 30px;
     padding: 25px;
@@ -304,9 +362,7 @@
     gap: 10px;
 }
 
-.payment-method-box h4 i {
-    color: #3b82f6;
-}
+.payment-method-box h4 i { color: #3b82f6; }
 
 .payment-options-grid {
     display: grid;
@@ -314,14 +370,9 @@
     gap: 15px;
 }
 
-.payment-option {
-    display: block;
-    cursor: pointer;
-}
+.payment-option { display: block; cursor: pointer; }
 
-.payment-option input[type="radio"] {
-    display: none; /* Ẩn nút radio mặc định */
-}
+.payment-option input[type="radio"] { display: none; }
 
 .option-content {
     display: flex;
@@ -339,21 +390,15 @@
     background: rgba(59, 130, 246, 0.05);
 }
 
-.option-content .icon {
-    font-size: 20px;
-}
+.option-content .icon { font-size: 20px; }
 
-.option-content .text {
-    color: #cbd5e1;
-    font-weight: 500;
-}
+.option-content .text { color: #cbd5e1; font-weight: 500; }
 
 .payment-option input[type="radio"]:checked + .option-content .text {
     color: #ffffff;
     font-weight: 600;
 }
 
-/* Nút bấm (Hành động) */
 .confirm-actions {
     display: flex;
     justify-content: space-between;
@@ -373,12 +418,10 @@
     transition: 0.3s;
 }
 
-.btn-back:hover {
-    background: #4b5563;
-}
+.btn-back:hover { background: #4b5563; }
 
 .btn-confirm {
-    background: #ef4444; /* Giữ màu đỏ cho nút Thanh toán để nổi bật Call-to-action */
+    background: #ef4444;
     color: white;
     border: none;
     padding: 14px 32px;
@@ -398,37 +441,13 @@
     box-shadow: 0 6px 20px rgba(239, 68, 68, 0.23);
 }
 
-/* Căn chỉnh lại trên Mobile */
 @media(max-width: 768px) {
-    .confirm-content {
-        grid-template-columns: 1fr;
-    }
-    
-    .confirm-movie {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-    }
-    
-    .movie-poster {
-        width: 100%;
-        max-width: 250px;
-    }
-    
-    .payment-options-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .confirm-actions {
-        flex-direction: column-reverse;
-        gap: 15px;
-    }
-    
-    .btn-back,
-    .btn-confirm {
-        width: 100%;
-        justify-content: center;
-    }
+    .confirm-content { grid-template-columns: 1fr; }
+    .confirm-movie { flex-direction: column; align-items: center; text-align: center; }
+    .movie-poster { width: 100%; max-width: 250px; }
+    .payment-options-grid { grid-template-columns: 1fr; }
+    .confirm-actions { flex-direction: column-reverse; gap: 15px; }
+    .btn-back, .btn-confirm { width: 100%; justify-content: center; }
 }
 </style>
 

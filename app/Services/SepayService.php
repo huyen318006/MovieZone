@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use App\Mail\BookingInvoiceMail;
 use App\Models\SepayOrder;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 class SepayService
@@ -213,11 +216,64 @@ class SepayService
 
                     $order->markAsPaid($transactionId, $transaction);
 
+                    // Sync trạng thái sang Booking model (nếu có liên kết)
+                    if ($order->booking_id && $order->booking) {
+                        $order->booking->update([
+                            'status' => 'PAID',
+                            'payment_status' => 'PAID',
+                            'paid_at' => now(),
+                        ]);
+
+                        // Tạo Payment record
+                        \App\Models\Payment::create([
+                            'booking_id' => $order->booking_id,
+                            'payment_method' => 'ONLINE',
+                            'amount' => $order->amount,
+                            'transaction_code' => $transactionId,
+                            'status' => 'SUCCESS',
+                            'paid_at' => now(),
+                        ]);
+                    }
+
                     Log::info('SePay payment confirmed', [
                         'order_code' => $orderCode,
                         'transaction_id' => $transactionId,
                         'amount' => $amountIn,
+                        'booking_id' => $order->booking_id,
                     ]);
+
+                    // === GỬI EMAIL HOÁ ĐƠN TỰ ĐỘNG ===
+                    try {
+                        $customerEmail = $order->getCustomerEmail();
+                        $user = $order->booking ? $order->booking->user : null;
+
+                        if ($customerEmail) {
+                            Mail::to($customerEmail)->send(new BookingInvoiceMail($order->fresh(), $user));
+
+                            // Đánh dấu đã gửi email
+                            $meta = $order->metadata ?? [];
+                            $meta['email_sent'] = true;
+                            $meta['email_sent_at'] = now()->toIso8601String();
+                            $meta['email_sent_to'] = $customerEmail;
+                            $order->update(['metadata' => $meta]);
+
+                            Log::info('Booking invoice email sent', [
+                                'order_code' => $orderCode,
+                                'email' => $customerEmail,
+                            ]);
+                        }
+
+                        // Tạo thông báo trong hệ thống cho user
+                        if ($user) {
+                            $user->notify(new \App\Notifications\BookingPaidNotification($order->fresh()));
+                        }
+                    } catch (\Exception $mailEx) {
+                        // Không throw — email lỗi không ảnh hưởng đến thanh toán
+                        Log::error('Failed to send booking invoice email', [
+                            'order_code' => $orderCode,
+                            'error' => $mailEx->getMessage(),
+                        ]);
+                    }
 
                     return [
                         'status' => 'paid',
