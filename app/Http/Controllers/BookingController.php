@@ -265,66 +265,56 @@ class BookingController extends Controller
         $combos = Combo::where('status', 'ACTIVE')->get();
         return view('booking.combo', compact('combos'));
     }
-    public function saveCombo(Request $request)
-    {
-        $bookingTam = session('booking_tam');
-        if (!$bookingTam) {
-            return redirect()->route('home')
-                ->with('error', 'Phiên đặt vé không tồn tại.');
-        }
+public function saveCombo(Request $request)
+{
+    $bookingTam = session()->get('booking_tam');
 
-        if (!$bookingTam) {
-            return redirect()->route('home')
-                ->with('error', 'Phiên đặt vé không tồn tại.');
-        }
+    if (!$bookingTam) {
+        return redirect()->route('home')
+            ->with('error', 'Phiên đặt vé không tồn tại.');
+    }
 
-        $selectedCombos = [];
-        $comboTotal = 0;
+    $selectedCombos = [];
+    $comboTotal = 0;
 
-        foreach ($request->input('combos', []) as $comboId => $item) {
-            $quantity = (int) ($item['quantity'] ?? 0);
+    foreach ($request->input('combos', []) as $comboId => $item) {
+        $quantity = (int) ($item['quantity'] ?? 0);
 
-            if ($quantity > 0) {
-                $combo = Combo::where('status', 'ACTIVE')->find($comboId);
+        if ($quantity > 0) {
+            $combo = Combo::where('status', 'ACTIVE')->find($comboId);
 
-                if ($combo) {
-                    $subtotal = $combo->price * $quantity;
+            if ($combo) {
+                $subtotal = $combo->price * $quantity;
 
-                    $selectedCombos[] = [
-                        'combo_id' => $combo->id,
-                        'name' => $combo->name,
-                        'quantity' => $quantity,
-                        'unit_price' => $combo->price,
-                        'total_price' => $subtotal,
-                    ];
+                $selectedCombos[] = [
+                    'combo_id' => $combo->id,
+                    'name' => $combo->name,
+                    'quantity' => $quantity,
+                    'unit_price' => $combo->price,
+                    'total_price' => $subtotal,
+                ];
 
-                    $comboTotal += $subtotal;
-                }
+                $comboTotal += $subtotal;
             }
         }
-
-        $bookingTam['combos'] = $selectedCombos;
-        $bookingTam['total_combo_amount'] = $comboTotal;
-
-        $bookingTam['subtotal'] =
-            ($bookingTam['total_seat_amount'] ?? 0)
-            + $comboTotal;
-
-        $bookingTam['total'] =
-            $bookingTam['subtotal']
-            - ($bookingTam['discount_amount'] ?? 0);
-
-        if ($bookingTam['total'] < 0) {
-            $bookingTam['total'] = 0;
-        }
-
-        session([
-            'booking_tam' => $bookingTam
-        ]);
-
-        // Chuyển sang booking confirm sau khi chnj combo và áp voucher thay vì quay lại trang voucher
-        return redirect()->route('booking.confirm');
     }
+
+    // 🔥 UPDATE SESSION ĐÚNG CÁCH (KHÔNG GHI ĐÈ LUNG TUNG)
+    $bookingTam['combos'] = $selectedCombos;
+    $bookingTam['total_combo_amount'] = $comboTotal;
+
+    // 🔥 BẮT BUỘC: lấy lại seat total + discount từ session hiện tại
+    $seatTotal = $bookingTam['total_seat_amount'] ?? 0;
+    $discount  = $bookingTam['discount_amount'] ?? 0;
+
+    $bookingTam['subtotal'] = $seatTotal + $comboTotal;
+    $bookingTam['total'] = max(0, $bookingTam['subtotal'] - $discount);
+
+    // 🔥 QUAN TRỌNG NHẤT: dùng put (KHÔNG dùng session([...]) kiểu overwrite)
+    session()->put('booking_tam', $bookingTam);
+
+    return redirect()->route('booking.confirm');
+}
     // ==========================================
     // UC-CUS-11: XÁC NHẬN ĐẶT VÉ VÀ TẠO BOOKING
     // ==========================================

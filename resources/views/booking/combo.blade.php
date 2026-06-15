@@ -64,6 +64,10 @@
 
                 <div class="combo-grid">
 
+                    @php
+                        $selectedCombos = collect(session('booking_tam.combos', []))->keyBy('combo_id');
+                    @endphp
+
                     @foreach($combos as $combo)
 
                         <div class="combo-card">
@@ -95,7 +99,7 @@
                                     <input
                                         type="number"
                                         min="0"
-                                        value="0"
+                                        value="{{ $selectedCombos[$combo->id]['quantity'] ?? 0 }}"
                                         class="qty-input"
                                         name="combos[{{ $combo->id }}][quantity]"
                                         data-id="{{ $combo->id }}"
@@ -211,6 +215,13 @@
                                     type="text"
                                     name="code"
                                     placeholder="Nhập mã giảm giá"
+                                >
+
+                                <input
+                                    type="hidden"
+                                    id="selectedCombosInput"
+                                    name="selected_combos"
+                                    value='{{ json_encode(session('booking_tam.combos', []), JSON_HEX_APOS | JSON_HEX_QUOT) }}'
                                 >
 
                                 <button type="submit">
@@ -343,6 +354,30 @@ document.addEventListener('DOMContentLoaded', () => {
                     Chưa chọn combo
                 </div>
             `;
+        }
+
+        const selectedCombos = [];
+
+        inputs.forEach(input => {
+            const qty = parseInt(input.value) || 0;
+
+            if (qty > 0) {
+                const price = parseInt(input.dataset.price) || 0;
+
+                selectedCombos.push({
+                    combo_id: parseInt(input.dataset.id) || 0,
+                    name: input.dataset.name || '',
+                    quantity: qty,
+                    unit_price: price,
+                    total_price: qty * price,
+                });
+            }
+        });
+
+        const selectedCombosInput = document.getElementById('selectedCombosInput');
+
+        if (selectedCombosInput) {
+            selectedCombosInput.value = JSON.stringify(selectedCombos);
         }
 
         document.getElementById('summaryCombos').innerHTML = html;
