@@ -415,19 +415,6 @@ class BookingController extends Controller
                 Cache::forget('seat_held_' . $showtimeId . '_' . $seat->id);
             }
 
-            // Nếu là ghế TEST mà không có ghế thật → insert 1 record ảo
-            if ($isTestMode && $seats->isEmpty()) {
-                DB::table('booking_seats')->insert([
-                    'booking_id' => $booking->id,
-                    'showtime_seat_id' => 0,
-                    'seat_code' => 'TEST-10K',
-                    'seat_type' => 'TEST',
-                    'price' => 10000,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-
             foreach (($bookingTam['combos'] ?? []) as $comboItem) {
                 BookingCombo::create([
                     'booking_id' => $booking->id,
