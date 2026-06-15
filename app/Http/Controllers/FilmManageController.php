@@ -58,7 +58,7 @@ class FilmManageController extends Controller
             'cast' => 'nullable|string',
 
             // Thể loại (checkbox array)
-            'genres' => 'nullable|array',
+            'genres' => 'required|array',
             'genres.*' => 'exists:genres,id',
 
             // Media
@@ -73,6 +73,8 @@ class FilmManageController extends Controller
             'status.in' => 'Trạng thái không hợp lệ',
             'age_rating.in' => 'Độ tuổi không hợp lệ',
         ]);
+        $poster = null;
+        $banner = null;
 
         //kiểm tra xem nếu có hệ thống có cập nhật poster
         if($request->hasFile('poster')){
@@ -88,7 +90,7 @@ class FilmManageController extends Controller
 
         $movie = Movie::create([
             'title' => $request->title,
-            'slug' => Str::slug($request->title),
+            'slug' => Str::slug($request->title) . '-' . time(),
             'original_title' => $request->original_title,
             'description' => $request->description,
             'duration_minutes' => $request->duration_minutes,
