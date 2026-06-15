@@ -262,7 +262,23 @@ class BookingController extends Controller
     // ==========================================
     public function showCombo()
     {
+        $bookingTam = session('booking_tam');
         $combos = Combo::where('status', 'ACTIVE')->get();
+
+        if (!empty($bookingTam['showtime_id']) && !empty($bookingTam['seats'])) {
+            $seatLabels = ShowtimeSeat::with('seat')
+                ->whereIn('id', $bookingTam['seats'])
+                ->get()
+                ->map(function ($item) {
+                    return $item->seat->seat_code ?? ('Ghế #' . $item->id);
+                })
+                ->values()
+                ->all();
+
+            $bookingTam['seat_labels'] = $seatLabels;
+            session()->put('booking_tam', $bookingTam);
+        }
+
         return view('booking.combo', compact('combos'));
     }
 public function saveCombo(Request $request)

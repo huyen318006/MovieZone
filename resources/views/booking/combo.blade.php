@@ -163,7 +163,11 @@
 
                     <div class="seat-list">
 
-                        @forelse(session('booking_tam.seats', []) as $seat)
+                        @php
+                            $seatLabels = session('booking_tam.seat_labels', session('booking_tam.seats', []));
+                        @endphp
+
+                        @forelse($seatLabels as $seat)
 
                             <span class="seat-tag">{{ $seat }}</span>
 
