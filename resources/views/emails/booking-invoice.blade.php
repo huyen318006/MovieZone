@@ -112,7 +112,6 @@
                                     <td style="color: #cbd5e1; padding: 6px 0; font-size: 14px;">
                                         @if($seat['type'] === 'vip') 👑 VIP
                                         @elseif($seat['type'] === 'sweetbox') 💕 Sweetbox
-                                        @elseif($seat['type'] === 'test') 🧪 Test
                                         @else 🎬 Thường
                                         @endif
                                         — {{ $seat['code'] }}

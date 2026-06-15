@@ -116,16 +116,6 @@ class BookingController extends Controller
             }
         }
 
-        // HÀNG TEST — ghế ảo giá 10K để test thanh toán
-        $seatMap['TEST'] = [[
-            'id'       => 'test_10k',
-            'code'     => 'TEST-10K',
-            'price'    => 10000,
-            'status'   => 'AVAILABLE',
-            'type'     => 'test',
-            'label'    => '🧪 TEST 10K',
-            'is_aisle' => false,
-        ]];
 
         // TÍNH THỜI GIAN CÒN LẠI
         $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtime_id;
@@ -331,10 +321,6 @@ class BookingController extends Controller
         $showtimeId = $bookingTam['showtime_id'];
         $seatIds = $bookingTam['seats'];
 
-        // Phát hiện ghế TEST 10K
-        $isTestMode = in_array('test_10k', $seatIds);
-        $realSeatIds = array_filter($seatIds, fn($id) => $id !== 'test_10k');
-
         DB::beginTransaction();
         try {
             // E3: Suất chiếu không còn khả dụng
@@ -343,8 +329,8 @@ class BookingController extends Controller
                 throw new \Exception('Suất chiếu không còn khả dụng.');
             }
 
-            // E1, E4: Kiểm tra lại toàn bộ ghế THẬT (bỏ qua test seat)
-            foreach ($realSeatIds as $seatId) {
+            // E1, E4: Kiểm tra lại toàn bộ ghế
+            foreach ($seatIds as $seatId) {
                 $cacheKey = 'seat_held_' . $showtimeId . '_' . $seatId;
                 $heldBy = Cache::get($cacheKey);
                 
@@ -354,18 +340,11 @@ class BookingController extends Controller
             }
 
             // Tính toán tổng tiền vé + combo + voucher
-            $seats = ShowtimeSeat::whereIn('id', $realSeatIds)->get();
+            $seats = ShowtimeSeat::whereIn('id', $seatIds)->get();
 
             $totalTicketAmount = $seats->sum('price');
             $totalComboAmount = $bookingTam['total_combo_amount'] ?? 0;
             $discountAmount = $bookingTam['discount_amount'] ?? 0;
-
-            // Nếu chế độ test → ghi đè giá thành 10.000đ
-            if ($isTestMode) {
-                $totalTicketAmount = 10000;
-                $totalComboAmount = 0;
-                $discountAmount = 0;
-            }
 
             $finalAmount = $totalTicketAmount + $totalComboAmount - $discountAmount;
 
@@ -394,7 +373,7 @@ class BookingController extends Controller
                 'expired_at' => now()->addMinutes(5),
             ]);
 
-            // Lưu danh sách ghế THẬT vào bảng trung gian
+            // Lưu danh sách ghế vào bảng trung gian
             foreach ($seats as $seat) {
                 $row = $seat->seat->row_label ?? '';
                 $seatType = 'STANDARD';
@@ -427,40 +406,28 @@ class BookingController extends Controller
 
             // Tạo SepayOrder để trang QR Payment hoạt động
             $seatDetails = [];
+            foreach ($seats as $s) {
+                $seatCode = $s->seat->seat_code ?? 'N/A';
+                $seatType = 'standard';
+                $row = $s->seat->row_label ?? '';
+                if ($row === 'F') $seatType = 'vip';
+                if ($row === 'J') $seatType = 'sweetbox';
 
-            if ($isTestMode && $seats->isEmpty()) {
-                // Ghế test ảo
                 $seatDetails[] = [
-                    'code' => 'TEST-10K',
-                    'type' => 'test',
-                    'price' => 10000,
+                    'code' => $seatCode,
+                    'type' => $seatType,
+                    'price' => (int) $s->price,
                 ];
-            } else {
-                foreach ($seats as $s) {
-                    $seatCode = $s->seat->seat_code ?? 'N/A';
-                    $seatType = 'standard';
-                    $row = $s->seat->row_label ?? '';
-                    if ($row === 'F') $seatType = 'vip';
-                    if ($row === 'J') $seatType = 'sweetbox';
-
-                    $seatDetails[] = [
-                        'code' => $seatCode,
-                        'type' => $seatType,
-                        'price' => (int) $s->price,
-                    ];
-                }
             }
 
             $comboDetails = [];
-            if (!$isTestMode) {
-                foreach (($bookingTam['combos'] ?? []) as $comboItem) {
-                    $comboDetails[] = [
-                        'name' => $comboItem['name'],
-                        'quantity' => $comboItem['quantity'],
-                        'unit_price' => $comboItem['unit_price'],
-                        'total_price' => $comboItem['total_price'],
-                    ];
-                }
+            foreach (($bookingTam['combos'] ?? []) as $comboItem) {
+                $comboDetails[] = [
+                    'name' => $comboItem['name'],
+                    'quantity' => $comboItem['quantity'],
+                    'unit_price' => $comboItem['unit_price'],
+                    'total_price' => $comboItem['total_price'],
+                ];
             }
 
             // Lưu email khách hàng vào metadata
@@ -470,7 +437,7 @@ class BookingController extends Controller
                 'order_code'   => $bookingCode,
                 'booking_id'   => $booking->id,
                 'package_id'   => 'booking',
-                'package_name' => $isTestMode ? 'Vé xem phim (TEST 10K)' : 'Vé xem phim',
+                'package_name' => 'Vé xem phim',
                 'amount'       => $finalAmount,
                 'status'       => 'pending',
                 'metadata'     => [
@@ -484,7 +451,6 @@ class BookingController extends Controller
                     'seat_count'     => count($seatDetails),
                     'combos'         => $comboDetails,
                     'showtime_id'    => $showtimeId,
-                    'is_test'        => $isTestMode,
                     'customer_email' => $customerEmail,
                 ],
             ]);

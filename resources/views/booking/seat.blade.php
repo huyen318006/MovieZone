@@ -109,27 +109,6 @@
                         </div>
                     @endif
                 @endforeach
-
-                {{-- HÀNG TEST 10K --}}
-                @if(!empty($seatMap['TEST']))
-                <div class="test-seat-divider">
-                    <span>🧪 GHẾ TEST THANH TOÁN</span>
-                </div>
-                <div class="seat-row test-seat-row">
-                    <span class="row-label" style="color: #f59e0b;">TEST</span>
-                    @foreach($seatMap['TEST'] as $s)
-                        <button type="button"
-                                class="seat test-seat-btn"
-                                data-id="{{ $s['id'] }}"
-                                data-seat="{{ $s['code'] }}"
-                                data-type="{{ $s['type'] }}"
-                                data-price="{{ $s['price'] }}">
-                            🧪 {{ $s['label'] }}
-                        </button>
-                    @endforeach
-                    <span class="row-label" style="color: #f59e0b;">TEST</span>
-                </div>
-                @endif
             </div>
 
             <div class="seat-legend" style="margin-top: 30px;">
@@ -139,7 +118,6 @@
                 <div class="legend-item"><i class="fa-solid fa-couch held-seat" style="color: #28a745;"></i><span>Đã chọn</span></div>
                 <div class="legend-item"><i class="fa-solid fa-couch" style="color: #ff9800;"></i><span>Đang giữ</span></div>
                 <div class="legend-item"><i class="fa-solid fa-couch sold-seat" style="color: #dc3545;"></i><span>Đã bán</span></div>
-                <div class="legend-item"><span style="font-size: 16px;">🧪</span><span>Test 10K</span></div>
             </div>
         </div>
     </div>
@@ -158,59 +136,6 @@
     .sweet-seat-btn {color: white !important; width: 90px !important; font-weight: bold !important; border-radius: 8px !important; margin: 3px 6px !important; transition: background-color 0.2s; }
     .sweet-seat-btn:hover { background-color: #db2777 !important; }
     .sweet-seat-icon { color: #ec4899 !important; }
-
-    /* TEST SEAT */
-    .test-seat-divider {
-        margin: 20px 0 8px;
-        text-align: center;
-        position: relative;
-    }
-    .test-seat-divider::before {
-        content: '';
-        position: absolute;
-        left: 0; right: 0; top: 50%;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, #f59e0b44, transparent);
-    }
-    .test-seat-divider span {
-        background: #0f172a;
-        padding: 2px 16px;
-        position: relative;
-        color: #f59e0b;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-    }
-    .test-seat-row {
-        justify-content: center !important;
-    }
-    .test-seat-btn {
-        background: linear-gradient(135deg, #92400e, #d97706) !important;
-        color: #fff !important;
-        border: 2px dashed #f59e0b !important;
-        font-weight: bold !important;
-        padding: 8px 20px !important;
-        border-radius: 8px !important;
-        font-size: 13px !important;
-        min-width: 130px !important;
-        transition: all 0.3s ease !important;
-        animation: testPulse 2s ease-in-out infinite;
-    }
-    .test-seat-btn:hover {
-        background: linear-gradient(135deg, #b45309, #f59e0b) !important;
-        transform: scale(1.05);
-        box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
-    }
-    .test-seat-btn.HELD_BY_ME {
-        background: #16a34a !important;
-        border-color: #22c55e !important;
-        animation: none;
-    }
-    @keyframes testPulse {
-        0%, 100% { box-shadow: 0 0 5px rgba(245, 158, 11, 0.3); }
-        50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.6); }
-    }
 </style>
 
 <script>
@@ -265,35 +190,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const seatPrice = parseInt(btn.dataset.price);
 
         if (!seatIdAttr) return;
-
-        // === GHẾ TEST: không cần AJAX hold ===
-        if (seatType === 'test') {
-            const isSelecting = !selectedSeats.has(seatCode);
-            if (isSelecting) {
-                // Bỏ tất cả ghế thường đã chọn khi chọn test
-                selectedSeats.forEach((val, key) => {
-                    if (val.type !== 'test') {
-                        const oldBtn = document.querySelector(`.seat[data-seat="${key}"]`);
-                        if (oldBtn) oldBtn.classList.remove('HELD_BY_ME');
-                    }
-                });
-                selectedSeats.clear();
-                selectedSeats.set(seatCode, { id: seatIdAttr, code: seatCode, type: seatType, price: seatPrice });
-                btn.classList.add('HELD_BY_ME');
-            } else {
-                selectedSeats.delete(seatCode);
-                btn.classList.remove('HELD_BY_ME');
-            }
-            updateUI();
-            return;
-        }
-
-        // === Bỏ ghế test nếu đang chọn ghế thường ===
-        if (selectedSeats.has('TEST-10K')) {
-            selectedSeats.delete('TEST-10K');
-            const testBtn = document.querySelector('.seat[data-seat="TEST-10K"]');
-            if (testBtn) testBtn.classList.remove('HELD_BY_ME');
-        }
         
         const isSelecting = !selectedSeats.has(seatCode);
         const action = isSelecting ? 'hold' : 'release';
@@ -363,7 +259,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let total = 0;
             selectedSeats.forEach((seat) => {
                 total += seat.price;
-                const typeLabel = seat.type === 'vip' ? '👑' : seat.type === 'sweetbox' ? '💕' : seat.type === 'test' ? '🧪' : '🎬';
+                const typeLabel = seat.type === 'vip' ? '👑' : seat.type === 'sweetbox' ? '💕' : '🎬';
                 seatTags.push(`<span class="seat-tag seat-tag-${seat.type}">${typeLabel} ${seat.code}</span>`);
                 
                 const ids = seat.id.split(',');
