@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\FilmManageController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
 use App\Http\Controllers\ProfileController;
@@ -140,16 +141,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/my-tickets', [TicketController::class, 'index'])->name('tickets');
 });
 
+
+
 /* --------------------- KHU VỰC CỦA ADMIN ------------------ */
 Route::get('/admin', function () {
     return view('admin.dashboard');
 })->name('admin.dashboard');
 
 // Quản lý phim - FILM MANAGEMENT
-Route::get('/admin/film/management',
-    function () {
-        return view('admin.film_management');
-    })->name('admin.film');
+Route::controller(FilmManageController::class)->group(function () {
+    Route::get('/admin/film/management', 'listmovie')->name('admin.film');
+    Route::get('/admin/film/store','formadd')->name('admin.film.add');
+    Route::post('/admin/filmstore','store')->name('admin.store.film');
+});
+
 
 // Route::get('/admin/my-tickets', function () {
 //     return view('ticket.index');
