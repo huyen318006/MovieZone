@@ -13,6 +13,17 @@
                 <p>Giao dịch của bạn đã được xác nhận</p>
             </div>
 
+            {{-- Thông báo email đã gửi --}}
+            @if($order->isEmailSent())
+            <div class="bill-email-notice">
+                <i class="fa-solid fa-envelope-circle-check"></i>
+                <div>
+                    <strong>📧 Hoá đơn đã được gửi tới email</strong>
+                    <span>{{ $order->metadata['email_sent_to'] ?? $order->getCustomerEmail() }}</span>
+                </div>
+            </div>
+            @endif
+
             {{-- Bill Card --}}
             <div class="bill-card-mz">
 
@@ -38,7 +49,7 @@
                     </div>
                     <div class="bill-qr-body">
                         <div class="bill-qr-frame">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($order->order_code) }}&color=0f172a&bgcolor=ffffff&margin=8"
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data={{ urlencode($order->generateTicketQrData()) }}&color=0f172a&bgcolor=ffffff&margin=8"
                                 alt="QR Xác nhận vé {{ $order->order_code }}" id="confirmQr">
                         </div>
                         <div class="bill-qr-code-text">{{ $order->order_code }}</div>
