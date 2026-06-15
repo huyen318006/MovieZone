@@ -226,11 +226,33 @@ class BookingController extends Controller
             'seats' => 'required|array|min:1' // BR01: Ít nhất 1 ghế
         ]);
 
-        session(['booking_tam' => [
-            'showtime_id' => $request->showtime_id,
-            'seats' => $request->seats,
-            'customer_email' => $request->input('customer_email', ''),
-        ]]);
+        $seats = ShowtimeSeat::whereIn('id', $request->seats)->get();
+        $totalSeatAmount = $seats->sum('price');
+
+        session([
+        'booking_tam' => [
+            'showtime_id'       => $request->showtime_id,
+            'seats'             => $request->seats,
+            'customer_email'    => $request->input('customer_email', ''),
+
+            // Ticket
+            'total_seat_amount' => $totalSeatAmount,
+
+            // Combo
+            'combos'            => [],
+            'total_combo_amount'=> 0,
+
+            // Voucher
+            'voucher_id'        => null,
+            'voucher_code'      => null,
+            'discount_amount'   => 0,
+
+            // Total
+            'subtotal'          => $totalSeatAmount,
+            'total'             => $totalSeatAmount,
+        ]
+    ]);
+
 
         return redirect()->route('booking.combo'); // Chuyển sang chọn combo sau khi chọn ghế thay vì confirm ngay
     }
@@ -280,12 +302,24 @@ class BookingController extends Controller
         $bookingTam['combos'] = $selectedCombos;
         $bookingTam['total_combo_amount'] = $comboTotal;
 
+        $bookingTam['subtotal'] =
+            ($bookingTam['total_seat_amount'] ?? 0)
+            + $comboTotal;
+
+        $bookingTam['total'] =
+            $bookingTam['subtotal']
+            - ($bookingTam['discount_amount'] ?? 0);
+
+        if ($bookingTam['total'] < 0) {
+            $bookingTam['total'] = 0;
+        }
+
         session([
             'booking_tam' => $bookingTam
         ]);
 
-        // Skip bước voucher — chuyển thẳng sang xác nhận
-        return redirect()->route('booking.confirm');
+        // Chuyển đến trang voucher sau khi chọn combo 
+        return redirect()->route('voucher.index');
     }
     // ==========================================
     // UC-CUS-11: XÁC NHẬN ĐẶT VÉ VÀ TẠO BOOKING
