@@ -590,3 +590,161 @@
         width:40px;
     }
 }
+/* ==========================
+VOUCHER
+========================== */
+
+.voucher-box h4{
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:15px;
+    color:#7fa6ff;
+}
+
+.voucher-form{
+    display:flex;
+    gap:10px;
+}
+
+.voucher-form input{
+    flex:1;
+    height:48px;
+
+    background:#1f2a44;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;
+
+    padding:0 15px;
+
+    color:#fff;
+    font-size:15px;
+
+    outline:none;
+    transition:.3s;
+}
+
+.voucher-form input:focus{
+    border-color:#5b8cff;
+
+    box-shadow:
+        0 0 0 3px rgba(91,140,255,.15);
+}
+
+.voucher-form button{
+    border:none;
+
+    padding:0 18px;
+
+    border-radius:12px;
+
+    cursor:pointer;
+
+    font-weight:700;
+    color:white;
+
+    background:
+        linear-gradient(
+            135deg,
+            #7fa6ff,
+            #5b8cff
+        );
+
+    transition:.3s;
+}
+
+.voucher-form button:hover{
+    transform:translateY(-2px);
+
+    box-shadow:
+        0 8px 20px rgba(91,140,255,.35);
+}
+
+/* Voucher đã áp dụng */
+
+.voucher-applied{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    padding:14px 16px;
+
+    border-radius:14px;
+
+    background:
+        rgba(91,140,255,.12);
+
+    border:
+        1px solid rgba(91,140,255,.35);
+}
+
+.voucher-applied span{
+    color:#7fa6ff;
+    font-weight:800;
+    letter-spacing:.5px;
+}
+
+.voucher-applied form{
+    margin:0;
+}
+
+.voucher-applied button{
+    border:none;
+
+    padding:8px 14px;
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+    font-size:13px;
+    font-weight:700;
+
+    color:#fff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #ef4444,
+            #dc2626
+        );
+
+    transition:.3s;
+}
+
+.voucher-applied button:hover{
+    transform:translateY(-2px);
+
+    box-shadow:
+        0 8px 18px rgba(239,68,68,.35);
+}
+
+/* Giá giảm */
+
+.price-summary{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.summary-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.summary-row span{
+    color:var(--text-muted);
+}
+
+.summary-row strong{
+    color:#fff;
+}
+
+.summary-row.discount strong{
+    color:#22c55e;
+    font-weight:800;
+}
+
+.summary-row.discount span{
+    color:#22c55e;
+}

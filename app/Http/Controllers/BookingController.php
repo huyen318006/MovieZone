@@ -268,6 +268,10 @@ class BookingController extends Controller
     public function saveCombo(Request $request)
     {
         $bookingTam = session('booking_tam');
+        if (!$bookingTam) {
+            return redirect()->route('home')
+                ->with('error', 'Phiên đặt vé không tồn tại.');
+        }
 
         if (!$bookingTam) {
             return redirect()->route('home')
@@ -318,8 +322,8 @@ class BookingController extends Controller
             'booking_tam' => $bookingTam
         ]);
 
-        // Chuyển đến trang voucher sau khi chọn combo 
-        return redirect()->route('voucher.index');
+        // Chuyển sang booking confirm sau khi chnj combo và áp voucher thay vì quay lại trang voucher
+        return redirect()->route('booking.confirm');
     }
     // ==========================================
     // UC-CUS-11: XÁC NHẬN ĐẶT VÉ VÀ TẠO BOOKING

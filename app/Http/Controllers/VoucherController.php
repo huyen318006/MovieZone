@@ -8,20 +8,6 @@ use Illuminate\Support\Facades\Auth;
 
 class VoucherController extends Controller
 {
-    public function index()
-    {
-        $booking = session('booking_tam');
-
-        if (!$booking) {
-            return redirect()->back();
-        }
-
-        return view(
-            'customer.voucher.index',
-            compact('booking')
-        );
-    }
-
     public function apply(
         Request $request,
         VoucherService $voucherService
@@ -41,7 +27,7 @@ class VoucherController extends Controller
         }
 
         $result = $voucherService->applyVoucher(
-            $request->code,
+            strtoupper(trim($request->code)),
             $booking['subtotal'],
             Auth::id()
         );

@@ -175,9 +175,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/booking/combo', [BookingController::class, 'saveCombo'])->name('booking.combo.save');
 
     // UC-10: VOUCHER
-    Route::get('/booking/voucher', [VoucherController::class, 'index'])->name('voucher.index');
     Route::post('/booking/voucher/apply', [VoucherController::class, 'apply'])->name('voucher.apply');
-    Route::delete('/booking/voucher/remove', [VoucherController::class, 'remove'])->name('voucher.remove');
+    Route::post('/booking/voucher/remove', [VoucherController::class, 'remove'])->name('voucher.remove');
 
     // UC-11: Hiển thị màn hình xác nhận đặt vé
     Route::get('/booking/confirm', [BookingController::class, 'showConfirm'])->name('booking.confirm');
