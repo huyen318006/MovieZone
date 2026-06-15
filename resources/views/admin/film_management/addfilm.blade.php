@@ -99,10 +99,11 @@
                     <div class="col-md-3">
                         <label class="form-label">Trạng thái</label>
                         <select name="status" class="form-select">
+
                             <option value="COMING_SOON" {{ old('status') == 'COMING_SOON' ? 'selected' : '' }}>Chuẩn bị chiếu</option>
-                            <option value="NOW_SHOWING" {{ old('status') == 'NOW_SHOWING' ? 'selected' : '' }}>Đang chiếu</option>
+                            {{-- <option value="NOW_SHOWING" {{ old('status') == 'NOW_SHOWING' ? 'selected' : '' }}>Đang chiếu</option>
                             <option value="ENDED" {{ old('status') == 'ENDED' ? 'selected' : '' }}>Ngừng chiếu</option>
-                            <option value="HIDDEN" {{ old('status') == 'HIDDEN' ? 'selected' : '' }}>Đã ẩn</option>
+                            <option value="HIDDEN" {{ old('status') == 'HIDDEN' ? 'selected' : '' }}>Đã ẩn</option> --}}
                         </select>
 
                         @error('status')

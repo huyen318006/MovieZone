@@ -6,9 +6,10 @@ use App\Models\Genre;
 use App\Models\Movie;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-
+use Illuminate\Validation\Rule;
 
 class FilmManageController extends Controller
 {
@@ -45,13 +46,27 @@ class FilmManageController extends Controller
 
             // Phát hành
             'duration_minutes' => 'required|integer|min:1|max:500',
-            'release_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:release_date',
+            'release_date' => [
+                'required',
+                'date',
+                function ($attribute, $value, $fail) {
+                    $minDate = \Carbon\Carbon::today()->addDays(3);
+
+                    if (\Carbon\Carbon::parse($value)->lt($minDate)) {
+                        $fail('Ngày khởi chiếu phải từ ' . $minDate->format('d/m/Y') . ' trở đi (ít nhất sau 3 ngày kể từ hôm nay).');
+                    }
+                }
+            ],
+            'end_date' => [
+                'nullable',
+                'date',
+                'after:release_date'
+            ],
             'status' => 'required|in:COMING_SOON,NOW_SHOWING,ENDED,HIDDEN',
 
             // Nội dung
-            'country' => 'nullable|string|max:100',
-            'language' => 'nullable|string|max:100',
+            'country' => 'required|string|max:100',
+            'language' => 'required|string|max:100',
             'subtitle' => 'nullable|string|max:100',
             'director' => 'nullable|string|max:255',
             'age_rating' => 'required|in:P,K,T13,T16,T18',
@@ -68,6 +83,7 @@ class FilmManageController extends Controller
         ], [
             // Custom message (tuỳ chọn)
             'title.required' => 'Tên phim không được để trống',
+            'end_date.after' => 'Ngày kết thúc phải lớn hơn ngày khởi chiếu',
             'duration_minutes.required' => 'Vui lòng nhập thời lượng phim',
             'release_date.required' => 'Ngày khởi chiếu là bắt buộc',
             'status.in' => 'Trạng thái không hợp lệ',
