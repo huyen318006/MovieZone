@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark" data-bs-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -41,7 +41,7 @@
 <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('assets/js/main.js') }}"></script>
 
-<script>
+{{-- <script>
 (() => {
   const html = document.documentElement;
   const toggleBtn = document.getElementById('theme-toggle');
@@ -76,7 +76,7 @@
     });
   }
 })();
-</script>
+</script> --}}
 
 
 @stack('scripts')
