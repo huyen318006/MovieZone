@@ -31,7 +31,7 @@
                         </li>
 
                         <li>
-                            <a href="{{ url('profile') }}" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                            <a href="#" class="dropdown-item py-2 d-flex align-items-center gap-2">
                                 <i class="bi bi-person fs-5 text-muted"></i>
                                 <span>Xem hồ sơ</span>
                             </a>
