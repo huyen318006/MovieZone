@@ -226,11 +226,33 @@ class BookingController extends Controller
             'seats' => 'required|array|min:1' // BR01: Ít nhất 1 ghế
         ]);
 
-        session(['booking_tam' => [
-            'showtime_id' => $request->showtime_id,
-            'seats' => $request->seats,
-            'customer_email' => $request->input('customer_email', ''),
-        ]]);
+        $seats = ShowtimeSeat::whereIn('id', $request->seats)->get();
+        $totalSeatAmount = $seats->sum('price');
+
+        session([
+        'booking_tam' => [
+            'showtime_id'       => $request->showtime_id,
+            'seats'             => $request->seats,
+            'customer_email'    => $request->input('customer_email', ''),
+
+            // Ticket
+            'total_seat_amount' => $totalSeatAmount,
+
+            // Combo
+            'combos'            => [],
+            'total_combo_amount'=> 0,
+
+            // Voucher
+            'voucher_id'        => null,
+            'voucher_code'      => null,
+            'discount_amount'   => 0,
+
+            // Total
+            'subtotal'          => $totalSeatAmount,
+            'total'             => $totalSeatAmount,
+        ]
+    ]);
+
 
         return redirect()->route('booking.combo'); // Chuyển sang chọn combo sau khi chọn ghế thay vì confirm ngay
     }
@@ -240,53 +262,75 @@ class BookingController extends Controller
     // ==========================================
     public function showCombo()
     {
+        $bookingTam = session('booking_tam');
         $combos = Combo::where('status', 'ACTIVE')->get();
+
+        if (!empty($bookingTam['showtime_id']) && !empty($bookingTam['seats'])) {
+            $seatLabels = ShowtimeSeat::with('seat')
+                ->whereIn('id', $bookingTam['seats'])
+                ->get()
+                ->map(function ($item) {
+                    return $item->seat->seat_code ?? ('Ghế #' . $item->id);
+                })
+                ->values()
+                ->all();
+
+            $bookingTam['seat_labels'] = $seatLabels;
+            session()->put('booking_tam', $bookingTam);
+        }
+
         return view('booking.combo', compact('combos'));
     }
-    public function saveCombo(Request $request)
-    {
-        $bookingTam = session('booking_tam');
+public function saveCombo(Request $request)
+{
+    $bookingTam = session()->get('booking_tam');
 
-        if (!$bookingTam) {
-            return redirect()->route('home')
-                ->with('error', 'Phiên đặt vé không tồn tại.');
-        }
+    if (!$bookingTam) {
+        return redirect()->route('home')
+            ->with('error', 'Phiên đặt vé không tồn tại.');
+    }
 
-        $selectedCombos = [];
-        $comboTotal = 0;
+    $selectedCombos = [];
+    $comboTotal = 0;
 
-        foreach ($request->input('combos', []) as $comboId => $item) {
-            $quantity = (int) ($item['quantity'] ?? 0);
+    foreach ($request->input('combos', []) as $comboId => $item) {
+        $quantity = (int) ($item['quantity'] ?? 0);
 
-            if ($quantity > 0) {
-                $combo = Combo::where('status', 'ACTIVE')->find($comboId);
+        if ($quantity > 0) {
+            $combo = Combo::where('status', 'ACTIVE')->find($comboId);
 
-                if ($combo) {
-                    $subtotal = $combo->price * $quantity;
+            if ($combo) {
+                $subtotal = $combo->price * $quantity;
 
-                    $selectedCombos[] = [
-                        'combo_id' => $combo->id,
-                        'name' => $combo->name,
-                        'quantity' => $quantity,
-                        'unit_price' => $combo->price,
-                        'total_price' => $subtotal,
-                    ];
+                $selectedCombos[] = [
+                    'combo_id' => $combo->id,
+                    'name' => $combo->name,
+                    'quantity' => $quantity,
+                    'unit_price' => $combo->price,
+                    'total_price' => $subtotal,
+                ];
 
-                    $comboTotal += $subtotal;
-                }
+                $comboTotal += $subtotal;
             }
         }
-
-        $bookingTam['combos'] = $selectedCombos;
-        $bookingTam['total_combo_amount'] = $comboTotal;
-
-        session([
-            'booking_tam' => $bookingTam
-        ]);
-
-        // Skip bước voucher — chuyển thẳng sang xác nhận
-        return redirect()->route('booking.confirm');
     }
+
+    // 🔥 UPDATE SESSION ĐÚNG CÁCH (KHÔNG GHI ĐÈ LUNG TUNG)
+    $bookingTam['combos'] = $selectedCombos;
+    $bookingTam['total_combo_amount'] = $comboTotal;
+
+    // 🔥 BẮT BUỘC: lấy lại seat total + discount từ session hiện tại
+    $seatTotal = $bookingTam['total_seat_amount'] ?? 0;
+    $discount  = $bookingTam['discount_amount'] ?? 0;
+
+    $bookingTam['subtotal'] = $seatTotal + $comboTotal;
+    $bookingTam['total'] = max(0, $bookingTam['subtotal'] - $discount);
+
+    // 🔥 QUAN TRỌNG NHẤT: dùng put (KHÔNG dùng session([...]) kiểu overwrite)
+    session()->put('booking_tam', $bookingTam);
+
+    return redirect()->route('booking.confirm');
+}
     // ==========================================
     // UC-CUS-11: XÁC NHẬN ĐẶT VÉ VÀ TẠO BOOKING
     // ==========================================

@@ -10,6 +10,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SepayController;
 use App\Http\Controllers\ShowtimeController;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\VoucherController;
 use App\Models\Movie;
 use Illuminate\Support\Facades\Route;
 
@@ -177,6 +178,10 @@ Route::middleware(['auth'])->group(function () {
     // UC-09:COMBO
     Route::get('/booking/combo', [BookingController::class, 'showCombo'])->name('booking.combo');
     Route::post('/booking/combo', [BookingController::class, 'saveCombo'])->name('booking.combo.save');
+
+    // UC-10: VOUCHER
+    Route::post('/booking/voucher/apply', [VoucherController::class, 'apply'])->name('voucher.apply');
+    Route::post('/booking/voucher/remove', [VoucherController::class, 'remove'])->name('voucher.remove');
 
     // UC-11: Hiển thị màn hình xác nhận đặt vé
     Route::get('/booking/confirm', [BookingController::class, 'showConfirm'])->name('booking.confirm');
