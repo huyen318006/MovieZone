@@ -1,53 +1,63 @@
-<nav class="navbar admin-navbar navbar-expand bg-white">
-
+<nav class="navbar admin-navbar navbar-expand bg-white border-bottom py-2">
     <div class="container-fluid">
-
-        <form class="d-flex w-50">
-
-            <input
-                type="text"
-                class="form-control"
-                placeholder="Tìm kiếm phim, vé, khách hàng...">
-
+        <form class="d-flex w-50" action="#" method="GET">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" class="form-control bg-light border-start-0 ps-0" placeholder="Tìm kiếm phim, vé, khách hàng...">
+            </div>
         </form>
 
-        <div class="ms-auto d-flex align-items-center gap-3">
-
-            <button class="btn btn-light">
-                <i class="bi bi-bell"></i>
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <button class="btn btn-light rounded-circle p-2 position-relative" style="width: 40px; height: 40px;">
+                <i class="bi bi-bell fs-5"></i>
+                <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"></span>
             </button>
 
             <div class="dropdown">
-
-                <button
-                    class="btn btn-light dropdown-toggle"
-                    data-bs-toggle="dropdown">
-
-                            {{-- {{ Auth::user()->name }} --}}
-                            Admin
-
+                <button class="btn btn-light dropdown-toggle d-flex align-items-center gap-2 py-1.5 px-3 rounded-pill" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle fs-5 text-secondary"></i>
+                    <span class="fw-semibold">
+                        @auth {{ Auth::user()->name }} @else Khách @endauth
+                    </span>
                 </button>
 
-                <ul class="dropdown-menu dropdown-menu-end">
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" style="min-width: 200px;">
+                    @auth
+                        <li class="dropdown-header text-dark border-bottom pb-2 mb-1">
+                            <small class="text-muted d-block">Tài khoản</small>
+                            <span class="fw-bold text-truncate d-block text-light">{{ Auth::user()->name }}</span>
+                        </li>
 
-                    <li>
-                        <a class="dropdown-item" href="#">
-                            Hồ sơ
-                        </a>
-                    </li>
+                        <li>
+                            <a href="{{ url('profile') }}" class="dropdown-item py-2 d-flex align-items-center gap-2">
+                                <i class="bi bi-person fs-5 text-muted"></i>
+                                <span>Xem hồ sơ</span>
+                            </a>
+                        </li>
 
-                    <li>
-                        <a class="dropdown-item" href="#">
-                            Đăng xuất
-                        </a>
-                    </li>
+                        <li><hr class="dropdown-divider"></li>
 
+                        <li>
+                            <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                                @csrf
+                                <button type="submit" class="dropdown-item text-danger py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent">
+                                    <i class="bi bi-box-arrow-right fs-5"></i>
+                                    <span>Đăng xuất</span>
+                                </button>
+                            </form>
+                        </li>
+                    @else
+                        <li>
+                            <a href="{{ route('login') }}" class="dropdown-item py-2 d-flex align-items-center gap-2 text-primary fw-semibold">
+                                <i class="bi bi-box-arrow-in-right fs-5"></i>
+                                <span>Đăng nhập</span>
+                            </a>
+                        </li>
+                    @endauth
                 </ul>
-
             </div>
-
         </div>
-
     </div>
-
 </nav>
