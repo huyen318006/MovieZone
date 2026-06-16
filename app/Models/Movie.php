@@ -67,7 +67,7 @@ class Movie extends Model
                 ->orWhere('original_title', 'like', "%{$keyword}%");
         });
     }
-    
+
     //tính lại điểm trung bình của phim
     public function recalculateRating()
     {

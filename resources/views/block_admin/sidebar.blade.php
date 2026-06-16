@@ -85,12 +85,12 @@
             <i class="bi bi-bar-chart"></i>
             Báo cáo
         </a>
-        <button id="theme-toggle" class="btn btn-outline-secondary">
+        {{-- <button id="theme-toggle" class="btn btn-outline-secondary">
 
             <i class="bi bi-moon-stars"></i>
                 Giao diện
 
-        </button>
+        </button> --}}
 
     </nav>
 
