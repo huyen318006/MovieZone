@@ -153,6 +153,27 @@ Route::controller(FilmManageController::class)->group(function () {
     Route::get('/admin/film/management', 'listmovie')->name('admin.film');
     Route::get('/admin/film/store','formadd')->name('admin.film.add');
     Route::post('/admin/filmstore','store')->name('admin.store.film');
+    //sửa thông tin film
+    Route::get('/admin/view/update/film/{id}','viewupdate')->name('admin.view.update.film');
+    Route::post('/admin/updatefilm/{id}','update')->name('update.film');
+
+    //bắt đầu phần khó liên quan đến trạng thái thanh toán suất chiếu cụ thể
+
+    // Route GET: Trang xác nhận ngừng chiếu phim (MVC thuần)
+    Route::get('/admin/film/{id}/confirm-stop', [FilmManageController::class, 'confirmStop'])
+        ->name('admin.film.confirm_stop');
+
+    // Route POST: Thực hiện thay đổi trạng thái phim (Ngừng chiếu)
+    Route::post('/admin/film/{id}/toggle-status', [FilmManageController::class, 'toggleStatus'])
+        ->name('admin.film.toggle_status');
+
+        //xác nhận khôi phục phim
+        Route::get('/admin/film/{id}/restore','restore')->name('restore.film');
+    //bắt đầu khôi phục
+    //xác nhận khôi phục phim
+    Route::post('confirm_recovery/{id}/file', 'confirmrecovery')->name('confirm.recovery');
+
+
 });
 
 

@@ -2,31 +2,98 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateFilmRequest;
+use App\Models\Booking;
 use App\Models\Genre;
 use App\Models\Movie;
-
+use App\Models\MovieGenre;
+use App\Models\Showtime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\FilmCancelledNotification;
+use Illuminate\Support\Facades\Log;
 
 class FilmManageController extends Controller
 {
     //
 
-    public function listmovie()
+    public function listmovie(Request $request)
     {
-        //lấy toàn bộ movier
-        $movieGenres= DB::table('movies')
-        ->leftJoin('movie_genres', 'movie_genres.movie_id','=','movies.id')
-        ->leftJoin('genres', 'movie_genres.genre_id','=', 'genres.id')
-        ->select('movies.*',
-        DB::raw('GROUP_CONCAT(genres.name SEPARATOR ", ") as genres_name ')
-        )->groupBy('movies.id')
-        ->paginate(10)
-        ;
-        return view('admin.film_management.film',compact('movieGenres'));
+
+    //ở  đây DEV-tien_hung  làm 1 đoạn cập nhật trạng thái của film thay vì cập nhật bằng tay. ae tham khảo đoạn này nếu cần !!!
+        //trước khi list và filter thì cần xem phim nào đã  hạn chiếu or hết hạn chiếu thì cập nhật lại trạng thái
+        //  AUTO UPDATE TRẠNG THÁI TRƯỚC KHI LOAD
+        // 1. Sắp chiếu → đang chiếu
+        Movie::where('status', 'COMING_SOON')
+            ->whereDate('release_date', '<=', now())
+            ->update([
+                'status' => 'NOW_SHOWING'
+            ]);
+
+        // 2. Đang chiếu → đã kết thúc
+        // Điều kiện: ngày kết thúc đã qua hoặc (nếu không có ngày kết thúc) ngày hiện tại đã qua ngày khởi chiếu
+        Movie::where('status', 'NOW_SHOWING')
+            ->whereNotNull('end_date') //  tránh null
+            ->whereDate('end_date', '<', now())
+            ->update([
+                'status' => 'ENDED'
+            ]);
+         /* -------------------------------- End cập nhật trạng thái ---------------*/
+         // 3. Ẩn phim đã kết thúc quá lâu (ví dụ: đã kết thúc hơn 10 ngày)
+        Movie::where('status', 'ENDED')
+            ->whereDate('end_date', '<', now()->subDays(10))
+            ->update([
+                'status' => 'HIDDEN'
+            ]);
+            // 4. Kiểm tra ở trạng thái HIDDEN, nếu phim được set lại ngày khởi chiếu hợp lệ (>= today + 3)
+            // thì tự động chuyển thành COMING_SOON (Sắp chiếu)
+             Movie::where('status', 'HIDDEN')
+             ->whereDate('release_date', '>=', now()->addDays(3))
+             ->update([
+                'status' => 'COMING_SOON',
+             ]);
+
+
+          /* -------------------------------- End cập nhật trạng thái ---------------*/
+
+
+
+        //lấy toàn bộ movie
+        // query gốc
+        $query = DB::table('movies')
+            ->leftJoin('movie_genres', 'movie_genres.movie_id', '=', 'movies.id')
+            ->leftJoin('genres', 'movie_genres.genre_id', '=', 'genres.id')
+            ->select(
+                'movies.*',
+                DB::raw('GROUP_CONCAT(genres.name SEPARATOR ", ") as genres_name')
+            )
+            ->groupBy('movies.id');
+
+            //lấy toàn bộ thể loại để đổ vào filter
+        $allGenres = Genre::all();
+
+        // FILTER THEO STATUS
+        if ($request->status) {
+            $query->where('movies.status', $request->status);
+        }
+
+        //FILTER THEO GENRE
+        if ($request->genre) {
+
+            $query->where('genres.id', $request->genre);
+        }
+
+        // paginate + giữ query khi chuyển trang
+        $movieGenres = $query
+            ->paginate(10)
+            ->appends($request->all());
+
+        return view('admin.film_management.film', compact('movieGenres', 'allGenres'));
     }
 
 
@@ -128,4 +195,226 @@ class FilmManageController extends Controller
 
         return redirect()->route('admin.film')->with('success', 'Phim đã được thêm thành công!');
     }
+
+
+    // phần update
+    public function viewupdate($id)
+    {
+        $movie = Movie::findOrFail($id);
+
+        // Lấy thêm genres_name (danh sách tên thể loại dạng chuỗi)
+        $movie_id = DB::table('movies')
+            ->leftJoin('movie_genres', 'movie_genres.movie_id', '=', 'movies.id')
+            ->leftJoin('genres', 'movie_genres.genre_id', '=', 'genres.id')
+            ->select(
+                'movies.*',
+                DB::raw('GROUP_CONCAT(genres.name SEPARATOR ", ") as genres_name')
+            )->where('movies.id', $id)->groupBy('movies.id')
+            ->first();
+
+        // ID thể loại hiện tại — dùng để tick sẵn checkbox
+        $currentGenreIds = DB::table('movie_genres')
+            ->where('movie_id', $id)
+            ->pluck('genre_id')
+            ->toArray();
+
+        $genres = Genre::all();
+
+        return view('admin.film_management.updatefilm', compact('movie_id', 'genres', 'currentGenreIds'));
+    }
+    /** Hướng giải quyết cập nhật phim theo nghiệp vụ rạp chiếu
+     * ae có thể tham khảo =)
+     * Cập nhật thông tin phim theo đúng nghiệp vụ rạp chiếu.
+     *
+     * QUY TẮc KHÓA TRƯỜNG THEO STATUS:
+     *   COMING_SOON  → có thể sửa cả release_date và end_date
+     *   NOW_SHOWING  → khóa release_date (phim đang chiếu, không thể đổi ngày khởi chiếu)
+     *   ENDED        → khóa cả release_date và end_date
+     *
+     * Logic khóa được xử lý trong UpdateFilmRequest::prepareForValidation()
+     */
+    public function update(UpdateFilmRequest $request, $id)
+    {
+        $movie  = Movie::findOrFail($id);
+        $status = $request->input('status');
+
+        // ── Xử lý Poster ────────────────────────────────────────────────────
+        if ($request->hasFile('poster')) {
+            if (!empty($movie->poster_url)) {
+                Storage::disk('public')->delete($movie->poster_url);
+            }
+            $posterPath = $request->file('poster')->store('poster_film', 'public');
+        } else {
+            $posterPath = $movie->poster_url;
+        }
+
+        // ── Xử lý Banner ────────────────────────────────────────────────────
+        if ($request->hasFile('banner')) {
+            if (!empty($movie->banner_url)) {
+                Storage::disk('public')->delete($movie->banner_url);
+            }
+            $bannerPath = $request->file('banner')->store('banner_film', 'public');
+        } else {
+            $bannerPath = $movie->banner_url;
+        }
+
+        // ── Xây dựng payload cập nhật ─────────────────────────────────────
+        $payload = [
+            'title'            => $request->title,
+            'slug'             => Str::slug($request->title) . '-' . time(),
+            'original_title'   => $request->original_title,
+            'description'      => $request->description,
+            'duration_minutes' => $request->duration_minutes,
+            'status'           => $status,
+            'country'          => $request->country,
+            'language'         => $request->language,
+            'subtitle'         => $request->subtitle,
+            'director'         => $request->director,
+            'age_rating'       => $request->age_rating,
+            'cast'             => $request->cast,
+            'poster_url'       => $posterPath,
+            'banner_url'       => $bannerPath,
+            'trailer_url'      => $request->trailer_url,
+        ];
+
+        // ── Áp dụng quy tắc khóa ngày theo status ────────────────────────
+        // prepareForValidation() đã override giá trị trong $request,
+        // nên chỉ cần gán lại ở đây — giá trị luôn an toàn.
+        $payload['release_date'] = $request->release_date; // giữ nguyên DB nếu NOW_SHOWING/ENDED
+        $payload['end_date']     = $request->end_date;     // giữ nguyên DB nếu ENDED
+
+        // ── Thực hiện cập nhật ────────────────────────────────────────────
+        $movie->update($payload);
+
+        // ── Cập nhật thể loại ─────────────────────────────────────────────
+        $movie->genres()->sync($request->genres ?? []);
+
+        return redirect()->route('admin.film')
+            ->with('success', 'Cập nhật phim thành công!');
+    }
+
+    /**
+     * Hiển thị trang xác nhận ngừng chiếu phim (MVC thuần)
+     */
+    public function confirmStop(Request $request, $id)
+    {
+        // Lấy thông tin phim theo ID
+        $movie = Movie::findOrFail($id);
+
+        // Lấy danh sách suất chiếu trong tương lai của phim này (chưa bị hủy)
+        $showtimes = Showtime::where('movie_id', $id)
+            ->where('start_time', '>', now())
+            ->where('status', '!=', 'CANCELLED');
+
+        // Đếm số lượng suất chiếu tương lai
+        $showtimeCount = $showtimes->count();
+
+        // Đếm số lượng đơn đặt vé tương lai (PAID hoặc PENDING) của các suất chiếu này
+        $bookingCount = Booking::whereIn('showtime_id', $showtimes->pluck('id'))
+            ->whereIn('status', ['PAID', 'PENDING'])
+            ->count();
+
+        // Trả về view Blade xác nhận kèm dữ liệu thống kê ảnh hưởng
+        return view('admin.film.confirm_stop', compact('movie', 'showtimeCount', 'bookingCount'));
+    }
+
+    // Thay đổi trạng thái của phim
+    public function toggleStatus(Request $request, $id)
+    {
+        $movie = Movie::findOrFail($id);
+        $action = $request->toggle_action;
+
+        // Xử lý luồng ngừng chiếu phim (ENDED)
+        if ($action === 'stop') {
+
+            DB::transaction(function () use ($movie, $id) {
+
+                // 1. Cập nhật trạng thái phim thành ENDED và gán ngày kết thúc chiếu là hôm nay
+                $movie->update([
+                    'status' => 'ENDED',
+                    'end_date' => now()->toDateString()
+                ]);
+
+                // 2. Tìm tất cả các suất chiếu tương lai của bộ phim này
+                $showtimes = Showtime::where('movie_id', $id)
+                    ->where('start_time', '>', now())
+                    ->get();
+
+                    // Hàm pluck('id') sẽ đi qua từng suất chiếu, chỉ "nhặt" đúng giá trị của cột id rồi bỏ hết các thông tin rườm rà khác đi.
+                $showtimeIds = $showtimes->pluck('id');
+
+                // 3. Chuyển trạng thái của các suất chiếu tương lai đó thành CANCELLED (Đã hủy)
+                Showtime::whereIn('id', $showtimeIds)
+                     ->update(['status' => 'CANCELLED']);
+
+                // 4. Lấy các đơn đặt vé (PAID hoặc PENDING) liên quan đến các suất chiếu bị hủy
+                $bookings = Booking::whereIn('showtime_id', $showtimeIds)
+                    ->whereIn('status', ['PAID', 'PENDING'])
+                    ->get();
+
+                // 5. Hủy các đơn hàng và chuyển trạng thái thanh toán của đơn PAID sang REFUNDED (hoàn tiền)
+                foreach ($bookings as $b) {
+                    $b->status = 'CANCELLED';
+
+                    if ($b->payment_status === 'PAID') {
+                        $b->payment_status = 'REFUNDED';
+                    }
+
+                    $b->save();
+                    // --- TIẾN HÀNH GỬI MAIL TRỰC TIẾP TẠI ĐÂY ---
+                    // Kiểm tra xem đơn hàng này có tài khoản user và có điền email không
+                    if($b->user &&  $b->user->email){
+                        try{
+                            // Sử dụng hàm send() để gửi mail đi trực tiếp ngay lập tức
+Mail::to($b->user->email)->send(new FilmCancelledNotification($b));
+
+                        }catch(\Exception $e) {
+                            // Nếu lỗi gửi mail (sai mail, mất mạng...) thì bỏ qua để chạy tiếp vé sau, không làm sập hệ thống
+                            Log::error("Lỗi gửi mail cho đơn hàng số " . $b->id . ": " . $e->getMessage());
+                        }
+                    }
+                }
+            });
+
+            // Sau khi xử lý xong, redirect về trang danh sách phim kèm thông báo thành công
+            return redirect()->route('admin.film')->with('success', 'Đã chuyển phim sang trạng thái Ngừng chiếu, các suất chiếu và vé liên quan đã được xử lý hủy.');
+        }
+    }
+
+
+
+    public function restore($id){
+
+        //lấy id movie
+        $movie=Movie::findOrFail($id);
+        if($movie){
+            return view('admin.film.restore',compact('movie'));
+        }
+
+    }
+
+    public function confirmrecovery($id,Request $request){
+        // kiểm tra có xác nhận hay ko
+        $action= $request->toggle_action;
+        if($action == 'resume'){
+            $movie = Movie::findOrFail($id);
+            //nếu id tồn tại
+            if ($movie) {
+                //bắt đầu cập nhật trạng thái
+                Movie::where('id', $id)->update(
+                    [
+                        //cập nhật trạng thái
+                        'status' => 'COMING_SOON',
+                        'release_date' => now()->addDays(3)->toDateString(),
+                        'end_date' => null,
+                    ],
+                );
+            }
+            return redirect()->route('admin.film')->with('success', 'Phim đã khôi phục thành công.');
+
+        }
+        return redirect()->route('admin.film');
+
+    }
 }
+
