@@ -401,6 +401,7 @@ class FilmManageController extends Controller
     }
 
     // Thay đổi trạng thái của phim
+    // Thay đổi trạng thái của phim
     public function toggleStatus(Request $request, $id)
     {
         $movie = Movie::findOrFail($id);
@@ -409,7 +410,10 @@ class FilmManageController extends Controller
         // Xử lý luồng ngừng chiếu phim (ENDED)
         if ($action === 'stop') {
 
-            DB::transaction(function () use ($movie, $id) {
+            // Tạo một mảng để chứa danh sách các đơn hàng cần gửi mail sau khi cập nhật xong DB
+            $bookingsToEmail = [];
+
+            DB::transaction(function () use ($movie, $id, &$bookingsToEmail) {
 
                 // 1. Cập nhật trạng thái phim thành ENDED và gán ngày kết thúc chiếu là hôm nay
                 $movie->update([
@@ -420,9 +424,9 @@ class FilmManageController extends Controller
                 // 2. Tìm tất cả các suất chiếu tương lai của bộ phim này
                 $showtimes = Showtime::where('movie_id', $id)
                     ->where('start_time', '>', now())
+                    ->where('status', '!=', 'CANCELLED')
                     ->get();
 
-                // Hàm pluck('id') sẽ đi qua từng suất chiếu, chỉ "nhặt" đúng giá trị của cột id rồi bỏ hết các thông tin rườm rà khác đi.
                 $showtimeIds = $showtimes->pluck('id');
 
                 // 3. Chuyển trạng thái của các suất chiếu tương lai đó thành CANCELLED (Đã hủy)
@@ -443,19 +447,26 @@ class FilmManageController extends Controller
                     }
 
                     $b->save();
-                    // --- TIẾN HÀNH GỬI MAIL TRỰC TIẾP TẠI ĐÂY ---
-                    // Kiểm tra xem đơn hàng này có tài khoản user và có điền email không
-                    if ($b->user &&  $b->user->email) {
-                        try {
-                            // Sử dụng hàm send() để gửi mail đi trực tiếp ngay lập tức
-                            Mail::to($b->user->email)->send(new FilmCancelledNotification($b));
-                        } catch (\Exception $e) {
-                            // Nếu lỗi gửi mail (sai mail, mất mạng...) thì bỏ qua để chạy tiếp vé sau, không làm sập hệ thống
-                            Log::error("Lỗi gửi mail cho đơn hàng số " . $b->id . ": " . $e->getMessage());
-                        }
+
+                    // KHÔNG gửi mail trực tiếp ở đây nữa. Gom đơn hàng vào mảng tạm
+                    if ($b->user && $b->user->email) {
+                        $bookingsToEmail[] = $b;
                     }
                 }
             });
+
+            // --- ĐƯA LUỒNG GỬI MAIL RA NGOÀI TRANSACTION VÀ VÒNG LẶP CẬP NHẬT DB ---
+            // Hệ thống sẽ gửi tuần tự, nếu có độ trễ nhỏ giữa các mail cũng không làm ảnh hưởng đến dữ liệu DB
+            foreach ($bookingsToEmail as $booking) {
+                try {
+                    Mail::to($booking->user->email)->send(new FilmCancelledNotification($booking));
+
+                    // Thêm một khoảng trễ cực nhỏ (0.5 giây) để tránh việc ép Mail Server của Google nhận request quá dồn dập
+                    usleep(500000);
+                } catch (\Exception $e) {
+                    Log::error("Lỗi gửi mail cho đơn hàng số " . $booking->id . ": " . $e->getMessage());
+                }
+            }
 
             // Sau khi xử lý xong, redirect về trang danh sách phim kèm thông báo thành công
             return redirect()->route('admin.film')->with('success', 'Đã chuyển phim sang trạng thái Ngừng chiếu, các suất chiếu và vé liên quan đã được xử lý hủy.');
