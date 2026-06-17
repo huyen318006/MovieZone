@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\CinemaManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\FilmManageController;
@@ -176,6 +177,17 @@ Route::controller(FilmManageController::class)->group(function () {
     Route::post('confirm_recovery/{id}/file', 'confirmrecovery')->name('confirm.recovery');
 
 
+});
+
+// Quản lý rạp - CINEMA MANAGEMENT
+Route::prefix('admin/cinemas')->name('admin.cinemas.')->group(function () {
+    Route::get('/', [CinemaManageController::class, 'index'])->name('index');
+    Route::get('/create', [CinemaManageController::class, 'create'])->name('create');
+    Route::post('/', [CinemaManageController::class, 'store'])->name('store');
+    Route::get('/{id}/edit', [CinemaManageController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [CinemaManageController::class, 'update'])->name('update');
+    Route::post('/{id}/hide', [CinemaManageController::class, 'hide'])->name('hide');
+    Route::post('/{id}/restore', [CinemaManageController::class, 'restore'])->name('restore');
 });
 
 

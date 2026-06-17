@@ -31,7 +31,7 @@
             Quản lý phim
         </a>
 
-        <a class="nav-link" href="">
+        <a class="nav-link" href="{{ route('admin.cinemas.index') }}">
             <i class="bi bi-building"></i>
             Quản lý rạp
         </a>
