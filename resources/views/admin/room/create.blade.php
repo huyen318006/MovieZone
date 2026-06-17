@@ -89,11 +89,6 @@
                     </div>
                 </div>
 
-                <div class="alert alert-info mt-4 mb-0">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Sau khi tạo phòng, sơ đồ ghế chi tiết sẽ được cấu hình ở UC-ADM-04.
-                </div>
-
                 <div class="d-flex gap-2 mt-4 pt-3 border-top">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-lg me-1"></i> Lưu phòng chiếu

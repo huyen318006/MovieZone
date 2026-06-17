@@ -68,7 +68,7 @@
     <div class="col-12 mt-3">
         <div class="alert alert-warning mb-0">
             <i class="bi bi-exclamation-triangle me-1"></i>
-            Số ghế đã cấu hình hiện là {{ $room->seats->count() }}, chưa khớp sức chứa {{ $room->total_seats }} của phòng. Cần cấu hình lại ở UC-ADM-04.
+            Số ghế đã cấu hình hiện là {{ $room->seats->count() }}, chưa khớp sức chứa {{ $room->total_seats }} của phòng.
         </div>
     </div>
 @endif
@@ -80,10 +80,10 @@
                 <div class="fw-semibold">
                     <i class="bi bi-grid-3x3-gap me-2"></i>Sơ đồ ghế hiện tại
                 </div>
-                <small class="text-muted">Màn hình này chỉ xem ghế. Thêm/sửa/xóa ghế sẽ thực hiện ở UC-ADM-04.</small>
+                <small class="text-muted">Màn hình này dùng để xem sơ đồ ghế hiện tại của phòng.</small>
             </div>
             <button type="button" class="btn btn-outline-primary btn-sm disabled">
-                <i class="bi bi-tools"></i> Quản lý ghế ở UC-ADM-04
+                <i class="bi bi-tools"></i> Quản lý ghế
             </button>
         </div>
         <div class="card-body">
@@ -116,7 +116,7 @@
                 <div class="text-center text-muted py-5">
                     <i class="bi bi-grid-3x3-gap fs-1 d-block mb-2"></i>
                     Phòng này chưa có ghế nào được cấu hình.
-                    <div class="mt-2">Vui lòng chuyển sang UC-ADM-04 để tạo sơ đồ ghế.</div>
+                    <div class="mt-2">Phòng này hiện chưa có sơ đồ ghế.</div>
                 </div>
             @else
                 <div class="room-seat-map-wrapper">
