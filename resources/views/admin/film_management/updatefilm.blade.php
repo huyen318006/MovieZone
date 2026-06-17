@@ -55,15 +55,7 @@
                         </div>
 
                         <div class="row">
-
-                            {{--
-                                RELEASE DATE
-                                Quy tắc:
-                                  COMING_SOON  → được sửa
-                                  NOW_SHOWING  → bị khóa (phim đang chiếu)
-                                  ENDED        → bị khóa
-                                  HIDDEN       → được sửa (tái sử dụng phim), phải >= hôm nay + 3 ngày
-                            --}}
+                            {{-- RELEASE DATE --}}
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">
                                     Ngày khởi chiếu
@@ -78,7 +70,7 @@
                                     @endif
                                 </label>
 
-                                <input type="date" name="release_date"
+                                <input type="date" name="release_date" id="release_date"
                                     value="{{ $movie_id->release_date }}"
                                     class="form-control @error('release_date') is-invalid @enderror"
                                     @if (in_array($movie_id->status, ['NOW_SHOWING', 'ENDED'])) readonly @endif
@@ -103,13 +95,7 @@
                                 @enderror
                             </div>
 
-                            {{--
-                                END DATE
-                                Quy tắc:
-                                  COMING_SOON  → được sửa
-                                  NOW_SHOWING  → được sửa
-                                  ENDED        → bị khóa
-                            --}}
+                            {{-- END DATE --}}
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">
                                     Ngày kết thúc
@@ -120,7 +106,7 @@
                                     @endif
                                 </label>
 
-                                <input type="date" name="end_date"
+                                <input type="date" name="end_date" id="end_date"
                                     value="{{ $movie_id->end_date }}"
                                     class="form-control @error('end_date') is-invalid @enderror"
                                     @if ($movie_id->status === 'ENDED') readonly @endif>
@@ -136,30 +122,45 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-
                         </div>
 
+                        {{-- ── START: ĐOẠN THÊM MỚI (GIAO DIỆN KIỂM TRA SLOT TRỐNG KHẢ DỤNG) ────────────────── --}}
                         <div class="row">
+                            <div class="col-12 mb-3">
+                                <div class="card bg-light p-3" style="border: 1px dashed #6c757d;">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <strong class="d-block text-dark"><i class="bi bi-shield-check text-primary"></i> Kiểm tra tài nguyên phòng chiếu</strong>
+                                            <span class="small text-muted">Tính toán các khoảng trống lịch chiếu tự động trước khi bấm cập nhật chính thức.</span>
+                                        </div>
+                                        {{-- Nút bấm buộc phải có type="button" để tránh trình duyệt hiểu nhầm là submit form --}}
+                                        <button type="button" id="btn-check-slots" class="btn btn-sm btn-outline-primary">
+                                            <span class="spinner-border spinner-border-sm d-none" id="check-spinner" role="status"></span>
+                                            <i class="bi bi-calendar2-check me-1" id="check-icon"></i> Kiểm tra slot trống khả dụng
+                                        </button>
+                                    </div>
 
+                                    {{-- Nơi JQuery chèn khối thông báo (Alert) kết quả xanh/đỏ trả về từ API ngầm --}}
+                                       <div id="check-slots-result" class="mt-2 d-none"></div>
+                                </div>
+                            </div>
+                        </div>
+                        {{-- ── END: ĐOẠN THÊM MỚI ───────────────────────────────────────────────────────────── --}}
+
+                        <div class="row">
                             {{-- DURATION --}}
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Thời lượng (phút)</label>
-                                <input type="number" name="duration_minutes"
-                                    value="{{ $movie_id->duration_minutes }}"
+                                <input type="number" name="duration_minutes" value="{{ $movie_id->duration_minutes }}"
                                     class="form-control @error('duration_minutes') is-invalid @enderror">
                                 @error('duration_minutes')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            {{--
-                                TRẠNG THÁI: chỉ hiển thị, không cho chỉnh.
-                                Hệ thống tự động cập nhật dựa theo release_date và end_date.
-                            --}}
+                            {{-- TRẠNG THÁI --}}
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Trạng thái hiện tại</label>
-
-                                {{-- Badge hiển thị trạng thái --}}
                                 @php
                                     $statusMap = [
                                         'COMING_SOON' => ['label' => 'Chuẩn bị chiếu', 'icon' => '🕐', 'badge' => 'bg-info text-dark'],
@@ -174,7 +175,6 @@
                                     <span class="small text-muted">Quản lý tự động</span>
                                 </div>
 
-                                {{-- Gửi status hiện tại lên server để FormRequest xử lý khóa ngày --}}
                                 <input type="hidden" name="status" value="{{ $movie_id->status }}">
 
                                 <div class="form-text text-muted mt-1">
@@ -189,7 +189,6 @@
                                     @endif
                                 </div>
                             </div>
-
                         </div>
 
                         {{-- LANGUAGE --}}
@@ -223,7 +222,7 @@
                             @enderror
                         </div>
 
-                        {{-- COUNTRY (required — thiếu field này sẽ fail validation) --}}
+                        {{-- COUNTRY --}}
                         <div class="mb-3">
                             <label class="form-label">Quốc gia <span class="text-danger">*</span></label>
                             <input type="text" name="country" value="{{ $movie_id->country }}"
@@ -354,3 +353,74 @@
     </form>
 
 @endsection
+
+{{-- ── START: ĐOẠN THÊM MỚI (XỬ LÝ AJAX KIỂM TRA LỊCH TRỐNG NGẦM) ────────────────────────────────────── --}}
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('btn-check-slots');
+    if (!btn) return;
+
+    btn.addEventListener('click', async () => {
+        const releaseDate = document.getElementById('release_date')?.value;
+        const endDate = document.getElementById('end_date')?.value;
+        const duration = document.querySelector('input[name="duration_minutes"]')?.value;
+
+        if (!releaseDate || !endDate || !duration) {
+            alert('Vui lòng điền hoàn chỉnh: Ngày khởi chiếu, Ngày kết thúc và Thời lượng phim để hệ thống tính toán!');
+            return;
+        }
+
+        const spinner = document.getElementById('check-spinner');
+        const icon = document.getElementById('check-icon');
+        const resultDiv = document.getElementById('check-slots-result');
+
+        if (spinner) spinner.classList.remove('d-none');
+        if (icon) icon.classList.add('d-none');
+        btn.disabled = true;
+
+        try {
+            const res = await fetch("{{ route('admin.movies.check-slots') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({
+                    release_date: releaseDate,
+                    end_date: endDate,
+                    duration_minutes: duration
+                })
+            });
+
+            const data = await res.json().catch(() => null);
+
+            resultDiv.classList.remove('d-none', 'alert', 'alert-success', 'alert-danger');
+
+            if (!data || typeof data.total_slots === 'undefined') {
+                resultDiv.classList.add('alert', 'alert-danger', 'mb-0');
+                resultDiv.textContent = 'Server trả về dữ liệu không đúng định dạng (thiếu total_slots).';
+                return;
+            }
+
+            // Dùng màu "mềm" để tránh quá chói: alert-success/alert-danger -> alert-light/alert-warning/alert-secondary
+            if (data.total_slots > 0) {
+                resultDiv.classList.add('alert', 'alert-success', 'bg-success-subtle', 'text-success-emphasis', 'border', 'border-success');
+                resultDiv.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> <strong>Khả dụng:</strong> Phát hiện thấy khoảng <strong>${data.total_slots} suất chiếu trống</strong> thích hợp trên hệ thống phòng chiếu. Bạn có thể lưu phim!`;
+            } else {
+                resultDiv.classList.add('alert', 'alert-warning', 'bg-warning-subtle', 'text-warning-emphasis', 'border', 'border-warning');
+                resultDiv.innerHTML = `<i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Cảnh báo:</strong> Kín lịch! Không tìm thấy khoảng thời gian trống nào đủ đáp ứng thời lượng phim này tại tất cả các phòng chiếu trong khoảng ngày đã chọn.`;
+            }
+        } catch (e) {
+            console.error('check-slots fetch error:', e);
+            alert('Có lỗi hệ thống xảy ra khi kiểm tra slot.');
+        } finally {
+            if (spinner) spinner.classList.add('d-none');
+            if (icon) icon.classList.remove('d-none');
+            btn.disabled = false;
+        }
+    });
+});
+</script>
+@endpush
+{{-- ── END: ĐOẠN THÊM MỚI ───────────────────────────────────────────────────────────────────────────── --}}

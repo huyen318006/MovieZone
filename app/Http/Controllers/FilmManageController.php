@@ -16,6 +16,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\FilmCancelledNotification;
+use App\Models\Room;
 use Illuminate\Support\Facades\Log;
 
 class FilmManageController extends Controller
@@ -25,7 +26,7 @@ class FilmManageController extends Controller
     public function listmovie(Request $request)
     {
 
-    //ở  đây DEV-tien_hung  làm 1 đoạn cập nhật trạng thái của film thay vì cập nhật bằng tay. ae tham khảo đoạn này nếu cần !!!
+        //ở  đây DEV-tien_hung  làm 1 đoạn cập nhật trạng thái của film thay vì cập nhật bằng tay. ae tham khảo đoạn này nếu cần !!!
         //trước khi list và filter thì cần xem phim nào đã  hạn chiếu or hết hạn chiếu thì cập nhật lại trạng thái
         //  AUTO UPDATE TRẠNG THÁI TRƯỚC KHI LOAD
         // 1. Sắp chiếu → đang chiếu
@@ -43,23 +44,23 @@ class FilmManageController extends Controller
             ->update([
                 'status' => 'ENDED'
             ]);
-         /* -------------------------------- End cập nhật trạng thái ---------------*/
-         // 3. Ẩn phim đã kết thúc quá lâu (ví dụ: đã kết thúc hơn 10 ngày)
+        /* -------------------------------- End cập nhật trạng thái ---------------*/
+        // 3. Ẩn phim đã kết thúc quá lâu (ví dụ: đã kết thúc hơn 10 ngày)
         Movie::where('status', 'ENDED')
             ->whereDate('end_date', '<', now()->subDays(10))
             ->update([
                 'status' => 'HIDDEN'
             ]);
-            // 4. Kiểm tra ở trạng thái HIDDEN, nếu phim được set lại ngày khởi chiếu hợp lệ (>= today + 3)
-            // thì tự động chuyển thành COMING_SOON (Sắp chiếu)
-             Movie::where('status', 'HIDDEN')
-             ->whereDate('release_date', '>=', now()->addDays(3))
-             ->update([
+        // 4. Kiểm tra ở trạng thái HIDDEN, nếu phim được set lại ngày khởi chiếu hợp lệ (>= today + 3)
+        // thì tự động chuyển thành COMING_SOON (Sắp chiếu)
+        Movie::where('status', 'HIDDEN')
+            ->whereDate('release_date', '>=', now()->addDays(3))
+            ->update([
                 'status' => 'COMING_SOON',
-             ]);
+            ]);
 
 
-          /* -------------------------------- End cập nhật trạng thái ---------------*/
+        /* -------------------------------- End cập nhật trạng thái ---------------*/
 
 
 
@@ -74,7 +75,7 @@ class FilmManageController extends Controller
             )
             ->groupBy('movies.id');
 
-            //lấy toàn bộ thể loại để đổ vào filter
+        //lấy toàn bộ thể loại để đổ vào filter
         $allGenres = Genre::all();
 
         // FILTER THEO STATUS
@@ -98,10 +99,11 @@ class FilmManageController extends Controller
 
 
     //form thêm film
-    public function formadd(Request $request){
+    public function formadd(Request $request)
+    {
         //đổ thể loại cho view
-        $genres= Genre::all();
-        return view('admin.film_management.addfilm',compact('genres'));
+        $genres = Genre::all();
+        return view('admin.film_management.addfilm', compact('genres'));
     }
     public function store(Request $request)
     {
@@ -160,14 +162,14 @@ class FilmManageController extends Controller
         $banner = null;
 
         //kiểm tra xem nếu có hệ thống có cập nhật poster
-        if($request->hasFile('poster')){
+        if ($request->hasFile('poster')) {
             //kiểm tra hasFile() xem form đẩy lên có ô input file tên poster không
-            $poster = $request->file('poster')?->store('poster_film','public');
+            $poster = $request->file('poster')?->store('poster_film', 'public');
         }
 
         //kiểm tra xem nếu hệ thống có đẩy banner lên ko
-        if($request->hasFile('banner')){
-            $banner= $request->file('banner')?->store('banner_film','public');
+        if ($request->hasFile('banner')) {
+            $banner = $request->file('banner')?->store('banner_film', 'public');
         }
 
 
@@ -186,8 +188,8 @@ class FilmManageController extends Controller
             'director' => $request->director,
             'age_rating' => $request->age_rating,
             'cast' => $request->cast,
-            'poster_url' => $poster ,
-            'banner_url' => $banner ,
+            'poster_url' => $poster,
+            'banner_url' => $banner,
             'trailer_url' => $request->trailer_url ?? null,
         ]);
         $movie->genres()->sync($request->input('genres', []));
@@ -222,6 +224,85 @@ class FilmManageController extends Controller
 
         return view('admin.film_management.updatefilm', compact('movie_id', 'genres', 'currentGenreIds'));
     }
+
+    public function apiCheckSlots(Request $request)
+    {
+        // Đọc tham số ngầm từ AJAX gửi sang
+        $releaseDate = $request->input('release_date');
+        $endDate     = $request->input('end_date');
+        $duration    = (int) $request->input('duration_minutes');
+        $cleaningTime = 15; // Quy ước thời gian dọn dẹp và chuẩn bị phòng chiếu giữa các suất (phút)
+
+        // Tổng quỹ thời gian liên tục tối thiểu cần phải chiếm dụng cho 1 suất chiếu
+        $requiredTime = $duration + $cleaningTime;
+
+        $rooms = Room::all(); // Lấy thông tin các phòng trong hệ thống rạp
+        $totalAvailableSlots = 0; // Biến tích lũy tổng số slot trống khả thi tìm được
+
+        // Dùng Carbon thiết lập mốc thời gian bắt đầu và kết thúc chu kỳ chiếu
+        $startPeriod = Carbon::parse($releaseDate)->startOfDay();
+        $endPeriod   = Carbon::parse($endDate)->endOfDay();
+
+        // VÒNG LẶP 1: Chạy qua từng ngày một trong chu kỳ phân phối phim
+        for ($date = $startPeriod->copy(); $date->lte($endPeriod); $date->addDay()) {
+            $dateStr = $date->toDateString();
+
+            // VÒNG LẶP 2: Quét lần lượt từng phòng chiếu trong ngày đó
+            foreach ($rooms as $room) {
+                // Định nghĩa khung giờ hoạt động cố định của phòng ngày hôm đó (Mặc định 08:00 đến 23:00 nếu DB trống)
+                $openTime  = Carbon::parse($dateStr . ' ' . ($room->open_time ?? '08:00:00'));
+                $closeTime = Carbon::parse($dateStr . ' ' . ($room->close_time ?? '23:00:00'));
+
+
+                // Truy vấn toàn bộ các lịch chiếu ĐÃ LÊN LỊCH của phòng này trong ngày hôm nay (Sắp xếp tăng dần theo giờ chiếu)
+                // Lấy các suất chiếu KHÔNG chỉ theo start_time, mà theo phần giao với ngày hiện tại.
+                // Vì một suất có thể bắt đầu trước 00:00 nhưng kết thúc trong ngày.
+                $showtimes = Showtime::where('room_id', $room->id)
+                    ->where('status', '!=', 'CANCELLED')
+                    ->where('start_time', '<=', $date->copy()->endOfDay())
+                    ->where('end_time', '>=', $date->copy()->startOfDay())
+                    ->orderBy('start_time', 'asc')
+                    ->get();
+
+
+
+                // Đặt điểm bắt đầu rà soát khoảng hở đầu tiên chính là giờ mở cửa phòng rạp
+                $lastEndTime = $openTime;
+
+                // VÒNG LẶP 3: Duyệt tuần tự qua từng lịch chiếu cố định để bóc tách khoảng hở ở giữa
+                foreach ($showtimes as $showtime) {
+                    $showtimeStart = Carbon::parse($showtime->start_time);
+                    $showtimeEnd   = Carbon::parse($showtime->end_time);
+
+
+                    // Đo đạc khoảng cách thời gian (phút) từ suất trước (hoặc từ lúc mở cửa) đến mốc bắt đầu của suất này
+                    // Dùng max để đảm bảo không bị âm do diffInMinutes tùy tham số
+                    $freeMinutes = max(0, $lastEndTime->diffInMinutes($showtimeStart));
+
+                    // Nếu khoảng trống lớn hơn hoặc bằng tổng quỹ thời gian phim cần chiếm dụng
+                    if ($freeMinutes >= $requiredTime) {
+                        // Chia lấy phần nguyên để xem khoảng hở này nhét vừa khít tối đa bao nhiêu suất chiếu
+                        $totalAvailableSlots += floor($freeMinutes / $requiredTime);
+                    }
+
+                    // Tịnh tiến mốc thời gian cuối sang điểm kết thúc của suất hiện tại kèm thời gian dọn rạp
+                    $lastEndTime = $showtimeEnd->copy()->addMinutes($cleaningTime);
+                }
+
+                // KIỂM TRA BỔ SUNG: Rà soát khoảng trống cuối cùng từ sau suất chiếu muộn nhất đến khi rạp đóng cửa đóng đèn
+                $finalFreeMinutes = $lastEndTime->diffInMinutes($closeTime, false);
+                if ($finalFreeMinutes >= $requiredTime) {
+                    $totalAvailableSlots += floor($finalFreeMinutes / $requiredTime);
+                }
+            }
+        }
+
+        // Đóng gói tổng số lượng slot trống tìm thấy và phản hồi về định dạng JSON cho AJAX tiếp nhận
+        return response()->json([
+            'total_slots' => (int) $totalAvailableSlots
+        ]);
+    }
+
     /** Hướng giải quyết cập nhật phim theo nghiệp vụ rạp chiếu
      * ae có thể tham khảo =)
      * Cập nhật thông tin phim theo đúng nghiệp vụ rạp chiếu.
@@ -233,6 +314,7 @@ class FilmManageController extends Controller
      *
      * Logic khóa được xử lý trong UpdateFilmRequest::prepareForValidation()
      */
+
     public function update(UpdateFilmRequest $request, $id)
     {
         $movie  = Movie::findOrFail($id);
@@ -340,12 +422,12 @@ class FilmManageController extends Controller
                     ->where('start_time', '>', now())
                     ->get();
 
-                    // Hàm pluck('id') sẽ đi qua từng suất chiếu, chỉ "nhặt" đúng giá trị của cột id rồi bỏ hết các thông tin rườm rà khác đi.
+                // Hàm pluck('id') sẽ đi qua từng suất chiếu, chỉ "nhặt" đúng giá trị của cột id rồi bỏ hết các thông tin rườm rà khác đi.
                 $showtimeIds = $showtimes->pluck('id');
 
                 // 3. Chuyển trạng thái của các suất chiếu tương lai đó thành CANCELLED (Đã hủy)
                 Showtime::whereIn('id', $showtimeIds)
-                     ->update(['status' => 'CANCELLED']);
+                    ->update(['status' => 'CANCELLED']);
 
                 // 4. Lấy các đơn đặt vé (PAID hoặc PENDING) liên quan đến các suất chiếu bị hủy
                 $bookings = Booking::whereIn('showtime_id', $showtimeIds)
@@ -363,12 +445,11 @@ class FilmManageController extends Controller
                     $b->save();
                     // --- TIẾN HÀNH GỬI MAIL TRỰC TIẾP TẠI ĐÂY ---
                     // Kiểm tra xem đơn hàng này có tài khoản user và có điền email không
-                    if($b->user &&  $b->user->email){
-                        try{
+                    if ($b->user &&  $b->user->email) {
+                        try {
                             // Sử dụng hàm send() để gửi mail đi trực tiếp ngay lập tức
-Mail::to($b->user->email)->send(new FilmCancelledNotification($b));
-
-                        }catch(\Exception $e) {
+                            Mail::to($b->user->email)->send(new FilmCancelledNotification($b));
+                        } catch (\Exception $e) {
                             // Nếu lỗi gửi mail (sai mail, mất mạng...) thì bỏ qua để chạy tiếp vé sau, không làm sập hệ thống
                             Log::error("Lỗi gửi mail cho đơn hàng số " . $b->id . ": " . $e->getMessage());
                         }
@@ -383,20 +464,21 @@ Mail::to($b->user->email)->send(new FilmCancelledNotification($b));
 
 
 
-    public function restore($id){
+    public function restore($id)
+    {
 
         //lấy id movie
-        $movie=Movie::findOrFail($id);
-        if($movie){
-            return view('admin.film.restore',compact('movie'));
+        $movie = Movie::findOrFail($id);
+        if ($movie) {
+            return view('admin.film.restore', compact('movie'));
         }
-
     }
 
-    public function confirmrecovery($id,Request $request){
+    public function confirmrecovery($id, Request $request)
+    {
         // kiểm tra có xác nhận hay ko
-        $action= $request->toggle_action;
-        if($action == 'resume'){
+        $action = $request->toggle_action;
+        if ($action == 'resume') {
             $movie = Movie::findOrFail($id);
             //nếu id tồn tại
             if ($movie) {
@@ -411,10 +493,7 @@ Mail::to($b->user->email)->send(new FilmCancelledNotification($b));
                 );
             }
             return redirect()->route('admin.film')->with('success', 'Phim đã khôi phục thành công.');
-
         }
         return redirect()->route('admin.film');
-
     }
 }
-
