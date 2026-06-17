@@ -1,0 +1,99 @@
+# Kế hoạch triển khai luồng Ngừng chiếu (Stop Showing Flow) cho Phim
+
+Tài liệu này mô tả chi tiết phương án triển khai tính năng **Ngừng chiếu** đối với phim, bao gồm xử lý logic nghiệp vụ ở phía Backend (huỷ các suất chiếu tương lai, huỷ đơn đặt vé, đánh dấu hoàn tiền) và tối ưu trải nghiệm Admin ở Frontend (hiển thị cảnh báo trực quan trước khi xác nhận).
+
+---
+
+## 1. Nghiệp vụ & Nguyên tắc của luồng "Ngừng chiếu"
+
+Khi một bộ phim được chuyển sang trạng thái **Ngừng chiếu (status = 'ENDED')**:
+1. **Trạng thái phim:**
+   - Cập nhật cột `status` thành `ENDED`.
+   - Cập nhật cột `end_date` (Ngày kết thúc) thành ngày hôm nay (`now()->toDateString()`) để tránh việc phim bị tự động chuyển về trạng thái khác do cronjob/hàm auto-update.
+2. **Suất chiếu tương lai (Future Showtimes):**
+   - Tất cả suất chiếu của phim này có thời gian bắt đầu lớn hơn hiện tại (`start_time > now()`) sẽ bị hủy (`status = 'CANCELLED'`).
+3. **Đơn đặt vé tương lai (Bookings):**
+   - Tất cả đơn đặt vé liên quan đến các suất chiếu tương lai vừa bị huỷ sẽ được chuyển sang trạng thái `CANCELLED`.
+   - Nếu đơn đặt vé đã thanh toán (`payment_status = 'PAID'`), hệ thống sẽ chuyển trạng thái thanh toán thành `REFUNDED` (Hoàn tiền) để nhân viên rạp nhận diện và xử lý hoàn trả tiền cho khách hàng.
+   - Giải phóng ghế (nếu có giữ chỗ/đã thanh toán trong suất chiếu đó).
+4. **Phản hồi người dùng (Admin):**
+   - Trước khi xác nhận ngừng chiếu, Admin cần thấy một thông báo/cảnh báo rõ ràng: **"Phim này đang có X suất chiếu tương lai, trong đó có Y vé đã được mua"**.
+   - Nếu chấp nhận, hệ thống mới thực hiện giao dịch (Database Transaction) để đảm bảo toàn vẹn dữ liệu.
+
+---
+
+## 2. Các thay đổi đề xuất
+
+### Route mới
+#### [MODIFY] [web.php](file:///h:/laragon/www/MovieZone/routes/web.php)
+Thêm các route quản lý trạng thái phim vào nhóm `FilmManageController`:
+- `GET /admin/film/{id}/status-info` (Tên route: `admin.film.status_info`): API lấy thông tin số suất chiếu tương lai và số vé đã đặt để hiển thị lên modal cảnh báo.
+- `POST /admin/film/{id}/toggle-status` (Tên route: `admin.film.toggle_status`): Xử lý cập nhật trạng thái (Ẩn, Ngừng chiếu, Khôi phục).
+
+---
+
+### Backend Controller
+#### [MODIFY] [FilmManageController.php](file:///h:/laragon/www/MovieZone/app/Http/Controllers/FilmManageController.php)
+Thêm 2 hàm mới:
+1. `statusInfo($id)`:
+   - Truy vấn phim theo ID.
+   - Đếm số suất chiếu tương lai (`start_time > now()` và `status != 'CANCELLED'`).
+   - Đếm số đơn đặt vé hợp lệ (trạng thái `PAID` hoặc `PENDING`) của các suất chiếu tương lai đó.
+   - Trả về JSON chứa các thống kê trên.
+2. `toggleStatus(Request $request, $id)`:
+   - Nhận vào `toggle_action` (`hide`, `stop`, `resume`).
+   - Nếu hành động là `stop` (Ngừng chiếu):
+     - Chạy Database Transaction.
+     - Cập nhật phim: `status = 'ENDED'`, `end_date = now()->toDateString()`.
+     - Lấy danh sách ID các suất chiếu tương lai của phim này.
+     - Huỷ các suất chiếu tương lai: `status = 'CANCELLED'`.
+     - Huỷ các đơn hàng tương lai: Cập nhật các đơn đặt vé của các suất chiếu đó (nếu trạng thái là `PAID` hoặc `PENDING`):
+       - Đơn hàng: `status = 'CANCELLED'`.
+       - Nếu đơn hàng đã thanh toán (`payment_status = 'PAID'`), đặt `payment_status = 'REFUNDED'`.
+     - Commit transaction và trả về thông báo thành công chi tiết (Ví dụ: "Đã ngừng chiếu phim, huỷ X suất chiếu và đánh dấu hoàn tiền Y hoá đơn").
+   - Nếu hành động là `hide` (Ẩn):
+     - Cập nhật phim: `status = 'HIDDEN'`.
+   - Nếu hành động là `resume` (Khôi phục hiển thị):
+     - Xác định trạng thái mới dựa trên `release_date`: nếu `release_date > now()` thì `COMING_SOON`, ngược lại là `NOW_SHOWING`.
+
+---
+
+### Frontend View
+#### [MODIFY] [film.blade.php](file:///h:/laragon/www/MovieZone/resources/views/admin/film_management/film.blade.php)
+1. **Cập nhật nút "Ngừng chiếu" trong danh sách phim:**
+   - Thay đổi nút để kích hoạt modal `#movieToggleModal` đồng thời truyền dữ liệu qua các thuộc tính data:
+     ```html
+     <button class="btn btn-outline-warning btn-sm btn-toggle-status"
+         data-movie-id="{{ $m->id }}"
+         data-movie-title="{{ $m->title }}"
+         data-movie-status="{{ $m->status }}">
+         <i class="bi bi-stop-circle"></i> Trạng thái
+     </button>
+     ```
+2. **Cập nhật Modal `#movieToggleModal`:**
+   - Hiển thị thông tin tên phim động.
+   - Thiết kế giao diện modal chứa:
+     - Chọn hành động (`toggle_action`): Ẩn, Ngừng chiếu, Khôi phục hiển thị.
+     - Vùng cảnh báo động (Dynamic Alert Box): Chứa icon cảnh báo, spinner đang tải dữ liệu. Khi thay đổi lựa chọn hoặc khi mở modal, tự động gửi AJAX lên `/admin/film/{id}/status-info` để lấy số suất chiếu/vé sẽ bị ảnh hưởng và hiển thị thông tin cảnh báo chi tiết.
+3. **Thêm khối Javascript xử lý sự kiện mở Modal:**
+   - Bắt sự kiện khi nhấn nút mở modal.
+   - Gửi yêu cầu AJAX kiểm tra thống kê suất chiếu tương lai.
+   - Cập nhật URL action của thẻ `<form>` trong modal.
+   - Cập nhật thông báo trực quan tới người dùng.
+
+---
+
+## 3. Kế hoạch kiểm thử (Verification Plan)
+
+### Kiểm thử thủ công (Manual Verification)
+1. **Kiểm tra hiển thị dữ liệu cảnh báo:**
+   - Chọn một bộ phim có suất chiếu tương lai và đơn đặt vé đã thanh toán. Nhấn nút "Trạng thái", chọn "Ngừng chiếu" và xem modal có hiển thị đúng số suất chiếu và số vé bị ảnh hưởng không.
+2. **Kiểm thử luồng ngừng chiếu thành công:**
+   - Thực hiện ngừng chiếu bộ phim đó.
+   - Kiểm tra cơ sở dữ liệu:
+     - Bảng `movies`: trạng thái chuyển sang `ENDED`, `end_date` bằng ngày hôm nay.
+     - Bảng `showtimes`: các suất chiếu tương lai của phim này chuyển sang `CANCELLED`.
+     - Bảng `bookings`: các đơn hàng tương lai chuyển sang `CANCELLED`, cột `payment_status` chuyển sang `REFUNDED` (nếu trước đó là `PAID`).
+   - Kiểm tra trang chủ / trang danh sách phim phía khách hàng: bộ phim ngừng chiếu không còn hiển thị ở mục "Đang chiếu" hay "Sắp chiếu".
+3. **Kiểm thử hành động Ẩn / Khôi phục:**
+   - Đảm bảo phim chuyển trạng thái đúng sang `HIDDEN` hoặc quay lại `NOW_SHOWING` / `COMING_SOON` tương ứng.
