@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\CinemaManageController;
+use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\FilmManageController;
@@ -185,6 +186,18 @@ Route::prefix('admin/cinemas')->name('admin.cinemas.')->group(function () {
     Route::put('/{id}', [CinemaManageController::class, 'update'])->name('update');
     Route::post('/{id}/hide', [CinemaManageController::class, 'hide'])->name('hide');
     Route::post('/{id}/restore', [CinemaManageController::class, 'restore'])->name('restore');
+});
+
+// Quản lý phòng chiếu - ROOM MANAGEMENT
+Route::prefix('admin/rooms')->name('admin.rooms.')->group(function () {
+    Route::get('/', [RoomManageController::class, 'index'])->name('index');
+    Route::get('/create', [RoomManageController::class, 'create'])->name('create');
+    Route::post('/', [RoomManageController::class, 'store'])->name('store');
+    Route::get('/{room}/edit', [RoomManageController::class, 'edit'])->name('edit');
+    Route::put('/{room}', [RoomManageController::class, 'update'])->name('update');
+    Route::post('/{room}/hide', [RoomManageController::class, 'hide'])->name('hide');
+    Route::post('/{room}/restore', [RoomManageController::class, 'restore'])->name('restore');
+    Route::get('/{room}/seats', [RoomManageController::class, 'seats'])->name('seats');
 });
 
 
