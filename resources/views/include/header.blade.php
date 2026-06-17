@@ -22,7 +22,7 @@
 
         <a href="#">Khuyến Mãi</a>
 
-        <a href="#">Tin Tức</a>
+        <a href="{{ route('news') }}">Tin Tức</a>
 
     </nav>
 

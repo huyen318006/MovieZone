@@ -6,6 +6,7 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\FilmManageController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SepayController;
@@ -120,13 +121,9 @@ Route::get('/promotions', function () {
 })->name('promotions');
 
 // Tin tức
-Route::get('/news', function () {
-    return view('news.index');
-})->name('news');
 
-Route::get('/news-detail', function () {
-    return view('news.detail');
-})->name('news.detail');
+Route::get('/news', [NewsController::class, 'index'])->name('news');
+Route::get('/news/{slug}', [NewsController::class, 'show'])->name('news.detail');
 
 // Hồ sơ người dùng
 Route::middleware('auth')->group(function () { // chưa đăng nhập thì không xem được hồ sơ
