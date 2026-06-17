@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Cinema;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CinemaManageController extends Controller
 {
@@ -13,7 +14,11 @@ class CinemaManageController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Cinema::withCount('rooms');
+        $query = Cinema::withCount('rooms')
+            ->withCount(['showtimes as upcoming_showtimes_count' => function ($q) {
+                $q->where('start_time', '>', now())
+                  ->where('status', '!=', 'CANCELLED');
+            }]);
 
         // Lọc theo trạng thái
         if ($request->filled('status')) {
@@ -49,15 +54,22 @@ class CinemaManageController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
+            'name'     => [
+                'required', 'string', 'max:255',
+                // E3: Kiểm tra trùng tên rạp trong cùng thành phố
+                Rule::unique('cinemas')->where(function ($query) use ($request) {
+                    return $query->where('city', $request->city);
+                }),
+            ],
             'city'     => 'required|string|max:100',
             'district' => 'nullable|string|max:100',
             'address'  => 'required|string|max:500',
             'hotline'  => 'nullable|string|max:20',
             'map_url'  => 'nullable|url|max:500',
-            'status'   => 'required|in:ACTIVE,INACTIVE,MAINTENANCE',
+            'status'   => 'required|in:ACTIVE,INACTIVE',
         ], [
             'name.required'    => 'Vui lòng nhập tên rạp.',
+            'name.unique'      => 'Tên rạp đã tồn tại trong cùng thành phố/khu vực.',
             'city.required'    => 'Vui lòng nhập thành phố.',
             'address.required' => 'Vui lòng nhập địa chỉ.',
             'status.required'  => 'Vui lòng chọn trạng thái.',
@@ -76,7 +88,12 @@ class CinemaManageController extends Controller
      */
     public function edit($id)
     {
-        $cinema = Cinema::withCount('rooms')->findOrFail($id);
+        $cinema = Cinema::withCount('rooms')
+            ->withCount(['showtimes as upcoming_showtimes_count' => function ($q) {
+                $q->where('start_time', '>', now())
+                  ->where('status', '!=', 'CANCELLED');
+            }])
+            ->findOrFail($id);
 
         return view('admin.cinema.edit', compact('cinema'));
     }
@@ -89,15 +106,22 @@ class CinemaManageController extends Controller
         $cinema = Cinema::findOrFail($id);
 
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
+            'name'     => [
+                'required', 'string', 'max:255',
+                // E3: Kiểm tra trùng tên, bỏ qua bản ghi hiện tại
+                Rule::unique('cinemas')->where(function ($query) use ($request) {
+                    return $query->where('city', $request->city);
+                })->ignore($id),
+            ],
             'city'     => 'required|string|max:100',
             'district' => 'nullable|string|max:100',
             'address'  => 'required|string|max:500',
             'hotline'  => 'nullable|string|max:20',
             'map_url'  => 'nullable|url|max:500',
-            'status'   => 'required|in:ACTIVE,INACTIVE,MAINTENANCE',
+            'status'   => 'required|in:ACTIVE,INACTIVE',
         ], [
             'name.required'    => 'Vui lòng nhập tên rạp.',
+            'name.unique'      => 'Tên rạp đã tồn tại trong cùng thành phố/khu vực.',
             'city.required'    => 'Vui lòng nhập thành phố.',
             'address.required' => 'Vui lòng nhập địa chỉ.',
             'status.required'  => 'Vui lòng chọn trạng thái.',
@@ -112,23 +136,50 @@ class CinemaManageController extends Controller
     }
 
     /**
-     * Xoá rạp chiếu.
-     * Kiểm tra rạp có phòng chiếu đang hoạt động trước khi xoá.
+     * A2: Ẩn rạp — Chuyển trạng thái sang INACTIVE.
+     * E2: Kiểm tra rạp có suất chiếu sắp diễn ra → hiển thị cảnh báo nhưng vẫn cho ẩn.
      */
-    public function destroy($id)
+    public function hide($id)
     {
-        $cinema = Cinema::withCount('rooms')->findOrFail($id);
+        $cinema = Cinema::withCount(['showtimes as upcoming_showtimes_count' => function ($q) {
+            $q->where('start_time', '>', now())
+              ->where('status', '!=', 'CANCELLED');
+        }])->findOrFail($id);
 
-        // Không cho xoá nếu rạp còn phòng chiếu
-        if ($cinema->rooms_count > 0) {
+        // Nếu rạp đã ẩn rồi thì không cần thực hiện
+        if ($cinema->status === 'INACTIVE') {
             return redirect()->route('admin.cinemas.index')
-                ->with('error', 'Không thể xoá rạp "' . $cinema->name . '" vì đang có ' . $cinema->rooms_count . ' phòng chiếu.');
+                ->with('error', 'Rạp "' . $cinema->name . '" đã ở trạng thái ẩn.');
         }
 
-        $cinemaName = $cinema->name;
-        $cinema->delete();
+        $cinema->update(['status' => 'INACTIVE']);
+
+        // Thông báo chi tiết nếu có suất chiếu bị ảnh hưởng
+        $message = 'Đã ẩn rạp "' . $cinema->name . '" thành công.';
+        if ($cinema->upcoming_showtimes_count > 0) {
+            $message .= ' Lưu ý: Rạp đang có ' . $cinema->upcoming_showtimes_count . ' suất chiếu sắp diễn ra cần xử lý.';
+        }
 
         return redirect()->route('admin.cinemas.index')
-            ->with('success', 'Đã xoá rạp "' . $cinemaName . '" thành công!');
+            ->with('success', $message);
+    }
+
+    /**
+     * A3: Khôi phục rạp — Chuyển trạng thái về ACTIVE.
+     */
+    public function restore($id)
+    {
+        $cinema = Cinema::findOrFail($id);
+
+        // Nếu rạp đã hoạt động thì không cần thực hiện
+        if ($cinema->status === 'ACTIVE') {
+            return redirect()->route('admin.cinemas.index')
+                ->with('error', 'Rạp "' . $cinema->name . '" đã ở trạng thái hoạt động.');
+        }
+
+        $cinema->update(['status' => 'ACTIVE']);
+
+        return redirect()->route('admin.cinemas.index')
+            ->with('success', 'Đã khôi phục rạp "' . $cinema->name . '" thành công.');
     }
 }

@@ -63,10 +63,7 @@
                                 Hoạt động
                             </option>
                             <option value="INACTIVE" {{ request('status') == 'INACTIVE' ? 'selected' : '' }}>
-                                Tạm ngưng
-                            </option>
-                            <option value="MAINTENANCE" {{ request('status') == 'MAINTENANCE' ? 'selected' : '' }}>
-                                Bảo trì
+                                Đã ẩn
                             </option>
                         </select>
 
@@ -98,7 +95,7 @@
                             <th>Hotline</th>
                             <th>Số phòng</th>
                             <th>Trạng thái</th>
-                            <th style="width: 200px;">Hành động</th>
+                            <th style="width: 220px;">Hành động</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -135,40 +132,44 @@
                                 </td>
 
                                 <td>
-                                    @php
-                                        $badgeClass = 'text-bg-secondary';
-                                        $statusText = $cinema->status;
-
-                                        if ($cinema->status === 'ACTIVE') {
-                                            $badgeClass = 'text-bg-success';
-                                            $statusText = 'Hoạt động';
-                                        } elseif ($cinema->status === 'INACTIVE') {
-                                            $badgeClass = 'text-bg-secondary';
-                                            $statusText = 'Tạm ngưng';
-                                        } elseif ($cinema->status === 'MAINTENANCE') {
-                                            $badgeClass = 'text-bg-warning';
-                                            $statusText = 'Bảo trì';
-                                        }
-                                    @endphp
-                                    <span class="badge {{ $badgeClass }}">{{ $statusText }}</span>
+                                    @if ($cinema->status === 'ACTIVE')
+                                        <span class="badge text-bg-success">Hoạt động</span>
+                                    @else
+                                        <span class="badge text-bg-secondary">Đã ẩn</span>
+                                    @endif
                                 </td>
 
                                 <td>
                                     <div class="d-flex gap-2 flex-wrap">
+                                        {{-- Nút Sửa --}}
                                         <a href="{{ route('admin.cinemas.edit', $cinema->id) }}"
                                            class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-pencil"></i> Sửa
                                         </a>
 
-                                        <button type="button"
-                                                class="btn btn-outline-danger btn-sm btn-delete-cinema"
-                                                data-cinema-id="{{ $cinema->id }}"
-                                                data-cinema-name="{{ $cinema->name }}"
-                                                data-cinema-rooms="{{ $cinema->rooms_count }}"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteCinemaModal">
-                                            <i class="bi bi-trash"></i> Xoá
-                                        </button>
+                                        @if ($cinema->status === 'ACTIVE')
+                                            {{-- A2: Nút Ẩn rạp --}}
+                                            <button type="button"
+                                                    class="btn btn-outline-warning btn-sm btn-hide-cinema"
+                                                    data-cinema-id="{{ $cinema->id }}"
+                                                    data-cinema-name="{{ $cinema->name }}"
+                                                    data-upcoming-showtimes="{{ $cinema->upcoming_showtimes_count }}"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#hideCinemaModal">
+                                                <i class="bi bi-eye-slash"></i> Ẩn rạp
+                                            </button>
+                                        @else
+                                            {{-- A3: Nút Khôi phục --}}
+                                            <form method="POST"
+                                                  action="{{ route('admin.cinemas.restore', $cinema->id) }}"
+                                                  class="d-inline">
+                                                @csrf
+                                                <button type="submit"
+                                                        class="btn btn-outline-success btn-sm">
+                                                    <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
+                                                </button>
+                                            </form>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>
@@ -195,31 +196,37 @@
     </div>
 </div>
 
-{{-- Modal xác nhận xoá --}}
-<div class="modal fade" id="deleteCinemaModal" tabindex="-1" aria-labelledby="deleteCinemaModalLabel" aria-hidden="true">
+{{-- Modal xác nhận ẩn rạp (A2) --}}
+<div class="modal fade" id="hideCinemaModal" tabindex="-1" aria-labelledby="hideCinemaModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header border-danger">
-                <h5 class="modal-title" id="deleteCinemaModalLabel">
-                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>Xác nhận xoá rạp
+            <div class="modal-header">
+                <h5 class="modal-title" id="hideCinemaModalLabel">
+                    <i class="bi bi-eye-slash text-warning me-2"></i>Xác nhận ẩn rạp
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Bạn có chắc chắn muốn xoá rạp <strong id="deleteCinemaName"></strong>?</p>
-                <div id="deleteCinemaWarning" class="alert alert-warning d-none">
+                <p>Bạn có chắc chắn muốn ẩn rạp <strong id="hideCinemaName"></strong>?</p>
+
+                {{-- E2: Cảnh báo suất chiếu sắp diễn ra --}}
+                <div id="hideShowtimeWarning" class="alert alert-warning d-none">
                     <i class="bi bi-exclamation-triangle me-1"></i>
-                    Rạp này đang có <strong id="deleteCinemaRooms"></strong> phòng chiếu. Không thể xoá!
+                    <strong>Cảnh báo:</strong> Rạp này đang có <strong id="hideShowtimeCount"></strong> suất chiếu sắp diễn ra.
+                    Bạn cần xử lý các suất chiếu liên quan sau khi ẩn rạp.
                 </div>
-                <p class="text-muted mb-0">Thao tác này không thể hoàn tác.</p>
+
+                <p class="text-muted mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Rạp bị ẩn sẽ không hiển thị cho khách hàng. Bạn có thể khôi phục rạp bất cứ lúc nào.
+                </p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Huỷ bỏ</button>
-                <form id="deleteCinemaForm" method="POST" action="">
+                <form id="hideCinemaForm" method="POST" action="">
                     @csrf
-                    @method('DELETE')
-                    <button type="submit" id="deleteCinemaBtn" class="btn btn-danger">
-                        <i class="bi bi-trash me-1"></i>Xoá rạp
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-eye-slash me-1"></i>Xác nhận ẩn rạp
                     </button>
                 </form>
             </div>
@@ -232,7 +239,7 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Auto-hide alerts
+    // Auto-hide alerts sau 3 giây
     ['success-alert', 'error-alert'].forEach(function (id) {
         const alertEl = document.getElementById(id);
         if (alertEl) {
@@ -243,28 +250,23 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Delete modal logic
-    document.querySelectorAll('.btn-delete-cinema').forEach(function (btn) {
+    // Modal ẩn rạp — truyền dữ liệu vào modal
+    document.querySelectorAll('.btn-hide-cinema').forEach(function (btn) {
         btn.addEventListener('click', function () {
             const cinemaId = this.dataset.cinemaId;
             const cinemaName = this.dataset.cinemaName;
-            const cinemaRooms = parseInt(this.dataset.cinemaRooms);
+            const upcomingShowtimes = parseInt(this.dataset.upcomingShowtimes);
 
-            document.getElementById('deleteCinemaName').textContent = cinemaName;
-            document.getElementById('deleteCinemaForm').action = '/admin/cinemas/' + cinemaId;
+            document.getElementById('hideCinemaName').textContent = cinemaName;
+            document.getElementById('hideCinemaForm').action = '/admin/cinemas/' + cinemaId + '/hide';
 
-            const warningEl = document.getElementById('deleteCinemaWarning');
-            const deleteBtn = document.getElementById('deleteCinemaBtn');
-
-            if (cinemaRooms > 0) {
-                document.getElementById('deleteCinemaRooms').textContent = cinemaRooms;
+            // E2: Hiển thị cảnh báo nếu có suất chiếu sắp diễn ra
+            const warningEl = document.getElementById('hideShowtimeWarning');
+            if (upcomingShowtimes > 0) {
+                document.getElementById('hideShowtimeCount').textContent = upcomingShowtimes;
                 warningEl.classList.remove('d-none');
-                deleteBtn.disabled = true;
-                deleteBtn.classList.add('disabled');
             } else {
                 warningEl.classList.add('d-none');
-                deleteBtn.disabled = false;
-                deleteBtn.classList.remove('disabled');
             }
         });
     });

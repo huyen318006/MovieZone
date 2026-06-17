@@ -42,6 +42,26 @@
                 </span>
             </div>
         </div>
+        <div class="col-auto">
+            <div class="card card-body py-2 px-3">
+                <small class="text-muted">Suất chiếu sắp tới</small>
+                <span class="fw-semibold">
+                    <i class="bi bi-calendar-event me-1"></i>{{ $cinema->upcoming_showtimes_count }} suất
+                </span>
+            </div>
+        </div>
+        <div class="col-auto">
+            <div class="card card-body py-2 px-3">
+                <small class="text-muted">Trạng thái</small>
+                <span class="fw-semibold">
+                    @if ($cinema->status === 'ACTIVE')
+                        <span class="badge text-bg-success">Hoạt động</span>
+                    @else
+                        <span class="badge text-bg-secondary">Đã ẩn</span>
+                    @endif
+                </span>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -126,10 +146,10 @@
                         @enderror
                     </div>
 
-                    {{-- Hotline --}}
+                    {{-- Số điện thoại --}}
                     <div class="col-12 col-md-6">
                         <label for="hotline" class="form-label">
-                            Hotline
+                            Số điện thoại
                         </label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-telephone"></i></span>
@@ -167,7 +187,7 @@
                     {{-- Trạng thái --}}
                     <div class="col-12 col-md-4">
                         <label for="status" class="form-label">
-                            Trạng thái <span class="text-danger">*</span>
+                            Trạng thái hoạt động <span class="text-danger">*</span>
                         </label>
                         <select id="status"
                                 name="status"
@@ -177,10 +197,7 @@
                                 Hoạt động
                             </option>
                             <option value="INACTIVE" {{ old('status', $cinema->status) == 'INACTIVE' ? 'selected' : '' }}>
-                                Tạm ngưng
-                            </option>
-                            <option value="MAINTENANCE" {{ old('status', $cinema->status) == 'MAINTENANCE' ? 'selected' : '' }}>
-                                Bảo trì
+                                Đã ẩn
                             </option>
                         </select>
                         @error('status')

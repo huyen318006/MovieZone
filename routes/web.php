@@ -186,7 +186,8 @@ Route::prefix('admin/cinemas')->name('admin.cinemas.')->group(function () {
     Route::post('/', [CinemaManageController::class, 'store'])->name('store');
     Route::get('/{id}/edit', [CinemaManageController::class, 'edit'])->name('edit');
     Route::put('/{id}', [CinemaManageController::class, 'update'])->name('update');
-    Route::delete('/{id}', [CinemaManageController::class, 'destroy'])->name('destroy');
+    Route::post('/{id}/hide', [CinemaManageController::class, 'hide'])->name('hide');
+    Route::post('/{id}/restore', [CinemaManageController::class, 'restore'])->name('restore');
 });
 
 

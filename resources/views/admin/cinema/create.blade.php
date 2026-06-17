@@ -102,7 +102,7 @@
                     {{-- Hotline --}}
                     <div class="col-12 col-md-6">
                         <label for="hotline" class="form-label">
-                            Hotline
+                            Số điện thoại
                         </label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="bi bi-telephone"></i></span>
@@ -140,7 +140,7 @@
                     {{-- Trạng thái --}}
                     <div class="col-12 col-md-4">
                         <label for="status" class="form-label">
-                            Trạng thái <span class="text-danger">*</span>
+                            Trạng thái hoạt động <span class="text-danger">*</span>
                         </label>
                         <select id="status"
                                 name="status"
@@ -150,10 +150,7 @@
                                 Hoạt động
                             </option>
                             <option value="INACTIVE" {{ old('status') == 'INACTIVE' ? 'selected' : '' }}>
-                                Tạm ngưng
-                            </option>
-                            <option value="MAINTENANCE" {{ old('status') == 'MAINTENANCE' ? 'selected' : '' }}>
-                                Bảo trì
+                                Đã ẩn
                             </option>
                         </select>
                         @error('status')
