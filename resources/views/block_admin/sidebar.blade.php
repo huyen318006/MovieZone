@@ -36,7 +36,7 @@
             Quản lý rạp
         </a>
 
-        <a class="nav-link" href="">
+        <a class="nav-link" href="{{ route('admin.rooms.index') }}">
             <i class="bi bi-door-open"></i>
             Phòng chiếu
         </a>
