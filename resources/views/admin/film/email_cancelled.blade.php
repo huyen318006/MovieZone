@@ -19,7 +19,7 @@
 
             @if($booking->payment_status === 'REFUNDED')
                 <p style="margin: 0; color: #5cb85c;"><strong>Trạng thái ví:</strong> <strong style="text-transform: uppercase;">Hoàn tiền</strong></p>
-                <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;"><i>(Hệ thống sẽ cập nhật quy đổi số tiền của quý khách vào thẻ ví trên hệ thống. Qúy khác có thể thanh toán cho các mặt hàng của hệ thống bằng tiền thẻ ví đó).</i></p>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;"><i>(Hệ thống sẽ cập nhật quy đổi số tiền của quý khách vào điểm COIN  trên hệ thống. Qúy khác có thể thanh toán cho các mặt hàng của hệ thống bằng tiền điểm đó 1 coin = 1đ).</i></p>
             @endif
         </div>
 
