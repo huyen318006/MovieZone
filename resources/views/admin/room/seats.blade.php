@@ -64,14 +64,6 @@
     </div>
 </div>
 
-@if($room->seats->count() !== (int) $room->total_seats)
-    <div class="col-12 mt-3">
-        <div class="alert alert-warning mb-0">
-            <i class="bi bi-exclamation-triangle me-1"></i>
-            Số ghế đã cấu hình hiện là {{ $room->seats->count() }}, chưa khớp sức chứa {{ $room->total_seats }} của phòng.
-        </div>
-    </div>
-@endif
 
 <div class="col-12 mt-3">
     <div class="card border-0 shadow-sm">
@@ -99,7 +91,7 @@
                 </div>
                 <div class="vr d-none d-md-block"></div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="badge text-bg-light border">STANDARD</span>
+                    <span class="badge text-bg-secondary border">STANDARD</span>
                     <span class="badge text-bg-primary">VIP</span>
                     <span class="badge text-bg-warning">COUPLE</span>
                 </div>
@@ -127,7 +119,7 @@
                                             'ACTIVE' => 'border-success bg-success-subtle',
                                             'BROKEN' => 'border-danger bg-danger-subtle',
                                             'LOCKED' => 'border-secondary bg-secondary-subtle',
-                                            default => 'border-light bg-light',
+                                            default => 'border-secondary',
                                         };
 
                                         $typeClass = match ($seat->seat_type) {

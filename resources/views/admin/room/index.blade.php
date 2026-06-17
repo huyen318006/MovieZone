@@ -43,7 +43,7 @@
         <div class="card-header bg-transparent d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
                 <div class="fw-semibold">Danh sách rạp</div>
-                <small class="text-muted">UC-ADM-03 tách riêng quản lý phòng khỏi quản lý rạp.</small>
+                <small class="text-muted">Quản lý phòng chiếu độc lập với danh sách rạp.</small>
             </div>
             <form method="GET" action="{{ route('admin.rooms.index') }}" class="d-flex gap-2 flex-wrap align-items-center">
                 <select name="cinema" class="form-select form-select-sm" style="min-width: 260px;" onchange="this.form.submit()">
@@ -67,21 +67,21 @@
             <div class="card-body">
                 <div class="row g-3 align-items-stretch">
                     <div class="col-md-4">
-                        <div class="p-3 rounded bg-light h-100">
+                        <div class="p-3 rounded h-100 admin-room-summary-card">
                             <div class="text-muted small">Rạp đang chọn</div>
                             <div class="fw-bold fs-5">{{ $selectedCinema->name }}</div>
                             <div class="text-muted">{{ $selectedCinema->address }}</div>
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="p-3 rounded bg-light h-100">
+                        <div class="p-3 rounded h-100 admin-room-summary-card">
                             <div class="text-muted small">Khu vực</div>
                             <div class="fw-semibold">{{ $selectedCinema->district ?? '—' }}</div>
                             <div class="text-muted">{{ $selectedCinema->city }}</div>
                         </div>
                     </div>
                     <div class="col-md-2">
-                        <div class="p-3 rounded bg-light h-100">
+                        <div class="p-3 rounded h-100 admin-room-summary-card">
                             <div class="text-muted small">Trạng thái</div>
                             @if($selectedCinema->status === 'ACTIVE')
                                 <span class="badge text-bg-success">Hoạt động</span>
@@ -91,7 +91,7 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="p-3 rounded bg-light h-100">
+                        <div class="p-3 rounded h-100 admin-room-summary-card">
                             <div class="text-muted small">Hotline</div>
                             <div class="fw-semibold">{{ $selectedCinema->hotline ?? 'Chưa cập nhật' }}</div>
                         </div>
@@ -159,8 +159,8 @@
                                 <th>Tên phòng</th>
                                 <th>Loại phòng</th>
                                 <th>Sức chứa</th>
-                                <th>Ghế đã cấu hình</th>
-                                <th>Suất chiếu tương lai</th>
+                                <th>Số ghế</th>
+                                <th>Lịch chiếu sắp tới</th>
                                 <th>Trạng thái</th>
                                 <th style="width: 330px;">Hành động</th>
                             </tr>
@@ -181,11 +181,6 @@
                                         <span class="badge text-bg-info">
                                             <i class="bi bi-grid-3x3-gap me-1"></i>{{ $room->seats_count }} ghế
                                         </span>
-                                        @if($room->seats_count != $room->total_seats)
-                                            <div class="small text-warning mt-1">
-                                                <i class="bi bi-exclamation-triangle me-1"></i>Chưa khớp sức chứa
-                                            </div>
-                                        @endif
                                     </td>
                                     <td>
                                         @if($room->upcoming_showtimes_count > 0)
