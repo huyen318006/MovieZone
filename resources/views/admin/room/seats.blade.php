@@ -75,16 +75,13 @@
 
 <div class="col-12 mt-3">
     <div class="card border-0 shadow-sm">
-        <div class="card-header bg-transparent d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="card-header bg-transparent">
             <div>
                 <div class="fw-semibold">
                     <i class="bi bi-grid-3x3-gap me-2"></i>Sơ đồ ghế hiện tại
                 </div>
                 <small class="text-muted">Màn hình này dùng để xem sơ đồ ghế hiện tại của phòng.</small>
             </div>
-            <button type="button" class="btn btn-outline-primary btn-sm disabled">
-                <i class="bi bi-tools"></i> Quản lý ghế
-            </button>
         </div>
         <div class="card-body">
             <div class="d-flex flex-wrap gap-3 mb-4">
