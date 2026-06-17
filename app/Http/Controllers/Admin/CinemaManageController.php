@@ -1,0 +1,134 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Cinema;
+use Illuminate\Http\Request;
+
+class CinemaManageController extends Controller
+{
+    /**
+     * Danh sách rạp chiếu — phân trang, lọc theo trạng thái, tìm kiếm.
+     */
+    public function index(Request $request)
+    {
+        $query = Cinema::withCount('rooms');
+
+        // Lọc theo trạng thái
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Tìm kiếm theo tên hoặc thành phố
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('city', 'like', "%{$search}%")
+                  ->orWhere('address', 'like', "%{$search}%");
+            });
+        }
+
+        $cinemas = $query->orderBy('created_at', 'desc')->paginate(10)->appends($request->query());
+
+        return view('admin.cinema.index', compact('cinemas'));
+    }
+
+    /**
+     * Form thêm rạp mới.
+     */
+    public function create()
+    {
+        return view('admin.cinema.create');
+    }
+
+    /**
+     * Lưu rạp mới vào database.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name'     => 'required|string|max:255',
+            'city'     => 'required|string|max:100',
+            'district' => 'nullable|string|max:100',
+            'address'  => 'required|string|max:500',
+            'hotline'  => 'nullable|string|max:20',
+            'map_url'  => 'nullable|url|max:500',
+            'status'   => 'required|in:ACTIVE,INACTIVE,MAINTENANCE',
+        ], [
+            'name.required'    => 'Vui lòng nhập tên rạp.',
+            'city.required'    => 'Vui lòng nhập thành phố.',
+            'address.required' => 'Vui lòng nhập địa chỉ.',
+            'status.required'  => 'Vui lòng chọn trạng thái.',
+            'status.in'        => 'Trạng thái không hợp lệ.',
+            'map_url.url'      => 'Đường dẫn Google Map không hợp lệ.',
+        ]);
+
+        Cinema::create($validated);
+
+        return redirect()->route('admin.cinemas.index')
+            ->with('success', 'Thêm rạp chiếu "' . $validated['name'] . '" thành công!');
+    }
+
+    /**
+     * Form sửa thông tin rạp.
+     */
+    public function edit($id)
+    {
+        $cinema = Cinema::withCount('rooms')->findOrFail($id);
+
+        return view('admin.cinema.edit', compact('cinema'));
+    }
+
+    /**
+     * Cập nhật thông tin rạp.
+     */
+    public function update(Request $request, $id)
+    {
+        $cinema = Cinema::findOrFail($id);
+
+        $validated = $request->validate([
+            'name'     => 'required|string|max:255',
+            'city'     => 'required|string|max:100',
+            'district' => 'nullable|string|max:100',
+            'address'  => 'required|string|max:500',
+            'hotline'  => 'nullable|string|max:20',
+            'map_url'  => 'nullable|url|max:500',
+            'status'   => 'required|in:ACTIVE,INACTIVE,MAINTENANCE',
+        ], [
+            'name.required'    => 'Vui lòng nhập tên rạp.',
+            'city.required'    => 'Vui lòng nhập thành phố.',
+            'address.required' => 'Vui lòng nhập địa chỉ.',
+            'status.required'  => 'Vui lòng chọn trạng thái.',
+            'status.in'        => 'Trạng thái không hợp lệ.',
+            'map_url.url'      => 'Đường dẫn Google Map không hợp lệ.',
+        ]);
+
+        $cinema->update($validated);
+
+        return redirect()->route('admin.cinemas.index')
+            ->with('success', 'Cập nhật rạp "' . $cinema->name . '" thành công!');
+    }
+
+    /**
+     * Xoá rạp chiếu.
+     * Kiểm tra rạp có phòng chiếu đang hoạt động trước khi xoá.
+     */
+    public function destroy($id)
+    {
+        $cinema = Cinema::withCount('rooms')->findOrFail($id);
+
+        // Không cho xoá nếu rạp còn phòng chiếu
+        if ($cinema->rooms_count > 0) {
+            return redirect()->route('admin.cinemas.index')
+                ->with('error', 'Không thể xoá rạp "' . $cinema->name . '" vì đang có ' . $cinema->rooms_count . ' phòng chiếu.');
+        }
+
+        $cinemaName = $cinema->name;
+        $cinema->delete();
+
+        return redirect()->route('admin.cinemas.index')
+            ->with('success', 'Đã xoá rạp "' . $cinemaName . '" thành công!');
+    }
+}
