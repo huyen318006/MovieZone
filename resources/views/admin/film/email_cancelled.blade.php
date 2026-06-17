@@ -11,7 +11,7 @@
         </h2>
         <p>Xin chào <strong>{{ $booking->user->name ?? 'Khách hàng' }}</strong>,</p>
 
-        <p>Chúng tôi rất tiếc phải thông báo rằng bộ phim bạn đặt vé đã ngừng chiếu. Do đó, suất chiếu liên quan đã bị hủy bỏ hệ thống.</p>
+        <p>Chúng tôi rất tiếc phải thông báo rằng vì 1 số vấn đề bộ phim bạn đặt vé đã ngừng chiếu do. Do đó, suất chiếu liên quan đã bị hủy bỏ hệ thống.</p>
 
         <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #d9534f; margin: 20px 0;">
             <p style="margin: 0 0 8px 0;"><strong>Mã hóa đơn:</strong> #{{ $booking->id }}</p>
@@ -19,7 +19,7 @@
 
             @if($booking->payment_status === 'REFUNDED')
                 <p style="margin: 0; color: #5cb85c;"><strong>Trạng thái ví:</strong> <strong style="text-transform: uppercase;">Hoàn tiền</strong></p>
-                <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;"><i>(Hệ thống sẽ cập nhật quy đổi số tiền của quý khách thành coin. Qúy khác có thể thanh toán bằng coin cho các mặt hàng của hệ thống).</i></p>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;"><i>(Hệ thống sẽ cập nhật quy đổi số tiền của quý khách vào thẻ ví trên hệ thống. Qúy khác có thể thanh toán cho các mặt hàng của hệ thống bằng tiền thẻ ví đó).</i></p>
             @endif
         </div>
 
