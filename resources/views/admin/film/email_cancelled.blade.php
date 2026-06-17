@@ -11,7 +11,7 @@
         </h2>
         <p>Xin chào <strong>{{ $booking->user->name ?? 'Khách hàng' }}</strong>,</p>
 
-        <p>Chúng tôi rất tiếc phải thông báo rằng vì 1 số vấn đề bộ phim bạn đặt vé đã ngừng chiếu do. Do đó, suất chiếu liên quan đã bị hủy bỏ hệ thống.</p>
+        <p>Chúng tôi rất tiếc phải thông báo rằng vì 1 số vấn đề bộ phim bạn đặt vé đã ngừng chiếu. Do đó, suất chiếu liên quan đã bị hủy bỏ hệ thống.</p>
 
         <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #d9534f; margin: 20px 0;">
             <p style="margin: 0 0 8px 0;"><strong>Mã hóa đơn:</strong> #{{ $booking->id }}</p>
