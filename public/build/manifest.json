@@ -12,6 +12,11 @@
     "src": "resources/css/app.css",
     "isEntry": true
   },
+  "resources/css/booking/combo.css": {
+    "file": "assets/combo-CTpRDUY2.css",
+    "src": "resources/css/booking/combo.css",
+    "isEntry": true
+  },
   "resources/css/login.css": {
     "file": "assets/login-DSP7T7HB.css",
     "src": "resources/css/login.css",
