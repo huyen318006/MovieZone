@@ -89,15 +89,15 @@
         <div class="card-body">
             <div class="d-flex flex-wrap gap-3 mb-4">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="seat-preview border-success bg-success-subtle"></span>
+                    <span class="room-seat-preview border-success bg-success-subtle"></span>
                     <span class="small text-muted">ACTIVE</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="seat-preview border-danger bg-danger-subtle"></span>
+                    <span class="room-seat-preview border-danger bg-danger-subtle"></span>
                     <span class="small text-muted">BROKEN</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="seat-preview border-secondary bg-secondary-subtle"></span>
+                    <span class="room-seat-preview border-secondary bg-secondary-subtle"></span>
                     <span class="small text-muted">LOCKED</span>
                 </div>
                 <div class="vr d-none d-md-block"></div>
@@ -108,7 +108,7 @@
                 </div>
             </div>
 
-            <div class="screen-panel text-center mb-4">
+            <div class="room-screen-panel text-center mb-4">
                 <i class="bi bi-display me-2"></i>Màn hình
             </div>
 
@@ -119,11 +119,11 @@
                     <div class="mt-2">Vui lòng chuyển sang UC-ADM-04 để tạo sơ đồ ghế.</div>
                 </div>
             @else
-                <div class="seat-map-wrapper">
+                <div class="room-seat-map-wrapper">
                     @foreach($seatRows as $rowLabel => $seats)
-                        <div class="seat-row">
-                            <div class="seat-row-label">{{ $rowLabel }}</div>
-                            <div class="seat-row-items">
+                        <div class="room-seat-row">
+                            <div class="room-seat-row-label">{{ $rowLabel }}</div>
+                            <div class="room-seat-row-items">
                                 @foreach($seats as $seat)
                                     @php
                                         $statusClass = match ($seat->status) {
@@ -139,7 +139,7 @@
                                             default => 'text-dark',
                                         };
                                     @endphp
-                                    <div class="seat-cell {{ $statusClass }}" title="{{ $seat->seat_code }} • {{ $seat->seat_type }} • {{ $seat->status }}">
+                                    <div class="room-seat-cell {{ $statusClass }}" title="{{ $seat->seat_code }} • {{ $seat->seat_type }} • {{ $seat->status }}">
                                         <strong class="{{ $typeClass }}">{{ $seat->seat_code }}</strong>
                                         <small>{{ $seat->seat_type }}</small>
                                     </div>
@@ -152,80 +152,5 @@
         </div>
     </div>
 </div>
-
-<style>
-    .seat-preview {
-        width: 26px;
-        height: 22px;
-        display: inline-block;
-        border: 1px solid;
-        border-radius: 8px 8px 4px 4px;
-    }
-
-    .screen-panel {
-        max-width: 520px;
-        margin: 0 auto;
-        padding: 12px 20px;
-        color: #64748b;
-        font-weight: 700;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-        border-radius: 999px;
-        background: linear-gradient(90deg, rgba(37, 99, 235, .08), rgba(14, 165, 233, .16), rgba(37, 99, 235, .08));
-        border: 1px solid rgba(37, 99, 235, .14);
-    }
-
-    .seat-map-wrapper {
-        overflow-x: auto;
-        padding: 10px 0 4px;
-    }
-
-    .seat-row {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-bottom: 12px;
-        min-width: max-content;
-    }
-
-    .seat-row-label {
-        width: 42px;
-        height: 42px;
-        display: grid;
-        place-items: center;
-        border-radius: 12px;
-        font-weight: 800;
-        color: #1d4ed8;
-        background: #eff6ff;
-    }
-
-    .seat-row-items {
-        display: flex;
-        gap: 8px;
-        flex-wrap: nowrap;
-    }
-
-    .seat-cell {
-        width: 72px;
-        min-height: 54px;
-        display: grid;
-        place-items: center;
-        padding: 7px 6px;
-        border: 1px solid;
-        border-radius: 14px 14px 8px 8px;
-        box-shadow: 0 8px 18px rgba(15, 23, 42, .06);
-        transition: transform .18s ease, box-shadow .18s ease;
-    }
-
-    .seat-cell:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 12px 24px rgba(15, 23, 42, .12);
-    }
-
-    .seat-cell small {
-        font-size: 10px;
-        color: #64748b;
-    }
-</style>
 
 @endsection
