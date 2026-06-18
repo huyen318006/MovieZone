@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\CinemaManageController;
 use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\Admin\SeatManageController;
 use App\Http\Controllers\FilmManageController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
@@ -232,4 +233,18 @@ Route::middleware(['auth'])->group(function () {
 
     // UC-11: Nút "Xác nhận đặt vé" -> Tạo DB -> Chuyển thanh toán
     Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
+});
+
+Route::prefix('admin/seats')->name('admin.seats.')->group(function () {
+    Route::get('/', [SeatManageController::class, 'index'])->name('index');
+    Route::get('/create', [SeatManageController::class, 'create'])->name('create');
+    Route::post('/', [SeatManageController::class, 'store'])->name('store');
+    
+    // THÊM DÒNG NÀY VÀO:
+    Route::post('/batch', [SeatManageController::class, 'storeBatch'])->name('storeBatch');
+    
+    Route::get('/{seat}/edit', [SeatManageController::class, 'edit'])->name('edit');
+    Route::put('/{seat}', [SeatManageController::class, 'update'])->name('update');
+    Route::post('/{seat}/toggle-lock', [SeatManageController::class, 'toggleLock'])->name('toggle_lock');
+    Route::delete('/{seat}', [SeatManageController::class, 'destroy'])->name('destroy');
 });
