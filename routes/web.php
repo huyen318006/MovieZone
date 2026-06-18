@@ -235,16 +235,25 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
 });
 
-Route::prefix('admin/seats')->name('admin.seats.')->group(function () {
+//UC-04 quan ly ghe
+// Đặt trong group admin
+Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(function () {
     Route::get('/', [SeatManageController::class, 'index'])->name('index');
     Route::get('/create', [SeatManageController::class, 'create'])->name('create');
-    Route::post('/', [SeatManageController::class, 'store'])->name('store');
-    
-    // THÊM DÒNG NÀY VÀO:
-    Route::post('/batch', [SeatManageController::class, 'storeBatch'])->name('storeBatch');
-    
-    Route::get('/{seat}/edit', [SeatManageController::class, 'edit'])->name('edit');
-    Route::put('/{seat}', [SeatManageController::class, 'update'])->name('update');
-    Route::post('/{seat}/toggle-lock', [SeatManageController::class, 'toggleLock'])->name('toggle_lock');
-    Route::delete('/{seat}', [SeatManageController::class, 'destroy'])->name('destroy');
+    Route::post('/store', [SeatManageController::class, 'store'])->name('store');
+
+    Route::get('/{id}/edit', [SeatManageController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [SeatManageController::class, 'update'])->name('update');
+
+    // Nút toggle khóa/mở khóa
+    Route::post('/{id}/toggle-lock', [SeatManageController::class, 'toggleLock'])->name('toggle_lock');
+
+    // Xóa mềm
+    Route::delete('/{id}', [SeatManageController::class, 'destroy'])->name('destroy');
+
+    // Xóa nhiều
+    Route::post('/destroy-many', [SeatManageController::class, 'destroyMany'])->name('destroy_many');
+
+    // Thêm hàng loạt
+    Route::post('/store-batch', [SeatManageController::class, 'storeBatch'])->name('store_batch');
 });

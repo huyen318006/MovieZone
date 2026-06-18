@@ -21,7 +21,9 @@ class BookingController extends Controller
     // ==========================================
     public function showSeats($showtime_id)
     {
-        $showtime = Showtime::with(['movie', 'cinema', 'room', 'showtimeSeats.seat'])->findOrFail($showtime_id);
+       $showtime = Showtime::with(['movie', 'cinema', 'room', 'showtimeSeats.seat' => function($query) {
+        $query->whereNull('deleted_at'); // Nếu bạn dùng SoftDeletes
+    }])->findOrFail($showtime_id);
 
         if (now()->greaterThan($showtime->start_time)) {
             return redirect()->back()->with('error', 'Suất chiếu này đã bắt đầu.');
@@ -35,24 +37,30 @@ class BookingController extends Controller
             $row = optional($seat->seat)->row_label;
             $num = optional($seat->seat)->seat_number;
 
-            // Kiểm tra trạng thái SOLD (BR05, E1)
-            $isSold = DB::table('booking_seats')
-                ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
-                ->where('booking_seats.showtime_seat_id', $seat->id)
-                ->where('bookings.showtime_id', $showtime_id)
-                ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
-                ->exists();
+            $baseSeatStatus = $seat->seat->status ?? 'ACTIVE';
 
-            if ($isSold) {
-                $seat->display_status = 'SOLD';
+            if ($baseSeatStatus === 'BLOCKED' || $baseSeatStatus === 'BROKEN') {
+                $seat->display_status = $baseSeatStatus;
             } else {
-                // Kiểm tra trạng thái HELD trong Cache (E2)
-                $heldBy = Cache::get('seat_held_' . $showtime_id . '_' . $seat->id);
-                if ($heldBy) {
-                    $seat->display_status = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
+                // Kiểm tra trạng thái SOLD (BR05, E1)
+                $isSold = DB::table('booking_seats')
+                    ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                    ->where('booking_seats.showtime_seat_id', $seat->id)
+                    ->where('bookings.showtime_id', $showtime_id)
+                    ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                    ->exists();
+
+                if ($isSold) {
+                    $seat->display_status = 'SOLD';
                 } else {
-                    // Trạng thái từ DB (AVAILABLE hoặc BLOCKED - BR06, E3)
-                    $seat->display_status = $seat->status ?? 'AVAILABLE';
+                    // Kiểm tra trạng thái HELD trong Cache (E2)
+                    $heldBy = Cache::get('seat_held_' . $showtime_id . '_' . $seat->id);
+                    if ($heldBy) {
+                        $seat->display_status = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
+                    } else {
+                        // Trạng thái từ DB (AVAILABLE hoặc BLOCKED - BR06, E3)
+                        $seat->display_status = $seat->status ?? 'AVAILABLE';
+                    }
                 }
             }
 
@@ -61,57 +69,29 @@ class BookingController extends Controller
 
         // 2. Xây dựng mảng UI chuẩn bị sẵn cho View (Tách logic khỏi Blade)
         $seatMap = [];
-        
-        // CÁC HÀNG A -> I
-        foreach (range('A', 'I') as $row) {
+        ksort($allSeatsMatrix);
+
+        foreach ($allSeatsMatrix as $row => $rowSeats) {
+            ksort($rowSeats);
             $seatMap[$row] = [];
-            for ($i = 1; $i <= 10; $i++) {
-                $dbSeat = $allSeatsMatrix[$row][$i] ?? null;
-                if ($dbSeat) {
-                    $seatMap[$row][] = [
-                        'id' => $dbSeat->id,
-                        'code' => $dbSeat->seat->seat_code ?? ($row . str_pad($i, 2, '0', STR_PAD_LEFT)),
-                        'price' => (int) $dbSeat->price, // LẤY CHÍNH XÁC GIÁ TỪ DB
-                        'status' => $dbSeat->display_status,
-                        'type' => ($row === 'F') ? 'vip' : 'standard', // ÉP CỨNG CHỈ HÀNG F LÀ VIP
-                        'label' => $i,
-                        'is_aisle' => ($i == 5) // Đường luồng
-                    ];
+
+            foreach ($rowSeats as $i => $dbSeat) {
+                $seatType = $dbSeat->seat->seat_type ?? 'STANDARD';
+                $mappedType = 'standard';
+                if ($seatType === 'VIP') {
+                    $mappedType = 'vip';
+                } elseif ($seatType === 'COUPLE' || $row === 'J') {
+                    $mappedType = 'sweetbox';
                 }
-            }
-        }
 
-        // HÀNG J: GHẾ SWEETBOX (Ghép 2 ghế thành 1)
-        $seatMap['J'] = [];
-        for ($i = 1; $i <= 10; $i += 2) {
-            $left = $allSeatsMatrix['J'][$i] ?? null;
-            $right = $allSeatsMatrix['J'][$i + 1] ?? null;
-
-            if ($left || $right) {
-                $statusL = $left->display_status ?? 'AVAILABLE';
-                $statusR = $right->display_status ?? 'AVAILABLE';
-
-                // Gộp trạng thái 2 ghế
-                $combinedStatus = 'AVAILABLE';
-                if (in_array('SOLD', [$statusL, $statusR])) $combinedStatus = 'SOLD';
-                elseif (in_array('BLOCKED', [$statusL, $statusR])) $combinedStatus = 'BLOCKED';
-                elseif (in_array('HELD', [$statusL, $statusR])) $combinedStatus = 'HELD';
-                elseif ($statusL === 'HELD_BY_ME' || $statusR === 'HELD_BY_ME') $combinedStatus = 'HELD_BY_ME';
-
-                $combinedPrice = ($left ? (int)$left->price : 0) + ($right ? (int)$right->price : 0);
-                
-                $ids = [];
-                if ($left) $ids[] = $left->id;
-                if ($right) $ids[] = $right->id;
-
-                $seatMap['J'][] = [
-                    'id' => implode(',', $ids),
-                    'code' => 'J' . str_pad($i, 2, '0', STR_PAD_LEFT) . '-' . str_pad($i + 1, 2, '0', STR_PAD_LEFT),
-                    'price' => $combinedPrice,
-                    'status' => $combinedStatus,
-                    'type' => 'sweetbox',
-                    'label' => 'J' . $i . '-' . ($i + 1),
-                    'is_aisle' => false
+                $seatMap[$row][] = [
+                    'id' => $dbSeat->id,
+                    'code' => $dbSeat->seat->seat_code ?? ($row . str_pad($i, 2, '0', STR_PAD_LEFT)),
+                    'price' => (int) $dbSeat->price,
+                    'status' => $dbSeat->display_status,
+                    'type' => $mappedType,
+                    'label' => $i,
+                    'is_aisle' => ($i == 5)
                 ];
             }
         }
@@ -147,6 +127,15 @@ class BookingController extends Controller
         $cacheKey = 'seat_held_' . $showtimeId . '_' . $seatId;
 
         if ($action === 'hold') {
+            $seat = ShowtimeSeat::with('seat')->find($seatId);
+            if (!$seat || in_array($seat->seat->status ?? 'ACTIVE', ['BLOCKED', 'BROKEN'])) {
+                return response()->json([
+                    'success' => false,
+                    'error_type' => 'BLOCKED',
+                    'message' => 'Ghế này hiện không thể chọn.'
+                ]);
+            }
+
             // Check ngoại lệ E1: Đã bán
             $isSold = DB::table('booking_seats')
                 ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
@@ -226,7 +215,15 @@ class BookingController extends Controller
             'seats' => 'required|array|min:1' // BR01: Ít nhất 1 ghế
         ]);
 
-        $seats = ShowtimeSeat::whereIn('id', $request->seats)->get();
+        $seats = ShowtimeSeat::with('seat')->whereIn('id', $request->seats)->get();
+        $invalidSeats = $seats->filter(function ($seat) {
+            return in_array($seat->seat->status ?? 'ACTIVE', ['BLOCKED', 'BROKEN']);
+        });
+
+        if ($invalidSeats->isNotEmpty()) {
+            return back()->withErrors(['error' => 'Một số ghế đã bị khóa hoặc hỏng, vui lòng chọn lại.']);
+        }
+
         $totalSeatAmount = $seats->sum('price');
 
         session([
@@ -420,9 +417,10 @@ public function saveCombo(Request $request)
             // Lưu danh sách ghế vào bảng trung gian
             foreach ($seats as $seat) {
                 $row = $seat->seat->row_label ?? '';
-                $seatType = 'STANDARD';
-                if ($row === 'F') $seatType = 'VIP';
-                if ($row === 'J') $seatType = 'SWEETBOX';
+                $seatType = $seat->seat->seat_type ?? 'STANDARD';
+                if ($row === 'J' || $seatType === 'COUPLE') {
+                    $seatType = 'COUPLE';
+                }
 
                 DB::table('booking_seats')->insert([
                     'booking_id' => $booking->id,
@@ -454,8 +452,12 @@ public function saveCombo(Request $request)
                 $seatCode = $s->seat->seat_code ?? 'N/A';
                 $seatType = 'standard';
                 $row = $s->seat->row_label ?? '';
-                if ($row === 'F') $seatType = 'vip';
-                if ($row === 'J') $seatType = 'sweetbox';
+                $seatKind = $s->seat->seat_type ?? 'STANDARD';
+                if ($row === 'J' || $seatKind === 'COUPLE') {
+                    $seatType = 'sweetbox';
+                } elseif ($seatKind === 'VIP') {
+                    $seatType = 'vip';
+                }
 
                 $seatDetails[] = [
                     'code' => $seatCode,

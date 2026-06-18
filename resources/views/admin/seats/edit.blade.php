@@ -1,69 +1,128 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Chỉnh Sửa Ghế</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/blueprint.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light py-5">
-<div class="container" style="max-width: 600px;">
-    <div class="card shadow">
-        <div class="card-header bg-primary text-white fw-bold">
-            UPDATE: Thay Đổi Cấu Hình Ghế [{{ $seat->seat_code }}]
+@extends('layout.admin')
+
+@section('title', 'Sửa ghế')
+
+@section('content')
+
+<div class="col-12">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+            <h3 class="mb-1">Sửa ghế {{ $seat->seat_code }}</h3>
+            <p class="text-muted mb-0">Phòng {{ $seat->room->name }} · {{ $seat->room->cinema->name }}</p>
+        </div>
+        <a href="{{ route('admin.seats.index', ['cinema_id' => $seat->room->cinema_id, 'room_id' => $seat->room_id]) }}"
+           class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+    </div>
+</div>
+
+@if($errors->any())
+    <div class="col-12 mt-3">
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            {{ $errors->first() }}
+        </div>
+    </div>
+@endif
+
+<div class="col-12 mt-3">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <div class="panel panel-sm">
+                <small class="text-muted">Mã ghế</small>
+                <div class="fw-semibold">{{ $seat->seat_code }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-sm">
+                <small class="text-muted">Phòng</small>
+                <div class="fw-semibold">{{ $seat->room->name }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-sm">
+                <small class="text-muted">Rạp</small>
+                <div class="fw-semibold">{{ $seat->room->cinema->name }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="panel panel-sm">
+                <small class="text-muted">Trạng thái đang dùng</small>
+                @if($seat->status == 'ACTIVE')
+                    <span class="badge text-bg-success">ACTIVE</span>
+                @elseif($seat->status == 'BLOCKED')
+                    <span class="badge text-bg-secondary">BLOCKED</span>
+                @else
+                    <span class="badge text-bg-danger">BROKEN</span>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="col-12 mt-3">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-transparent">
+            <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Cập nhật ghế</h5>
         </div>
         <div class="card-body">
-            <p class="text-muted small">Thuộc phòng: <strong>{{ $seat->room->cinema->name }} - {{ $seat->room->name }}</strong></p>
-
-            @if($errors->any())
-                <div class="alert alert-danger">{{ $errors->first() }}</div>
-            @endif
-
             <form action="{{ route('admin.seats.update', $seat->id) }}" method="POST">
                 @csrf
                 @method('PUT')
 
-                <div class="row g-3 mb-3">
-                    <div class="col-6">
-                        <label class="form-label fw-bold">Hàng ghế</label>
-                        <input type="text" name="row_label" class="form-control" value="{{ old('row_label', $seat->row_label) }}" required style="text-transform: uppercase;">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Hàng ghế</label>
+                        <input type="text" name="row_label" class="form-control" value="{{ old('row_label', $seat->row_label) }}" required>
                     </div>
-                    <div class="col-6">
-                        <label class="form-label fw-bold">Số thứ tự ghế</label>
-                        <input type="number" name="seat_number" class="form-control" value="{{ old('seat_number', $seat->seat_number) }}" min="1" required>
+                    <div class="col-md-3">
+                        <label class="form-label">Số ghế</label>
+                        <input type="number" name="seat_number" class="form-control" value="{{ old('seat_number', $seat->seat_number) }}" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Loại ghế</label>
+                        <select name="seat_type" class="form-select">
+                            <option value="STANDARD" {{ old('seat_type', $seat->seat_type) == 'STANDARD' ? 'selected' : '' }}>STANDARD</option>
+                            <option value="VIP" {{ old('seat_type', $seat->seat_type) == 'VIP' ? 'selected' : '' }}>VIP</option>
+                            <option value="COUPLE" {{ old('seat_type', $seat->seat_type) == 'COUPLE' ? 'selected' : '' }}>COUPLE</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Trạng thái</label>
+                        <select name="status" class="form-select">
+                            <option value="ACTIVE" {{ old('status', $seat->status) == 'ACTIVE' ? 'selected' : '' }}>ACTIVE</option>
+                            <option value="LOCKED" {{ old('status', $seat->status) == 'LOCKED' ? 'selected' : '' }}>LOCKED</option>
+                            <option value="BROKEN" {{ old('status', $seat->status) == 'BROKEN' ? 'selected' : '' }}>BROKEN</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Giá ghế</label>
+                        <input type="number" name="price" class="form-control" value="{{ old('price', $seat->price) }}" required>
                     </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Giá vé áp dụng (VNĐ)</label>
-                    <input type="number" name="price" class="form-control" value="{{ old('price', round($seat->price)) }}" min="0" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Loại ghế</label>
-                    <select name="seat_type" class="form-select" required>
-                        <option value="STANDARD" {{ $seat->seat_type == 'STANDARD' ? 'selected' : '' }}>STANDARD</option>
-                        <option value="VIP" {{ $seat->seat_type == 'VIP' ? 'selected' : '' }}>VIP</option>
-                        <option value="COUPLE" {{ $seat->seat_type == 'COUPLE' ? 'selected' : '' }}>COUPLE</option>
-                    </select>
-                </div>
-
-                <div class="mb-4">
-                    <label class="form-label fw-bold">Trạng thái vận hành</label>
-                    <select name="status" class="form-select" required>
-                        <option value="ACTIVE" {{ $seat->status == 'ACTIVE' ? 'selected' : '' }}>ACTIVE</option>
-                        <option value="LOCKED" {{ $seat->status == 'LOCKED' ? 'selected' : '' }}>LOCKED</option>
-                        <option value="BROKEN" {{ $seat->status == 'BROKEN' ? 'selected' : '' }}>BROKEN</option>
-                    </select>
-                </div>
+                <hr>
 
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary fw-bold px-4">Cập Nhật Ngay</button>
-                    <a href="{{ route('admin.seats.index', ['cinema_id' => $seat->room->cinema_id, 'room_id' => $seat->room_id]) }}" class="btn btn-secondary px-4">Hủy Bỏ</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg me-1"></i> Cập nhật ghế
+                    </button>
+                    <a href="{{ route('admin.seats.index', ['cinema_id' => $seat->room->cinema_id, 'room_id' => $seat->room_id]) }}"
+                       class="btn btn-outline-secondary">Hủy</a>
                 </div>
             </form>
         </div>
     </div>
 </div>
-</body>
-</html>
+
+@endsection
+
+<style>
+    .panel-sm {
+        background: #f8f9fa;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+    }
+</style>
