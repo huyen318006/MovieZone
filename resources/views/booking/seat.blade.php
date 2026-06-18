@@ -77,7 +77,7 @@
                             
                             @foreach($seatMap[$rowLabel] as $s)
                                 @php
-                                    $isDisabled = in_array($s['status'], ['SOLD', 'BLOCKED', 'HELD']) ? 'disabled' : '';
+                                    $isDisabled = in_array($s['status'], ['SOLD', 'BLOCKED', 'LOCKED', 'HELD']) ? 'disabled' : '';
                                     
                                     // Set class and icon based on type
                                     if ($s['type'] === 'sweetbox') {
@@ -127,7 +127,7 @@
     .HELD_BY_ME { background-color: #28a745 !important; color: white !important; border: none !important; }
     .HELD { background-color: #ff9800 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
     .SOLD { background-color: #dc3545 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
-    .BLOCKED { background-color: #343a40 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
+    .BLOCKED, .LOCKED { background-color: #343a40 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
 
     .vip-seat-btn { color: white !important; border: 2px solid #eab308 !important; font-weight: bold !important; }
     .vip-seat-btn:hover { background-color: #eab308 !important; }

@@ -23,13 +23,10 @@ class ShowtimeSeatSeeder extends Seeder
                 // Lấy nhãn hàng ghế (A, B, C, D, E, F, G, H, I, J)
                 $rowLabel = strtoupper($seat->row_label); 
 
-                // XỬ LÝ SỬA LỖI: Ép loại ghế dựa trên hàng thực tế
-                if ($rowLabel === 'F') {
-                    $currentSeatType = 'VIP';
-                } elseif ($rowLabel === 'J') {
-                    $currentSeatType = 'COUPLE'; 
-                } else {
-                    $currentSeatType = 'STANDARD'; 
+                // Xác định loại ghế từ dữ liệu thực tế của ghế trong phòng
+                $currentSeatType = $seat->seat_type ?? 'STANDARD';
+                if ($rowLabel === 'J' && $currentSeatType !== 'COUPLE') {
+                    $currentSeatType = 'COUPLE';
                 }
 
                 // 1. Cố gắng lấy giá từ bảng cấu hình trước
