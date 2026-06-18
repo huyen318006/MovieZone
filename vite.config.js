@@ -8,7 +8,7 @@ export default defineConfig({
     },
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/css/login.css', 'resources/js/app.js'],
+            input: ['resources/css/app.css', 'resources/css/login.css', 'resources/css/booking/combo.css', 'resources/js/app.js'],
             refresh: true,
         }),
         tailwindcss(),
