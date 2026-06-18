@@ -290,13 +290,23 @@ public function saveCombo(Request $request)
             ->with('error', 'Phiên đặt vé không tồn tại.');
     }
 
+    $seatCount = count($bookingTam['seats'] ?? []);
+    $confirmOverSeat = $request->boolean('confirm_over_seat');
+
     $selectedCombos = [];
     $comboTotal = 0;
+    $comboQuantityTotal = 0;
 
     foreach ($request->input('combos', []) as $comboId => $item) {
         $quantity = (int) ($item['quantity'] ?? 0);
 
         if ($quantity > 0) {
+            if ($quantity > 10) {
+                return back()
+                    ->withInput()
+                    ->with('error', 'Mỗi loại combo chỉ được chọn tối đa 10.');
+            }
+
             $combo = Combo::where('status', 'ACTIVE')->find($comboId);
 
             if ($combo) {
@@ -311,8 +321,15 @@ public function saveCombo(Request $request)
                 ];
 
                 $comboTotal += $subtotal;
+                $comboQuantityTotal += $quantity;
             }
         }
+    }
+
+    if ($seatCount > 0 && $comboQuantityTotal > $seatCount && !$confirmOverSeat) {
+        return back()
+            ->withInput()
+            ->with('warning', 'Bạn đang chọn combo nhiều hơn số ghế đã đặt. Bạn có chắc chắn muốn tiếp tục không?');
     }
 
     // 🔥 UPDATE SESSION ĐÚNG CÁCH (KHÔNG GHI ĐÈ LUNG TUNG)
