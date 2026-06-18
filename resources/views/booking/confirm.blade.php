@@ -136,7 +136,7 @@
                     Chọn phương thức thanh toán
                 </h4>
 
-                <div class="payment-options-grid">
+                <div >
                     <label class="payment-option">
                         <input type="radio"
                                name="payment_method"
@@ -145,16 +145,6 @@
                         <div class="option-content">
                             <span class="icon">💳</span>
                             <span class="text">Thanh toán Online</span>
-                        </div>
-                    </label>
-
-                    <label class="payment-option">
-                        <input type="radio"
-                               name="payment_method"
-                               value="CASH">
-                        <div class="option-content">
-                            <span class="icon">💵</span>
-                            <span class="text">Thanh toán tại quầy</span>
                         </div>
                     </label>
                 </div>

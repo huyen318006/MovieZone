@@ -224,34 +224,38 @@ class BookingController extends Controller
             return back()->withErrors(['error' => 'Một số ghế đã bị khóa hoặc hỏng, vui lòng chọn lại.']);
         }
 
+        // 🔥 THÊM VALIDATE LẺ GHẾ TẠI ĐÂY
+        if ($this->hasSingleSeatGap($request->showtime_id, $request->seats)) {
+            return back()->withInput()->withErrors(['error' => 'Vị trí chọn không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống ở giữa hoặc ở đầu/cuối hàng.']);
+        }
+
         $totalSeatAmount = $seats->sum('price');
 
         session([
-        'booking_tam' => [
-            'showtime_id'       => $request->showtime_id,
-            'seats'             => $request->seats,
-            'customer_email'    => $request->input('customer_email', ''),
+            'booking_tam' => [
+                'showtime_id'       => $request->showtime_id,
+                'seats'             => $request->seats,
+                'customer_email'    => $request->input('customer_email', ''),
 
-            // Ticket
-            'total_seat_amount' => $totalSeatAmount,
+                // Ticket
+                'total_seat_amount' => $totalSeatAmount,
 
-            // Combo
-            'combos'            => [],
-            'total_combo_amount'=> 0,
+                // Combo
+                'combos'            => [],
+                'total_combo_amount'=> 0,
 
-            // Voucher
-            'voucher_id'        => null,
-            'voucher_code'      => null,
-            'discount_amount'   => 0,
+                // Voucher
+                'voucher_id'        => null,
+                'voucher_code'      => null,
+                'discount_amount'   => 0,
 
-            // Total
-            'subtotal'          => $totalSeatAmount,
-            'total'             => $totalSeatAmount,
-        ]
-    ]);
+                // Total
+                'subtotal'          => $totalSeatAmount,
+                'total'             => $totalSeatAmount,
+            ]
+        ]);
 
-
-        return redirect()->route('booking.combo'); // Chuyển sang chọn combo sau khi chọn ghế thay vì confirm ngay
+        return redirect()->route('booking.combo'); 
     }
 
     // ==========================================
@@ -511,5 +515,106 @@ public function saveCombo(Request $request)
             return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
                              ->with('error', 'Lỗi: ' . $e->getMessage());
         }
+    }
+    /**
+     * Thuật toán kiểm tra xem cấu trúc ghế khách chọn có để lại "ghế trống cô đơn" nào không.
+     * Trả về true nếu PHÁT HIỆN lỗi lẻ ghế, false nếu HỢP LỆ.
+     */
+    private function hasSingleSeatGap($showtimeId, $selectedSeatIds)
+    {
+        // 1. Lấy tất cả ghế của suất chiếu này để dựng lại sơ đồ phòng
+        $allShowtimeSeats = ShowtimeSeat::with('seat')
+            ->where('showtime_id', $showtimeId)
+            ->get();
+
+        // 2. TỐI ƯU: Lấy toàn bộ các ghế đã bán/đang thanh toán bằng 1 query duy nhất (Tránh lỗi N+1)
+        $soldSeatIds = DB::table('booking_seats')
+            ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+            ->where('bookings.showtime_id', $showtimeId)
+            ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+            ->pluck('booking_seats.showtime_seat_id')
+            ->all();
+
+        // 3. Đổ dữ liệu vào ma trận hàng dọc/hàng ngang
+        $matrix = [];
+        foreach ($allShowtimeSeats as $seat) {
+            $row = $seat->seat->row_label ?? null;
+            $num = $seat->seat->seat_number ?? null;
+            if (!$row || $num === null) continue;
+
+            // Nếu ghế nằm trong danh sách khách đang chọn click sended lên
+            if (in_array($seat->id, $selectedSeatIds)) {
+                $status = 'SELECTED';
+            } else {
+                $baseSeatStatus = $seat->seat->status ?? 'ACTIVE';
+                if ($baseSeatStatus === 'BLOCKED' || $baseSeatStatus === 'BROKEN') {
+                    $status = 'BLOCKED';
+                } elseif (in_array($seat->id, $soldSeatIds)) {
+                    $status = 'SOLD';
+                } else {
+                    // Check xem có ai khác đang giữ trong cache không
+                    $heldBy = Cache::get('seat_held_' . $showtimeId . '_' . $seat->id);
+                    if ($heldBy && $heldBy != Auth::id()) {
+                        $status = 'HELD';
+                    } else {
+                        $status = 'AVAILABLE'; // Ghế thực sự trống
+                    }
+                }
+            }
+            $matrix[$row][$num] = $status;
+        }
+
+        // 4. Quét từng hàng ghế để tìm lỗi "lẻ 1 ghế trống"
+        foreach ($matrix as $row => $rowSeats) {
+            ksort($rowSeats); // Sắp xếp lại số ghế theo thứ tự tăng dần (1, 2, 3...)
+            
+            $seatNumbers = array_keys($rowSeats);
+            $totalInRow = count($seatNumbers);
+
+            for ($i = 0; $i < $totalInRow; $i++) {
+                $currentNum = $seatNumbers[$i];
+
+                // Chúng ta chỉ săm soi những ghế đang có trạng thái trống (AVAILABLE)
+                if ($rowSeats[$currentNum] === 'AVAILABLE') {
+                    
+                    // --- KIỂM TRA BÊN TRÁI ---
+                    // Bị chặn trái nếu: đầu hàng vật lý (i==0), số ghế không liên tục (lối đi rạp), 
+                    // hoặc ghế bên trái không phải là ghế trống (đã mua/đang chọn)
+                    $leftBlocked = false;
+                    if ($i === 0) {
+                        $leftBlocked = true; 
+                    } else {
+                        $prevNum = $seatNumbers[$i - 1];
+                        if ($prevNum != $currentNum - 1) {
+                            $leftBlocked = true; // Bị ngắt bởi lối đi rạp phim
+                        } else {
+                            $leftBlocked = ($rowSeats[$prevNum] !== 'AVAILABLE');
+                        }
+                    }
+
+                    // --- KIỂM TRA BÊN PHẢI ---
+                    // Tương tự, bị chặn phải nếu: cuối hàng vật lý, số ghế không liên tục,
+                    // hoặc ghế bên phải không phải là ghế trống
+                    $rightBlocked = false;
+                    if ($i === $totalInRow - 1) {
+                        $rightBlocked = true;
+                    } else {
+                        $nextNum = $seatNumbers[$i + 1];
+                        if ($nextNum != $currentNum + 1) {
+                            $rightBlocked = true; // Bị ngắt bởi lối đi rạp phim
+                        } else {
+                            $rightBlocked = ($rowSeats[$nextNum] !== 'AVAILABLE');
+                        }
+                    }
+
+                    // Nếu phát hiện 1 ghế trống đơn lẻ bị kẹp thịt ở giữa -> Trả về lỗi luôn lập tức
+                    if ($leftBlocked && $rightBlocked) {
+                        return true; 
+                    }
+                }
+            }
+        }
+
+        return false; // Toàn bộ hàng ghế đều hợp lệ
     }
 }
