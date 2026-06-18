@@ -131,12 +131,11 @@ class AuthController extends Controller
           //nếu thành công thì trả về thông báo
           if($status === Password::RESET_LINK_SENT){
             return back()->with('success','Đã gửi liên kết đặt lại mật khẩu đến email của bạn');
-          }else{
-            //nếu thất bại
-            return back()->withErrors([
-                'email' => 'Không thể gửi liên kết đặt lại mật khẩu'
-            ]);
           }
+
+          // Nếu gửi thất bại: KHÔNG hiển thị lỗi cụ thể ra UI (tránh lộ thông tin & UX tốt hơn)
+          // Thông báo trung tính để người dùng hiểu rằng có thể mail đã/không đến do hệ thống.
+          return back()->with('success','Nếu email của bạn tồn tại trong hệ thống, bạn sẽ nhận được liên kết đặt lại mật khẩu trong vài phút. Vui lòng kiểm tra hộp thư đến và spam.');
 
 }
 

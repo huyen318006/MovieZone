@@ -1,10 +1,14 @@
 <?php
 
+use App\Http\Controllers\Admin\CinemaManageController;
+use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\Admin\SeatManageController;
 use App\Http\Controllers\FilmManageController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SepayController;
@@ -119,13 +123,9 @@ Route::get('/promotions', function () {
 })->name('promotions');
 
 // Tin tức
-Route::get('/news', function () {
-    return view('news.index');
-})->name('news');
 
-Route::get('/news-detail', function () {
-    return view('news.detail');
-})->name('news.detail');
+Route::get('/news', [NewsController::class, 'index'])->name('news');
+Route::get('/news/{slug}', [NewsController::class, 'show'])->name('news.detail');
 
 // Hồ sơ người dùng
 Route::middleware('auth')->group(function () { // chưa đăng nhập thì không xem được hồ sơ
@@ -154,6 +154,51 @@ Route::controller(FilmManageController::class)->group(function () {
     Route::get('/admin/film/management', 'listmovie')->name('admin.film');
     Route::get('/admin/film/store','formadd')->name('admin.film.add');
     Route::post('/admin/filmstore','store')->name('admin.store.film');
+    //sửa thông tin film
+    Route::get('/admin/view/update/film/{id}','viewupdate')->name('admin.view.update.film');
+    Route::post('/admin/updatefilm/{id}','update')->name('update.film');
+    Route::post('/movies/check-slots',  'apiCheckSlots')->name('admin.movies.check-slots');
+
+    //bắt đầu phần khó liên quan đến trạng thái thanh toán suất chiếu cụ thể
+
+    // Route GET: Trang xác nhận ngừng chiếu phim (MVC thuần)
+    Route::get('/admin/film/{id}/confirm-stop', [FilmManageController::class, 'confirmStop'])
+        ->name('admin.film.confirm_stop');
+
+    // Route POST: Thực hiện thay đổi trạng thái phim (Ngừng chiếu)
+    Route::post('/admin/film/{id}/toggle-status', [FilmManageController::class, 'toggleStatus'])
+        ->name('admin.film.toggle_status');
+
+        //xác nhận khôi phục phim
+        Route::get('/admin/film/{id}/restore','restore')->name('restore.film');
+    //bắt đầu khôi phục
+    //xác nhận khôi phục phim
+    Route::post('confirm_recovery/{id}/file', 'confirmrecovery')->name('confirm.recovery');
+
+
+});
+
+// Quản lý rạp - CINEMA MANAGEMENT
+Route::prefix('admin/cinemas')->name('admin.cinemas.')->group(function () {
+    Route::get('/', [CinemaManageController::class, 'index'])->name('index');
+    Route::get('/create', [CinemaManageController::class, 'create'])->name('create');
+    Route::post('/', [CinemaManageController::class, 'store'])->name('store');
+    Route::get('/{id}/edit', [CinemaManageController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [CinemaManageController::class, 'update'])->name('update');
+    Route::post('/{id}/hide', [CinemaManageController::class, 'hide'])->name('hide');
+    Route::post('/{id}/restore', [CinemaManageController::class, 'restore'])->name('restore');
+});
+
+// Quản lý phòng chiếu - ROOM MANAGEMENT
+Route::prefix('admin/rooms')->name('admin.rooms.')->group(function () {
+    Route::get('/', [RoomManageController::class, 'index'])->name('index');
+    Route::get('/create', [RoomManageController::class, 'create'])->name('create');
+    Route::post('/', [RoomManageController::class, 'store'])->name('store');
+    Route::get('/{room}/edit', [RoomManageController::class, 'edit'])->name('edit');
+    Route::put('/{room}', [RoomManageController::class, 'update'])->name('update');
+    Route::post('/{room}/hide', [RoomManageController::class, 'hide'])->name('hide');
+    Route::post('/{room}/restore', [RoomManageController::class, 'restore'])->name('restore');
+    Route::get('/{room}/seats', [RoomManageController::class, 'seats'])->name('seats');
 });
 
 
@@ -188,4 +233,27 @@ Route::middleware(['auth'])->group(function () {
 
     // UC-11: Nút "Xác nhận đặt vé" -> Tạo DB -> Chuyển thanh toán
     Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
+});
+
+//UC-04 quan ly ghe
+// Đặt trong group admin
+Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(function () {
+    Route::get('/', [SeatManageController::class, 'index'])->name('index');
+    Route::get('/create', [SeatManageController::class, 'create'])->name('create');
+    Route::post('/store', [SeatManageController::class, 'store'])->name('store');
+
+    Route::get('/{id}/edit', [SeatManageController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [SeatManageController::class, 'update'])->name('update');
+
+    // Nút toggle khóa/mở khóa
+    Route::post('/{id}/toggle-lock', [SeatManageController::class, 'toggleLock'])->name('toggle_lock');
+
+    // Xóa mềm
+    Route::delete('/{id}', [SeatManageController::class, 'destroy'])->name('destroy');
+
+    // Xóa nhiều
+    Route::post('/destroy-many', [SeatManageController::class, 'destroyMany'])->name('destroy_many');
+
+    // Thêm hàng loạt
+    Route::post('/store-batch', [SeatManageController::class, 'storeBatch'])->name('store_batch');
 });
