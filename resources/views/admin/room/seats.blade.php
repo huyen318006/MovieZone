@@ -8,13 +8,13 @@
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
             <h3 class="mb-1">Sơ đồ ghế - {{ $room->name }}</h3>
-            <p class="text-muted mb-0">Xem sơ đồ ghế hiện tại của phòng thuộc rạp {{ $room->cinema?->name }}.</p>
+            <p class="text-muted mb-0">Xem sơ đồ ghế hiện tại của phòng {{ $room->name }}.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a href="{{ route('admin.rooms.edit', $room) }}" class="btn btn-outline-primary">
                 <i class="bi bi-pencil"></i> Sửa phòng
             </a>
-            <a href="{{ route('admin.rooms.index', ['cinema' => $room->cinema_id]) }}" class="btn btn-outline-secondary">
+            <a href="{{ route('admin.rooms.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Quay lại danh sách
             </a>
         </div>
@@ -23,12 +23,6 @@
 
 <div class="col-12 mt-3">
     <div class="row g-3">
-        <div class="col-auto">
-            <div class="card card-body py-2 px-3">
-                <small class="text-muted">Rạp</small>
-                <span class="fw-semibold">{{ $room->cinema?->name ?? '—' }}</span>
-            </div>
-        </div>
         <div class="col-auto">
             <div class="card card-body py-2 px-3">
                 <small class="text-muted">Loại phòng</small>

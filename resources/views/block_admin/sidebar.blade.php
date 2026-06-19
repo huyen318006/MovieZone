@@ -31,9 +31,9 @@
             Quản lý phim
         </a>
 
-        <a class="nav-link" href="{{ route('admin.cinemas.index') }}">
-            <i class="bi bi-building"></i>
-            Quản lý rạp
+        <a class="nav-link {{ Request::routeIs('admin.rooms.*') ? 'active' : '' }}" href="{{ route('admin.rooms.index') }}">
+            <i class="bi bi-door-open"></i>
+            Quản lý phòng chiếu
         </a>
 
         <a class="nav-link {{ Request::routeIs('admin.seats.*') ? 'active' : '' }}" href="{{ route('admin.seats.index') }}">

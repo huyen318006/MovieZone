@@ -10,7 +10,7 @@
             <h3 class="mb-1">Thêm ghế mới</h3>
             <p class="text-muted mb-0">Cấu hình ghế cho phòng {{ $room->name }}</p>
         </div>
-        <a href="{{ route('admin.seats.index', ['cinema_id' => $room->cinema_id, 'room_id' => $room->id]) }}"
+        <a href="{{ route('admin.seats.index', ['room_id' => $room->id]) }}"
            class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i> Quay lại
         </a>
@@ -28,25 +28,19 @@
 
 <div class="col-12 mt-3">
     <div class="row g-3">
-        <div class="col-md-3">
-            <div class="panel panel-sm">
-                <small class="text-muted">Rạp</small>
-                <div class="fw-semibold">{{ $room->cinema->name }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="panel panel-sm">
                 <small class="text-muted">Phòng</small>
                 <div class="fw-semibold">{{ $room->name }}</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="panel panel-sm">
                 <small class="text-muted">Loại phòng</small>
                 <div class="fw-semibold">{{ $room->room_type }}</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="panel panel-sm">
                 <small class="text-muted">Ghế hiện có</small>
                 <div class="fw-semibold">{{ $room->seats()->count() }}</div>
@@ -135,7 +129,7 @@
                         <i class="bi bi-check-lg me-1"></i> Lưu ghế
                     </button>
 
-                    <a href="{{ route('admin.seats.index', ['cinema_id' => $room->cinema_id, 'room_id' => $room->id]) }}"
+                    <a href="{{ route('admin.seats.index', ['room_id' => $room->id]) }}"
                        class="btn btn-outline-secondary">
                         Hủy
                     </a>

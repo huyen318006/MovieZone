@@ -32,7 +32,7 @@
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
                 <h3 class="mb-1">Quản lý ghế ngồi</h3>
-                <p class="text-muted mb-0">Chọn rạp và phòng để xem sơ đồ ghế, khóa/mở ghế hoặc cập nhật thông tin ghế.</p>
+                <p class="text-muted mb-0">Chọn phòng để xem sơ đồ ghế, khóa/mở ghế hoặc cập nhật thông tin ghế.</p>
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
 
@@ -77,19 +77,7 @@
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
                 <form action="{{ route('admin.seats.index') }}" method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-5">
-                        <label class="form-label fw-semibold">Tên rạp chiếu</label>
-                        <select name="cinema_id" class="form-select" onchange="this.form.submit()">
-                            <option value="">-- Chọn rạp chiếu --</option>
-                            @foreach ($cinemas as $cinema)
-                                <option value="{{ $cinema->id }}"
-                                    {{ request('cinema_id') == $cinema->id ? 'selected' : '' }}>
-                                    {{ $cinema->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-5">
+                    <div class="col-md-8">
                         <label class="form-label fw-semibold">Phòng chiếu</label>
                         <select name="room_id" class="form-select" onchange="this.form.submit()">
                             <option value="">-- Chọn phòng --</option>
@@ -101,7 +89,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <a href="{{ route('admin.seats.index') }}" class="btn btn-outline-secondary w-100">
                             <i class="bi bi-arrow-clockwise me-1"></i> Làm mới
                         </a>
@@ -114,14 +102,7 @@
     @if (request('room_id'))
         <div class="col-12 mt-3">
             <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="panel panel-sm">
-                        <div class="text-muted small">Rạp</div>
-                        <div class="fw-bold">{{ $rooms->firstWhere('id', request('room_id'))?->cinema?->name ?? '—' }}
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Phòng</div>
                         <div class="fw-bold">
@@ -133,13 +114,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Tổng ghế</div>
                         <div class="fw-bold">{{ count($seatsGrouped->flatten()) }}</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Tình trạng</div>
                         <div class="fw-bold text-success">Đã cấu hình</div>
