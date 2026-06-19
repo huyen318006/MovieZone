@@ -59,13 +59,26 @@
                 <p>Thêm bắp, nước uống để có trải nghiệm xem phim trọn vẹn hơn.</p>
             </div>
 
+            @if(session('error') || session('warning'))
+                <div class="alert {{ session('error') ? 'alert-danger' : 'alert-warning' }}" style="margin-bottom: 16px;">
+                    {{ session('error') ?? session('warning') }}
+                </div>
+            @endif
+
             <form id="comboForm" action="{{ route('booking.combo.save') }}" method="POST">
                 @csrf
+
+                <input type="hidden" name="confirm_over_seat" id="confirmOverSeat" value="0">
 
                 <div class="combo-grid">
 
                     @php
-                        $selectedCombos = collect(session('booking_tam.combos', []))->keyBy('combo_id');
+                        $oldCombos = collect(old('combos', []));
+                        $selectedCombos = $oldCombos->isNotEmpty()
+                            ? $oldCombos->keyBy(function ($item, $comboId) {
+                                return $comboId;
+                            })
+                            : collect(session('booking_tam.combos', []))->keyBy('combo_id');
                     @endphp
 
                     @foreach($combos as $combo)
@@ -99,6 +112,7 @@
                                     <input
                                         type="number"
                                         min="0"
+                                        max="10"
                                         value="{{ $selectedCombos[$combo->id]['quantity'] ?? 0 }}"
                                         class="qty-input"
                                         name="combos[{{ $combo->id }}][quantity]"
@@ -303,13 +317,27 @@
 
 <script>
 const seatAmount = {{ session('booking_tam.total_seat_amount',0) }};
+const seatCount = {{ count(session('booking_tam.seats', [])) }};
 const discountAmount = {{ session('booking_tam.discount_amount',0) }};
 document.addEventListener('DOMContentLoaded', () => {
 
     const inputs = document.querySelectorAll('.qty-input');
+    const comboForm = document.getElementById('comboForm');
+    const confirmOverSeatInput = document.getElementById('confirmOverSeat');
 
     function formatMoney(number) {
         return number.toLocaleString('vi-VN') + 'đ';
+    }
+
+    function getSelectedQuantityTotal() {
+        let totalQuantity = 0;
+
+        inputs.forEach(input => {
+            const qty = Math.max(0, parseInt(input.value) || 0);
+            totalQuantity += qty;
+        });
+
+        return totalQuantity;
     }
 
     function updateSummary() {
@@ -324,6 +352,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (qty < 0) {
                 qty = 0;
                 input.value = 0;
+            }
+
+            if (qty > 10) {
+                qty = 10;
+                input.value = 10;
             }
 
             const card = input.closest('.combo-card');
@@ -384,6 +417,10 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedCombosInput.value = JSON.stringify(selectedCombos);
         }
 
+        if (confirmOverSeatInput) {
+            confirmOverSeatInput.value = '0';
+        }
+
         document.getElementById('summaryCombos').innerHTML = html;
         document.getElementById('comboAmount').innerText = formatMoney(total);
         const grandTotal =
@@ -416,6 +453,28 @@ document.addEventListener('DOMContentLoaded', () => {
     inputs.forEach(input => {
         input.addEventListener('input', updateSummary);
     });
+
+    if (comboForm) {
+        comboForm.addEventListener('submit', (event) => {
+            const totalQuantity = getSelectedQuantityTotal();
+
+            if (seatCount > 0 && totalQuantity > seatCount && confirmOverSeatInput?.value !== '1') {
+                event.preventDefault();
+
+                const confirmed = window.confirm(
+                    'Tổng số combo đang lớn hơn số ghế bạn đã chọn. Bạn có chắc chắn muốn tiếp tục không?'
+                );
+
+                if (confirmed) {
+                    if (confirmOverSeatInput) {
+                        confirmOverSeatInput.value = '1';
+                    }
+
+                    comboForm.submit();
+                }
+            }
+        });
+    }
 
     updateSummary();
 
