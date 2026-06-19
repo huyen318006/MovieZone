@@ -30,7 +30,7 @@
     <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4">
         <div>
             <h3 class="mb-1">Quản lý suất chiếu</h3>
-            <p class="text-muted mb-0">Tạo, cập nhật, hủy và tra cứu suất chiếu trong rạp duy nhất của hệ thống.</p>
+            <p class="text-muted mb-0">Tạo, cập nhật, hủy và tra cứu suất chiếu trong rạp của hệ thống.</p>
         </div>
 
         <div class="d-flex gap-2 flex-wrap">
