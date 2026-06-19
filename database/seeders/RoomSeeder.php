@@ -16,8 +16,6 @@ class RoomSeeder extends Seeder
         // ==================== SEEDER ROOM - DỄ MỞ RỘNG ====================//
         Room::query()->delete();
 
-        $cinemaId = 1; // Hiện tại chỉ có 1 rạp
-
         $roomData = [
             [
                 'name'        => 'Room 1',
@@ -49,7 +47,6 @@ class RoomSeeder extends Seeder
         $rooms = [];
         foreach ($roomData as $room) {
             $rooms[] = [
-                'cinema_id'   => $cinemaId,
                 'name'        => $room['name'],
                 'room_type'   => $room['room_type'],
                 'total_seats' => $room['total_seats'],
