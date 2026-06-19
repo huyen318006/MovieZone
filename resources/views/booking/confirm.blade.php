@@ -127,6 +127,31 @@
             @csrf
 
             <div class="payment-method-box">
+                <h4>
+                    <i class="fa-solid fa-user"></i>
+                    Thông tin khách hàng
+                </h4>
+                
+                <div class="customer-info-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                    <div>
+                        <label style="color: #9ca3af; font-size: 14px; margin-bottom: 5px; display: block;">Họ và Tên <span style="color: #ef4444;">*</span></label>
+                        <input type="text" name="customer_name" required value="{{ old('customer_name', auth()->user()->name ?? '') }}" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #111827; color: #f8fafc; font-size: 15px; outline: none;" placeholder="Nhập họ và tên..." onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#374151'">
+                        @error('customer_name') <small style="color: #ef4444; margin-top: 4px; display: block;">{{ $message }}</small> @enderror
+                    </div>
+                    <div>
+                        <label style="color: #9ca3af; font-size: 14px; margin-bottom: 5px; display: block;">Số điện thoại <span style="color: #ef4444;">*</span></label>
+                        <input type="text" name="customer_phone" required value="{{ old('customer_phone', auth()->user()->phone ?? '') }}" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #111827; color: #f8fafc; font-size: 15px; outline: none;" placeholder="Nhập số điện thoại..." onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#374151'">
+                        @error('customer_phone') <small style="color: #ef4444; margin-top: 4px; display: block;">{{ $message }}</small> @enderror
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <label style="color: #9ca3af; font-size: 14px; margin-bottom: 5px; display: block;">Email nhận hoá đơn <span style="color: #ef4444;">*</span></label>
+                        <input type="email" name="customer_email" required value="{{ old('customer_email', auth()->user()->email ?? '') }}" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #374151; background: #111827; color: #f8fafc; font-size: 15px; outline: none;" placeholder="Nhập email nhận hoá đơn..." onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#374151'">
+                        @error('customer_email') <small style="color: #ef4444; margin-top: 4px; display: block;">{{ $message }}</small> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="payment-method-box">
 
                 <h4>
                     <i class="fa-solid fa-credit-card"></i>

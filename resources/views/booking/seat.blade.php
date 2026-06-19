@@ -33,20 +33,7 @@
                     <input type="hidden" name="showtime_id" value="{{ $showtime->id }}">
                     <div id="hidden-seat-inputs"></div>
 
-                    <div class="email-input-group" style="margin-top: 20px; margin-bottom: 16px;">
-                        <label for="customerEmail" style="display: block; color: #94a3b8; font-size: 13px; margin-bottom: 6px;">
-                            <i class="fa-solid fa-envelope"></i> Email nhận hoá đơn <span style="color: #ef4444;">*</span>
-                        </label>
-                        <input type="email" name="customer_email" id="customerEmail" required
-                            placeholder="Nhập email của bạn..."
-                            value="{{ auth()->check() ? auth()->user()->email : '' }}"
-                            style="width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 14px; outline: none; box-sizing: border-box; transition: border-color 0.2s;"
-                            onfocus="this.style.borderColor='#8b5cf6'"
-                            onblur="this.style.borderColor='#334155'">
-                        <small style="color: #64748b; font-size: 11px; margin-top: 4px; display: block;">
-                            Hoá đơn sẽ được gửi đến email này sau khi thanh toán
-                        </small>
-                    </div>
+
 
                     <button type="submit" class="btn-payment" id="btnPayment" disabled>
                         Vui lòng chọn ghế
@@ -250,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedSeatsEl.innerHTML = 'Chưa chọn ghế';
             totalPriceEl.textContent = '0 VNĐ';
             btnPayment.disabled = true;
-            btnPayment.textContent = 'Tiếp Tục Thanh Toán';
+            btnPayment.textContent = 'Vui lòng chọn ghế';
         } else {
             const seatTags = [];
             let total = 0;

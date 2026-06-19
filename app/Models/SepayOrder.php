@@ -194,6 +194,38 @@ class SepayOrder extends Model
     }
 
     /**
+     * Lấy tên khách hàng từ metadata hoặc từ booking->user
+     */
+    public function getCustomerName(): string
+    {
+        if (!empty($this->metadata['customer_name'])) {
+            return $this->metadata['customer_name'];
+        }
+
+        if ($this->booking && $this->booking->user) {
+            return $this->booking->user->name ?? '';
+        }
+
+        return '';
+    }
+
+    /**
+     * Lấy số điện thoại khách hàng từ metadata hoặc từ booking->user
+     */
+    public function getCustomerPhone(): string
+    {
+        if (!empty($this->metadata['customer_phone'])) {
+            return $this->metadata['customer_phone'];
+        }
+
+        if ($this->booking && $this->booking->user) {
+            return $this->booking->user->phone ?? '';
+        }
+
+        return '';
+    }
+
+    /**
      * Tạo dữ liệu JSON cho QR code quét được
      * Chứa đầy đủ thông tin vé: mã hoá đơn, tên phim, rạp, phòng, thời gian, ghế, số lượng, combo
      */
