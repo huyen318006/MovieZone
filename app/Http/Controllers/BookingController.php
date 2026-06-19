@@ -275,7 +275,7 @@ class BookingController extends Controller
             'booking_tam' => [
                 'showtime_id'       => $request->showtime_id,
                 'seats'             => $request->seats,
-                'customer_email'    => $request->input('customer_email', ''),
+                'seats'             => $request->seats,
 
                 // Ticket
                 'total_seat_amount' => $totalSeatAmount,
@@ -417,6 +417,13 @@ public function saveCombo(Request $request)
 
     public function checkout(Request $request)
     {
+        $request->validate([
+            'customer_name' => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'customer_email' => 'required|email|max:255',
+            'payment_method' => 'required|string'
+        ]);
+
         $bookingTam = session('booking_tam');
         if (!$bookingTam) return redirect()->route('home');
 
@@ -537,8 +544,10 @@ public function saveCombo(Request $request)
                 ];
             }
 
-            // Lưu email khách hàng vào metadata
-            $customerEmail = $bookingTam['customer_email'] ?? (Auth::user()->email ?? '');
+            // Lưu thông tin khách hàng vào metadata
+            $customerName = $request->input('customer_name');
+            $customerPhone = $request->input('customer_phone');
+            $customerEmail = $request->input('customer_email');
 
             $sepayOrder = SepayOrder::create([
                 'order_code'   => $bookingCode,
@@ -559,6 +568,8 @@ public function saveCombo(Request $request)
                     'combos'         => $comboDetails,
                     'showtime_id'    => $showtimeId,
                     'customer_email' => $customerEmail,
+                    'customer_name'  => $customerName,
+                    'customer_phone' => $customerPhone,
                 ],
             ]);
 
