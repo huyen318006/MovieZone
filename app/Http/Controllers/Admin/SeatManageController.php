@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
-use App\Models\Cinema;
+
 use App\Models\Room;
 use App\Models\Seat;
 use App\Models\Showtime;
@@ -96,17 +96,8 @@ class SeatManageController extends Controller
     {
         $this->ensureAdminAccess();
 
-        $cinemas = Cinema::query()->orderBy('name')->get();
-        $selectedCinema = $request->filled('cinema_id') ? (int) $request->cinema_id : null;
+        $rooms = Room::query()->orderBy('name')->get();
         $selectedRoom = $request->filled('room_id') ? (int) $request->room_id : null;
-
-        $rooms = [];
-        if ($selectedCinema) {
-            $rooms = Room::query()
-                ->where('cinema_id', $selectedCinema)
-                ->orderBy('name')
-                ->get();
-        }
 
         $seatsGrouped = [];
         if ($selectedRoom) {
@@ -119,10 +110,8 @@ class SeatManageController extends Controller
         }
 
         return view('admin.seats.index', compact(
-            'cinemas',
             'rooms',
             'seatsGrouped',
-            'selectedCinema',
             'selectedRoom'
         ));
     }
@@ -134,9 +123,8 @@ class SeatManageController extends Controller
         $room = Room::with('cinema')->findOrFail($request->room_id);
 
         if ($room->status !== 'ACTIVE') {
-            return redirect()->route('admin.seats.index', [
-                'cinema_id' => $room->cinema_id,
-            ])->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.']);
+            return redirect()->route('admin.seats.index')
+                ->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.']);
         }
 
         return view('admin.seats.create', compact('room'));
@@ -150,7 +138,6 @@ class SeatManageController extends Controller
 
         if ($seat->room->status !== 'ACTIVE') {
             return redirect()->route('admin.seats.index', [
-                'cinema_id' => $seat->room->cinema_id,
                 'room_id' => $seat->room_id,
             ])->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.']);
         }
@@ -225,7 +212,6 @@ if (
     $room = Room::findOrFail($validated['room_id']);
 
     return redirect()->route('admin.seats.index', [
-        'cinema_id' => $room->cinema_id,
         'room_id' => $validated['room_id']
     ])->with('success', "Thêm ghế {$seatCode} thành công.");
 }
@@ -304,7 +290,6 @@ if (
         $this->writeAuditLog('seat.update', $seat, $oldData, $newData);
 
         return redirect()->route('admin.seats.index', [
-            'cinema_id' => $seat->room->cinema_id,
             'room_id' => $seat->room_id,
         ])->with('success', "Cập nhật ghế {$seatCode} thành công.");
     }
@@ -459,7 +444,6 @@ if (
         }
 
         return redirect()->route('admin.seats.index', [
-            'cinema_id' => $room->cinema_id,
             'room_id' => $validated['room_id'],
         ])->with('success', $successMessage);
     }
