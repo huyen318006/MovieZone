@@ -18,6 +18,44 @@ class SeatManageController extends Controller
 {
     private array $allowedStatuses = ['ACTIVE', 'BLOCKED', 'BROKEN'];
 
+    /**
+     * Lấy giá ghế theo seat_type từ bảng ticket_prices.
+     * Do hiện hệ thống chưa truyền day_type/time_type nên lấy bản ghi ACTIVE đầu tiên matching cinema + seat_type.
+     */
+    private function getSeatPriceFromTicketPrices(string $seatType, int $cinemaId): float
+    {
+        // Ưu tiên match theo cinema_id của rạp/phòng
+        $ticketPrice = \App\Models\TicketPrice::query()
+            ->where('seat_type', $seatType)
+            ->where('cinema_id', $cinemaId)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($ticketPrice) {
+            return (float) $ticketPrice->price;
+        }
+
+        // Fallback: nếu hệ thống seed/record chưa khớp cinema_id, lấy record ACTIVE bất kỳ theo seat_type
+        $ticketPriceAnyCinema = \App\Models\TicketPrice::query()
+            ->where('seat_type', $seatType)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($ticketPriceAnyCinema) {
+            return (float) $ticketPriceAnyCinema->price;
+        }
+
+        // Fallback cuối cùng (chỉ xảy ra khi ticket_prices trống)
+        return match ($seatType) {
+            'VIP' => 150000.0,
+            'COUPLE' => 250000.0,
+            default => 80000.0,
+        };
+    }
+
+
     private function ensureAdminAccess(): void
     {
         $user = Auth::user();
@@ -168,8 +206,8 @@ class SeatManageController extends Controller
         'seat_number' => 'required|integer|min:1',
         'seat_type' => 'required|in:STANDARD,VIP,COUPLE',
         'status' => 'required|in:' . implode(',', $this->allowedStatuses),
-        'price' => 'required|numeric|min:0',
     ]);
+
 
     // ... (Giữ nguyên các đoạn validate row_label, VIP, BLOCKED, exists ở trên) ...
     $rowLabel = strtoupper($validated['row_label']);
@@ -210,7 +248,9 @@ if (
             $newSeat = Seat::create(array_merge($validated, [
                 'row_label' => $rowLabel,
                 'seat_code' => $seatCode,
+                'price' => $this->getSeatPriceFromTicketPrices($validated['seat_type'], $validated['room_id']),
             ]));
+
 
             // 2. ĐƯA HÀM ĐỒNG BỘ VÀO ĐÂY (Trong transaction)
             // Truyền trực tiếp $newSeat->room_id vào
@@ -238,9 +278,11 @@ if (
             'row_label' => 'required|string|max:10',
             'seat_number' => 'required|integer|min:1',
             'seat_type' => 'required|in:STANDARD,VIP,COUPLE',
-            'price' => 'required|numeric|min:0',
-            'status' => 'required|in:' . implode(',', $this->allowedStatuses),
+            // Allow LOCKED on form input; controller sẽ normalize về BLOCKED
+            'status' => 'required|in:ACTIVE,LOCKED,BLOCKED,BROKEN',
         ]);
+
+
 
         if ($validated['seat_type'] === 'VIP' && strtoupper($validated['row_label']) !== 'F') {
             return back()
@@ -248,9 +290,11 @@ if (
                 ->withInput();
         }
 
-        if ($validated['status'] === 'BLOCKED') {
-            $validated['status'] = 'LOCKED';
+        // Chuẩn hóa: database dùng BLOCKED, form có thể gửi LOCKED
+        if ($validated['status'] === 'LOCKED') {
+            $validated['status'] = 'BLOCKED';
         }
+
 
         $room = $seat->room;
         if (!$room || $room->status !== 'ACTIVE') {
@@ -261,15 +305,8 @@ if (
 
         $rowLabel = strtoupper($validated['row_label']);
 
-        // Mỗi hàng chỉ được phép có ghế từ 1 -> 10
-        if ($validated['start'] > 10 || $validated['end'] > 10) {
-            return back()
-                ->withErrors([
-                    'error' => 'Số ghế chỉ được phép từ 1 đến 10 trong mỗi hàng.'
-                ])
-                ->withInput();
-        }
         $seatCode = $rowLabel . $validated['seat_number'];
+
 
         $isDuplicate = Seat::query()
             ->where('room_id', $seat->room_id)
@@ -288,7 +325,9 @@ if (
         $newData = array_merge($validated, [
             'row_label' => $rowLabel,
             'seat_code' => $seatCode,
+            'price' => $this->getSeatPriceFromTicketPrices($validated['seat_type'], $seat->room_id),
         ]);
+
 
         try {
             DB::transaction(function () use ($seat, $newData) {
@@ -325,7 +364,7 @@ if (
                 'start' => 'required|integer|between:1,10',
                 'end' => 'required|integer|between:1,10|gte:start',
                 'seat_type' => 'required|in:STANDARD,VIP,COUPLE',
-                'price' => 'required|numeric|min:0',
+
             ],
             [
                 'row_label.required' => 'Vui lòng nhập hàng ghế.',
@@ -414,14 +453,30 @@ if (
             DB::transaction(function () use ($validated, $rowLabel, &$created, &$skipped) {
                 for ($i = $validated['start']; $i <= $validated['end']; $i++) {
                     $seatCode = $rowLabel . $i;
-                    $seat = Seat::query()
+
+                    // Nếu đã tồn tại (dù soft-deleted hay không) thì coi như đã tạo/đã tồn tại.
+                    $seat = Seat::withTrashed()
                         ->where('room_id', $validated['room_id'])
                         ->where('row_label', $rowLabel)
                         ->where('seat_number', $i)
                         ->first();
 
+
                     if ($seat) {
                         $skipped[] = $seatCode;
+
+                        // Nếu ghế đang bị soft delete thì phục hồi luôn.
+                        if ($seat->trashed()) {
+                            $seat->restore();
+                            $seat->update([
+                                'seat_type' => $validated['seat_type'],
+                                'price' => $this->getSeatPriceFromTicketPrices($validated['seat_type'], $validated['room_id']),
+                                'status' => 'ACTIVE',
+                            ]);
+
+                            $created[] = $seat->seat_code;
+                        }
+
                         continue;
                     }
 
@@ -431,7 +486,7 @@ if (
                         'seat_number' => $i,
                         'seat_code' => $seatCode,
                         'seat_type' => $validated['seat_type'],
-                        'price' => $validated['price'],
+                        'price' => $this->getSeatPriceFromTicketPrices($validated['seat_type'], $validated['room_id']),
                         'status' => 'ACTIVE',
                     ]);
 
@@ -440,9 +495,10 @@ if (
             });
         } catch (\Throwable $e) {
             return back()
-                ->withErrors(['error' => 'Không thể tạo nhiều ghế. Vui lòng thử lại sau.'])
+                ->withErrors(['error' => 'Không thể tạo nhiều ghế. Lỗi: ' . $e->getMessage()])
                 ->withInput();
         }
+
 
         $this->ensureShowtimeSeatsForRoom($validated['room_id']);
 
@@ -479,15 +535,50 @@ if (
 
         foreach ($seatIds as $seatId) {
             $seat = Seat::withTrashed()->findOrFail($seatId);
-            if ($seat->showtimeSeats()->exists()) {
+
+            // Chỉ chặn nếu ghế thực sự đã được khách/suất chiếu sử dụng.
+            // Fix: trước đây chặn dựa trên quan hệ showtime (có thể tồn tại do sync), khiến admin tưởng bị 'thuộc suất'
+            // dù thực tế chưa có HELD/SOLD.
+            // Ta chỉ chặn khi seat có showtime-seat thuộc suất tương lai và state là SOLD/HELD (đã được dùng).
+            $hasActiveUsage = $seat->showtimeSeats()
+                ->whereHas('showtime', function ($q) {
+                    $q->where('start_time', '>', now());
+                })
+                ->whereIn('status', ['SOLD', 'HELD'])
+                ->exists();
+
+            if ($hasActiveUsage) {
                 $blocked[] = $seat->seat_code;
                 continue;
             }
+
+            // Fix thêm: khách đang "hold" theo realtime đang nằm trong Cache,
+            // trong khi showtime_seats.status có thể chưa kịp sync thành HELD.
+            // Nếu có cache seat_held_{showtime_id}_{showtime_seat_id} của user khác => chặn xóa.
+            $heldBySomeone = $seat->showtimeSeats()
+                ->whereHas('showtime', function ($q) {
+                    $q->where('start_time', '>', now());
+                })
+                ->get()
+                ->contains(function ($showtimeSeat) {
+                    $heldBy = \Illuminate\Support\Facades\Cache::get(
+                        'seat_held_' . $showtimeSeat->showtime_id . '_' . $showtimeSeat->id
+                    );
+                    return $heldBy && $heldBy != Auth::id();
+                });
+
+            if ($heldBySomeone) {
+                $blocked[] = $seat->seat_code;
+                continue;
+            }
+
+
 
             $seat->delete();
             $deleted[] = $seat->seat_code;
             $this->writeAuditLog('seat.delete_soft', $seat, ['status' => $seat->status], ['deleted' => true]);
         }
+
 
         if (!empty($blocked)) {
             return back()->withErrors([
@@ -507,6 +598,24 @@ if (
     $this->ensureAdminAccess();
 
     $seat = Seat::findOrFail($id);
+
+    // Fix: Nếu ghế đang bị khách khác HOLD (lưu trong cache seat_held_*), không cho admin khóa/mở.
+    $heldBySomeone = $seat->showtimeSeats()
+        ->whereHas('showtime', function ($q) {
+            $q->where('start_time', '>', now());
+        })
+        ->get()
+        ->contains(function ($showtimeSeat) {
+            $heldBy = \Illuminate\Support\Facades\Cache::get(
+                'seat_held_' . $showtimeSeat->showtime_id . '_' . $showtimeSeat->id
+            );
+            return $heldBy && $heldBy != Auth::id();
+        });
+
+    if ($heldBySomeone) {
+        return back()->withErrors(['error' => "Ghế {$seat->seat_code} đang được khách giữ (hold), không thể khóa/mở khóa lúc này."]);
+    }
+
 
     if ($seat->status === 'BROKEN') {
         return back()->withErrors([

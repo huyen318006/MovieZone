@@ -180,97 +180,99 @@
 
         <div class="col-12 mt-3">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <div>
-                        <h5 class="mb-0 fw-bold">Sơ đồ phòng chiếu</h5>
+                <div class="card-header bg-transparent">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0 fw-bold">Sơ đồ ghế</h5>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
+                                <i class="bi bi-trash3 me-1"></i> Xóa nhiều
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkCreateModal">
+                                <i class="bi bi-plus-square me-1"></i> Tạo nhiều
+                            </button>
+                        </div>
                     </div>
-                    <div class="d-flex gap-2 flex-wrap">
-                        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
-                            data-bs-target="#bulkDeleteModal">
-                            <i class="bi bi-trash3 me-1"></i> Xóa nhiều
-                        </button>
-                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
-                            data-bs-target="#bulkCreateModal">
-                            <i class="bi bi-plus-square me-1"></i> Tạo nhiều ghế
-                        </button>
+                    <div class="mt-2">
+                        <div class="legend-wrap mb-0">
+                            <span class="legend-item"><span class="dot" style="background:#3b82f6"></span> STANDARD</span>
+                            <span class="legend-item"><span class="dot" style="background:#eab308"></span> VIP</span>
+                            <span class="legend-item"><span class="dot" style="background:#ec4899"></span> COUPLE</span>
+                            <span class="legend-item"><span class="dot" style="background:#475569"></span> LOCKED</span>
+                            <span class="legend-item"><span class="dot" style="background:#ef4444"></span> BROKEN</span>
+                        </div>
                     </div>
                 </div>
-                <div class="card-body p-4">
-                    <div class="legend-wrap mb-3">
-                        <span class="legend-item"><span class="dot" style="background:#3b82f6"></span> STANDARD</span>
-                        <span class="legend-item"><span class="dot" style="background:#eab308"></span> VIP</span>
-                        <span class="legend-item"><span class="dot" style="background:#ec4899"></span> COUPLE</span>
-                        <span class="legend-item"><span class="dot" style="background:#475569"></span> LOCKED</span>
-                        <span class="legend-item"><span class="dot" style="background:#ef4444"></span> BROKEN</span>
-                    </div>
+
+                <div class="card-body p-3">
                     <div class="cinema-screen">MÀN HÌNH</div>
-                    <div class="map-wrapper">
+
+                    <div class="map-wrapper seat-grid">
                         @foreach ($seatsGrouped as $row => $seats)
                             <div class="seat-row">
                                 <div class="row-label">{{ $row }}</div>
-                                @foreach ($seats as $seat)
-                                    <div class="seat-wrapper" tabindex="0">
-                                        <div class="seat-select">
-                                            <input type="checkbox" class="seat-checkbox form-check-input"
-                                                name="seat_ids[]" value="{{ $seat->id }}" form="bulkDeleteForm"
-                                                aria-label="Chọn ghế {{ $seat->seat_code }}">
-                                        </div>
-                                        <div class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}"
-                                            title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
-                                            {{ $seat->seat_number }}
-                                        </div>
-                                        <div class="seat-actions">
-                                            <a href="{{ route('admin.seats.edit', $seat->id) }}" title="Sửa ghế">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                            <form action="{{ route('admin.seats.toggle_lock', $seat->id) }}"
-                                                method="POST" class="d-inline">
-                                                @csrf
-                                                <button type="submit"
-                                                    title="{{ in_array($seat->status, ['LOCKED', 'BLOCKED']) ? 'Mở khóa' : 'Khóa ghế' }}">
-                                                    <i
-                                                        class="bi {{ in_array($seat->status, ['LOCKED', 'BLOCKED']) ? 'bi-unlock-fill' : 'bi-lock-fill' }}"></i>
-                                                </button>
-                                            </form>
-                                            <button type="button" title="Xóa ghế" data-bs-toggle="modal"
-                                                data-bs-target="#deleteSeatModal{{ $seat->id }}">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
+                                <div class="row-seats">
+                                    @foreach ($seats as $seat)
+                                        <div class="seat-wrapper" tabindex="0">
+                                            <div class="seat-select">
+                                                <input type="checkbox" class="seat-checkbox form-check-input"
+                                                       name="seat_ids[]" value="{{ $seat->id }}" form="bulkDeleteForm"
+                                                       aria-label="Chọn ghế {{ $seat->seat_code }}">
+                                            </div>
 
-                                    <div class="modal fade" id="deleteSeatModal{{ $seat->id }}" tabindex="-1">
-                                        <div class="modal-dialog modal-dialog-centered">
-                                            <div class="modal-content">
-                                                <div class="modal-header">
-                                                    <h5 class="modal-title">Xác nhận xóa ghế</h5>
-                                                    <button type="button" class="btn-close"
-                                                        data-bs-dismiss="modal"></button>
+                                            <a href="{{ route('admin.seats.edit', $seat->id) }}"
+                                               class="seat-link"
+                                               title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
+                                                <div class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}">
+                                                    {{ $seat->seat_number }}
                                                 </div>
-                                                <div class="modal-body">
-                                                    Bạn có chắc chắn muốn xóa mềm ghế
-                                                    <strong>{{ $seat->seat_code }}</strong> không?
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary"
-                                                        data-bs-dismiss="modal">Hủy</button>
-                                                    <form action="{{ route('admin.seats.destroy', $seat->id) }}"
-                                                        method="POST">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-danger">Xác nhận</button>
-                                                    </form>
+                                            </a>
+
+                                            <div class="seat-actions">
+                                                <form action="{{ route('admin.seats.toggle_lock', $seat->id) }}" method="POST" class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="icon-btn"
+                                                            title="{{ in_array($seat->status, ['LOCKED', 'BLOCKED']) ? 'Mở khóa' : 'Khóa ghế' }}">
+                                                        <i class="bi {{ in_array($seat->status, ['LOCKED', 'BLOCKED']) ? 'bi-unlock-fill' : 'bi-lock-fill' }}"></i>
+                                                    </button>
+                                                </form>
+
+                                                <button type="button" class="icon-btn"
+                                                        title="Xóa ghế" data-bs-toggle="modal" data-bs-target="#deleteSeatModal{{ $seat->id }}">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="modal fade" id="deleteSeatModal{{ $seat->id }}" tabindex="-1">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Xác nhận xóa ghế</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        Bạn có chắc chắn muốn xóa mềm ghế <strong>{{ $seat->seat_code }}</strong> không?
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                                        <form action="{{ route('admin.seats.destroy', $seat->id) }}" method="POST">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-danger">Xác nhận</button>
+                                                        </form>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                @endforeach
+                                    @endforeach
+                                </div>
                             </div>
                         @endforeach
                     </div>
                 </div>
             </div>
         </div>
+
 
         <div class="modal fade" id="bulkDeleteModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
@@ -327,11 +329,7 @@
                                         <option value="COUPLE">COUPLE</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Giá</label>
-                                    <input type="number" name="price" class="form-control" min="0"
-                                        value="90000" required>
-                                </div>
+
                             </div>
                             <div class="mt-3 d-flex justify-content-end gap-2">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
@@ -613,5 +611,35 @@
         height: 14px;
         accent-color: #2563eb;
         cursor: pointer;
+    }
+
+    .seat-link {
+        text-decoration: none;
+        display: inline-flex;
+    }
+
+    .row-seats {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .icon-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: #334155;
+        cursor: pointer;
+        transition: background-color .15s ease;
+    }
+
+    .icon-btn:hover {
+        background: #eef6ff;
     }
 </style>
