@@ -6,11 +6,7 @@
     @php
         $statusMap = [
             'OPEN' => ['label' => 'Đang mở bán', 'class' => 'text-bg-success'],
-            'OPENING_BOOKING' => ['label' => 'Đang mở bán', 'class' => 'text-bg-success'],
-            'SCHEDULED' => ['label' => 'Đã lên lịch', 'class' => 'text-bg-primary'],
-            'FULL' => ['label' => 'Hết ghế', 'class' => 'text-bg-warning'],
             'CLOSED' => ['label' => 'Đã đóng', 'class' => 'text-bg-secondary'],
-            'FINISHED' => ['label' => 'Đã kết thúc', 'class' => 'text-bg-dark'],
             'CANCELLED' => ['label' => 'Đã hủy', 'class' => 'text-bg-danger'],
         ];
     @endphp
@@ -97,9 +93,6 @@
                 <div class="fw-semibold">Bộ lọc suất chiếu</div>
                 <small class="text-muted">Lọc theo phim, phòng, ngày chiếu và trạng thái.</small>
             </div>
-            <div class="text-muted small">
-                Rạp đang quản lý: 1 rạp duy nhất
-            </div>
         </div>
 
         <div class="card-body">
@@ -137,12 +130,8 @@
                     <label class="form-label">Trạng thái</label>
                     <select name="status" class="form-select">
                         <option value="">Tất cả trạng thái</option>
-                        <option value="SCHEDULED" {{ request('status') === 'SCHEDULED' ? 'selected' : '' }}>Đã lên lịch</option>
                         <option value="OPEN" {{ request('status') === 'OPEN' ? 'selected' : '' }}>Đang mở bán</option>
-                        <option value="OPENING_BOOKING" {{ request('status') === 'OPENING_BOOKING' ? 'selected' : '' }}>Đang mở bán</option>
-                        <option value="FULL" {{ request('status') === 'FULL' ? 'selected' : '' }}>Hết ghế</option>
                         <option value="CLOSED" {{ request('status') === 'CLOSED' ? 'selected' : '' }}>Đã đóng</option>
-                        <option value="FINISHED" {{ request('status') === 'FINISHED' ? 'selected' : '' }}>Đã kết thúc</option>
                         <option value="CANCELLED" {{ request('status') === 'CANCELLED' ? 'selected' : '' }}>Đã hủy</option>
                     </select>
                 </div>
