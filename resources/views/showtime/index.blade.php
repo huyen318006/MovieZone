@@ -30,14 +30,14 @@
                 @endforeach
             </select>
 
-            <select id="showtime-cinema" name="cinema">
+            {{-- <select id="showtime-cinema" name="cinema">
                 <option value="">Tất cả rạp</option>
                 @foreach($cinemas as $cinema)
                     <option value="{{ $cinema->id }}" @selected(($filters['cinema'] ?? '') == $cinema->id)>
                         {{ $cinema->name }} - {{ $cinema->city }}
                     </option>
                 @endforeach
-            </select>
+            </select> --}}
 
             <select id="showtime-date" name="date">
                 <option value="">Ngày gần nhất</option>
@@ -58,21 +58,6 @@
                 <a id="showtime-filter-reset" href="{{ route('showtimes') }}">Xóa lọc</a>
             </div>
         </form>
-    </section>
-
-    <section class="showtime-context" data-aos="fade-up">
-        <div>
-            <strong>Phim</strong>
-            <span>{{ $selectedMovie?->title ?: 'Tất cả phim' }}</span>
-        </div>
-        <div>
-            <strong>Rạp</strong>
-            <span>{{ $selectedCinema?->name ?: 'Tất cả rạp' }}</span>
-        </div>
-        <div>
-            <strong>Ngày</strong>
-            <span>{{ $selectedDate ? \Carbon\Carbon::parse($selectedDate)->format('d/m/Y') : 'Ngày gần nhất' }}</span>
-        </div>
     </section>
 
     <section class="showtime-results" data-aos="fade-up">
@@ -113,7 +98,6 @@
                             </div>
 
                             <div class="showtime-card-meta">
-                                <span><i class="bi bi-building"></i>{{ $showtime->cinema?->name ?: 'Rạp đang cập nhật' }}</span>
                                 <span><i class="bi bi-door-open"></i>{{ $showtime->room?->name ?: 'Phòng đang cập nhật' }}</span>
                                 <span><i class="bi bi-clock"></i>{{ $startTime->format('H:i') }} - {{ $endTime->format('H:i') }}</span>
                                 <span><i class="bi bi-badge-3d"></i>{{ $showtime->format }} • {{ $showtime->language_type }}</span>

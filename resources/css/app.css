@@ -563,7 +563,6 @@ body {
 ========================== */
 
 .footer {
-    margin-top: 80px;
     padding: 60px;
     text-align: center;
     background: #111827;
@@ -2676,7 +2675,7 @@ RESPONSIVE
 .movie-list-hero {
     position: relative;
     min-height: 430px;
-    padding: 150px 80px 80px;
+    padding: 150px 80px 30px;
     display: flex;
     align-items: center;
     overflow: hidden;
@@ -2705,7 +2704,7 @@ RESPONSIVE
 
 .movie-list-hero__content {
     position: relative;
-    max-width: 760px;
+    max-width: 800px;
     z-index: 1;
 }
 
@@ -2718,7 +2717,7 @@ RESPONSIVE
 }
 
 .movie-list-hero p {
-    max-width: 650px;
+    max-width: 850px !important;
     color: var(--text-soft);
     font-size: 19px;
     line-height: 1.8;
@@ -2731,7 +2730,7 @@ RESPONSIVE
 
 .movie-filter-form {
     display: grid;
-    grid-template-columns: minmax(260px, 1.5fr) repeat(5, minmax(150px, 1fr));
+    grid-template-columns: minmax(260px, 1.5fr) repeat(4, minmax(150px, 1fr));
     gap: 14px;
     padding: 22px;
     margin-top: -36px;
@@ -3363,7 +3362,7 @@ RESPONSIVE
 
 .showtime-filter-form {
     display: grid;
-    grid-template-columns: repeat(3, minmax(180px, 1fr)) auto;
+    grid-template-columns: repeat(2, minmax(180px, 1fr)) auto;
     gap: 14px;
     align-items: center;
 }

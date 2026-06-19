@@ -58,14 +58,6 @@
                 @endforeach
             </select>
 
-            <select id="movie-cinema" name="cinema">
-                <option value="">Tất cả rạp</option>
-                @foreach($cinemas as $cinema)
-                    <option value="{{ $cinema->id }}" @selected(($filters['cinema'] ?? '') == $cinema->id)>
-                        {{ $cinema->name }}
-                    </option>
-                @endforeach
-            </select>
 
             <select id="movie-status" name="status">
                 <option value="">Mọi trạng thái</option>

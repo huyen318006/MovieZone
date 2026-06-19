@@ -23,10 +23,7 @@
 
                     <h3>{{ $showtime->movie->title }}</h3>
 
-                    <div class="info-item">
-                        <i class="fa-solid fa-building"></i>
-                        {{ $showtime->cinema->name }}
-                    </div>
+                    
 
                     <div class="info-item">
                         <i class="fa-solid fa-door-open"></i>
@@ -183,7 +180,7 @@
 
 .confirm-container {
     max-width: 1100px;
-    margin: auto;
+    margin: 50px auto;
     background: #111827;
     border-radius: 16px;
     overflow: hidden;
@@ -355,8 +352,6 @@
 .payment-method-box h4 i { color: #3b82f6; }
 
 .payment-options-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 15px;
 }
 
@@ -367,12 +362,14 @@
 .option-content {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
     padding: 16px;
     background: #111827;
     border: 2px solid #374151;
     border-radius: 10px;
     transition: all 0.3s ease;
+    text-align: center
 }
 
 .payment-option input[type="radio"]:checked + .option-content {
