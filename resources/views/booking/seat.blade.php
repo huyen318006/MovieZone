@@ -11,7 +11,6 @@
 
             <div class="booking-summary">
                 <p><i class="fa-solid fa-film"></i> Phim: {{ $showtime->movie->title }}</p>
-                <p><i class="fa-solid fa-building"></i> Rạp: {{ $showtime->cinema->name }}</p>
                 <p><i class="fa-solid fa-door-open"></i> Phòng chiếu: {{ $showtime->room->name }}</p>
                 <p><i class="fa-solid fa-clock"></i> Khung giờ: {{ \Carbon\Carbon::parse($showtime->start_time)->format('H:i - d/m/Y') }}</p>
             </div>

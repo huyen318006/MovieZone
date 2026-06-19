@@ -91,7 +91,6 @@
                         <span class="showtime-date">{{ $showtime->start_time ? \Carbon\Carbon::parse($showtime->start_time)->format('d/m/Y') : 'Đang cập nhật' }}</span>
                         <strong>{{ $showtime->start_time ? \Carbon\Carbon::parse($showtime->start_time)->format('H:i') : '--:--' }}</strong>
                     </div>
-                    <p>{{ $showtime->cinema?->name ?: 'Rạp đang cập nhật' }}</p>
                     <span>{{ $showtime->room?->name ?: 'Phòng đang cập nhật' }} • {{ $showtime->format }} • {{ $showtime->language_type }}</span>
                     <a href="{{ route('booking.seat', ['showtime_id' => $showtime->id]) }}">Chọn suất</a>
                 </article>

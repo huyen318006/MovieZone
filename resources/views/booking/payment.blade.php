@@ -23,10 +23,6 @@
                 <span class="detail-value">{{ $order->getBookingInfo('movie_title') }}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label"><i class="fa-solid fa-building"></i> Rạp</span>
-                <span class="detail-value">{{ $order->getBookingInfo('cinema') }}</span>
-            </div>
-            <div class="detail-row">
                 <span class="detail-label"><i class="fa-solid fa-door-open"></i> Phòng</span>
                 <span class="detail-value">{{ $order->getBookingInfo('room') }}</span>
             </div>

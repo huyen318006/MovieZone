@@ -23,10 +23,7 @@
 
                     <h3>{{ $showtime->movie->title }}</h3>
 
-                    <div class="info-item">
-                        <i class="fa-solid fa-building"></i>
-                        {{ $showtime->cinema->name }}
-                    </div>
+                    
 
                     <div class="info-item">
                         <i class="fa-solid fa-door-open"></i>
@@ -131,11 +128,6 @@
 
             <div class="payment-method-box">
 
-                <h4>
-                    <i class="fa-solid fa-credit-card"></i>
-                    Chọn phương thức thanh toán
-                </h4>
-
                 <div class="payment-options-grid">
                     <label class="payment-option">
                         <input type="radio"
@@ -148,15 +140,6 @@
                         </div>
                     </label>
 
-                    <label class="payment-option">
-                        <input type="radio"
-                               name="payment_method"
-                               value="CASH">
-                        <div class="option-content">
-                            <span class="icon">💵</span>
-                            <span class="text">Thanh toán tại quầy</span>
-                        </div>
-                    </label>
                 </div>
 
             </div>
@@ -193,7 +176,7 @@
 
 .confirm-container {
     max-width: 1100px;
-    margin: auto;
+    margin: 50px auto;
     background: #111827;
     border-radius: 16px;
     overflow: hidden;
@@ -365,8 +348,6 @@
 .payment-method-box h4 i { color: #3b82f6; }
 
 .payment-options-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 15px;
 }
 
@@ -377,12 +358,14 @@
 .option-content {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
     padding: 16px;
     background: #111827;
     border: 2px solid #374151;
     border-radius: 10px;
     transition: all 0.3s ease;
+    text-align: center
 }
 
 .payment-option input[type="radio"]:checked + .option-content {
