@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Cinema;
 use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\Movie;
@@ -18,6 +19,71 @@ use Illuminate\Support\Facades\DB;
 
 class ShowtimeManageController extends Controller
 {
+    private const MIN_GAP_MINUTES = 15;
+
+    private function currentCinema(): Cinema
+    {
+        return Cinema::query()
+            ->where('status', 'ACTIVE')
+            ->orderBy('id')
+            ->firstOrFail();
+    }
+
+    private function visibleMovies()
+    {
+        return Movie::query()
+            ->where('status', '!=', 'HIDDEN')
+            ->orderBy('title');
+    }
+
+    private function activeRoomsForCurrentCinema()
+    {
+        return Room::query()
+            ->where('cinema_id', $this->currentCinema()->id)
+            ->where('status', 'ACTIVE')
+            ->orderBy('name');
+    }
+
+    private function hasScheduleConflict(Room $room, Carbon $startTime, Carbon $endTime, ?int $ignoreShowtimeId = null): bool
+    {
+        return Showtime::query()
+            ->where('room_id', $room->id)
+            ->where('status', '!=', 'CANCELLED')
+            ->when($ignoreShowtimeId, function ($query) use ($ignoreShowtimeId) {
+                $query->where('id', '!=', $ignoreShowtimeId);
+            })
+            ->where(function ($query) use ($startTime, $endTime) {
+                $query->where('start_time', '<', $endTime->copy()->addMinutes(self::MIN_GAP_MINUTES))
+                    ->where('end_time', '>', $startTime->copy()->subMinutes(self::MIN_GAP_MINUTES));
+            })
+            ->exists();
+    }
+
+    private function isWithinMovieReleaseWindow(Movie $movie, Carbon $startTime): bool
+    {
+        $showDate = $startTime->toDateString();
+
+        if ($movie->release_date && $showDate < Carbon::parse($movie->release_date)->toDateString()) {
+            return false;
+        }
+
+        if ($movie->end_date && $showDate > Carbon::parse($movie->end_date)->toDateString()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function loadShowtime(int $id): Showtime
+    {
+        $cinemaId = $this->currentCinema()->id;
+
+        return Showtime::query()
+            ->with(['movie', 'room', 'cinema', 'bookings'])
+            ->where('cinema_id', $cinemaId)
+            ->findOrFail($id);
+    }
+
     public function listShowtime(){
         /*- Chức năng hiển thị danh sách suất chiếu trong hệ thống
           - Cho phép Admin tìm kiếm và lọc suất chiếu
@@ -29,13 +95,15 @@ class ShowtimeManageController extends Controller
         // Lấy dữ liệu filter từ request
         $filters = request()->only(['movie', 'room', 'date', 'status']);
         // Danh sách phim để hiển thị combo bộ lọc
-        $movies = Movie::orderBy('title')->get();
+        $cinema = $this->currentCinema();
+        $movies = $this->visibleMovies()->get();
         //Danh sách phòng chiếu hiển thị theo bộ lọc
-        $rooms = Room::orderBy('name')->get();
+        $rooms = $this->activeRoomsForCurrentCinema()->get();
         //truy vấn danh sách suất chiếu 
         $showtimes = Showtime::query()
             //  Eager Loading tránh N+1 Query
             ->with(['movie', 'room'])
+            ->where('cinema_id', $cinema->id)
             // Lọc theo phim
             ->when($filters['movie'] ?? null, function ($query, $movieId) {
                 $query->where('movie_id', $movieId);
@@ -53,7 +121,7 @@ class ShowtimeManageController extends Controller
                 $query->where('status', $status);
             })
             //suất chiếu mới nhất hiên hị đầu
-            ->orderBy('start_time')
+            ->orderBy('start_time', 'desc')
             // phân trang 10 suất chiếu trên 1 trang
             ->paginate(10);
         //Trả dữ liêu về giao diện quản lí suất chiếu
@@ -72,13 +140,9 @@ class ShowtimeManageController extends Controller
          * Kết quả trả về: form thêm suất chiếu với danh sách phim và phòng chiếu
          */
         // Danh sách phim dang hoạt đọng
-        $movies = Movie::where('status', '!=', 'HIDDEN')
-            ->orderBy('title')
-            ->get();
+        $movies = $this->visibleMovies()->get();
         // Danh ssach phong dang hoạt động
-        $rooms = Room::where('status', 'ACTIVE')
-            ->orderBy('title')
-            ->get();
+        $rooms = $this->activeRoomsForCurrentCinema()->get();
         return view('admin.showtime.add', compact('movies','rooms'));
     }
 
@@ -95,118 +159,114 @@ class ShowtimeManageController extends Controller
             8: Thông báo thành công
          */
         $request->validate([
-        'movie_id' => ['required', 'exists:movies,id'],
-        'room_id' => ['required', 'exists:rooms,id'],
-        'start_time' => ['required', 'date'],
-        'format' => ['required'],
-        'language_type' => ['required'],
-    ]);
-
-    // Lấy phim
-    $movie = Movie::findOrFail($request->movie_id);
-
-    // Kiểm tra phim bị ẩn
-    if ($movie->status === 'HIDDEN') {
-        return back()
-            ->withInput()
-            ->with('error', 'Phim hiện không khả dụng.');
-    }
-
-    // Lấy phòng
-    $room = Room::findOrFail($request->room_id);
-
-    // Kiểm tra phòng hoạt động
-    if ($room->status !== 'ACTIVE') {
-        return back()
-            ->withInput()
-            ->with('error', 'Phòng chiếu không hoạt động.');
-    }
-
-    // Thời gian bắt đầu
-    // Carbon là thư viện xử lí ngày giờ của laravel
-    $startTime = Carbon::parse($request->start_time);
-
-    // Không cho tạo suất chiếu trong quá khứ
-    if ($startTime->lt(now())) {
-        return back()
-            ->withInput()
-            ->with('error', 'Thời gian bắt đầu phải lớn hơn thời điểm hiện tại.');
-    }
-
-    // Tính thời gian kết thúc
-    $endTime = $startTime->copy()->addMinutes($movie->duration_minutes);
-
-    /*
-     BR01: Kiểm tra trùng lịch phòng chiếu
-     Điều kiện trùng:
-     start mới < end cũ
-     end mới > start cũ
-    */
-
-    $conflict = Showtime::where('room_id', $room->id)
-        ->where('status', '!=', 'CANCELLED')
-        ->where(function ($query) use ($startTime, $endTime) {
-            $query->where(
-                'start_time',
-                '<',
-                $endTime
-            )->where(
-                'end_time',
-                '>',
-                $startTime
-            );
-        })
-        ->exists();
-    if ($conflict) {
-        return back()
-            ->withInput()
-            ->with(
-                'error',
-                'Phòng chiếu đã có suất chiếu trong khoảng thời gian này.'
-            );
-    }
-    DB::beginTransaction(); // Dùng để giúp dữ liệu không bị chạy lệch, Tất cả SQL chạy thành công ->lưu hết, nếu 1 câu lệnh lỗi thì rollback lại.
-    try {
-        // Tạo suất chiếu
-        $showtime = Showtime::create([
-            'movie_id' => $movie->id,
-            'cinema_id' => $room->cinema_id,
-            'room_id' => $room->id,
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'format' => $request->format,
-            'language_type' => $request->language_type,
-            'status' => 'OPEN',
+            'movie_id' => ['required', 'exists:movies,id'],
+            'room_id' => ['required', 'exists:rooms,id'],
+            'start_time' => ['required', 'date'],
+            'format' => ['required', 'in:2D,3D,IMAX'],
+            'language_type' => ['required', 'string', 'max:255'],
         ]);
 
-        /*
-        BR03: Tạo ghế cho suất chiếu
-        */
-        $seats = Seat::where('room_id', $room->id)->get();
-        foreach ($seats as $seat) {
-            ShowtimeSeat::create([
-                'showtime_id' => $showtime->id,
-                'seat_id' => $seat->id,
-                'price' => $seat->price,
-                'status' => 'AVAILABLE',
-            ]);
+        $cinema = $this->currentCinema();
+
+        // Lấy phim
+        $movie = Movie::query()->where('status', '!=', 'HIDDEN')->findOrFail($request->movie_id);
+
+        // Lấy phòng trong đúng rạp duy nhất của hệ thống
+        $room = Room::query()
+            ->where('cinema_id', $cinema->id)
+            ->where('status', 'ACTIVE')
+            ->findOrFail($request->room_id);
+
+        $startTime = Carbon::parse($request->start_time);
+        $now = now();
+
+        if ($startTime->lessThanOrEqualTo($now)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Thời gian bắt đầu phải lớn hơn thời điểm hiện tại.');
         }
-        DB::commit();
-        return redirect()
-            ->route('admin.showtime')
-            ->with(
-                'success',
-                'Tạo suất chiếu thành công.'
-            );
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return back()
-            ->withInput()
-            ->with(
-                'error',
-                'Có lỗi xảy ra khi tạo suất chiếu.'
-            );
-    }
+
+        if ((int) $movie->duration_minutes <= 0) {
+            return back()
+                ->withInput()
+                ->with('error', 'Phim chưa có thời lượng hợp lệ.');
+        }
+
+        if (! $this->isWithinMovieReleaseWindow($movie, $startTime)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Ngày chiếu không nằm trong thời gian phát hành của phim.');
+        }
+
+        $endTime = $startTime->copy()->addMinutes((int) $movie->duration_minutes);
+
+        if ($endTime->lessThanOrEqualTo($startTime)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Giờ kết thúc phải lớn hơn giờ bắt đầu.');
+        }
+
+        if ($this->hasScheduleConflict($room, $startTime, $endTime)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Phòng chiếu đã có suất chiếu trong khung giờ này.');
+        }
+
+        $seats = Seat::query()
+            ->where('room_id', $room->id)
+            ->where('status', 'ACTIVE')
+            ->get();
+
+        if ($seats->isEmpty()) {
+            return back()
+                ->withInput()
+                ->with('error', 'Phòng chiếu chưa được cấu hình sơ đồ ghế.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $showtime = Showtime::create([
+                'movie_id' => $movie->id,
+                'cinema_id' => $cinema->id,
+                'room_id' => $room->id,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'format' => $request->format,
+                'language_type' => $request->language_type,
+                'status' => 'OPEN',
+            ]);
+
+            foreach ($seats as $seat) {
+                ShowtimeSeat::create([
+                    'showtime_id' => $showtime->id,
+                    'seat_id' => $seat->id,
+                    'price' => $seat->price,
+                    'status' => 'AVAILABLE',
+                ]);
+            }
+
+            AuditLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'CREATE_SHOWTIME',
+                'entity_name' => 'showtime',
+                'entity_id' => (string) $showtime->id,
+                'old_value' => null,
+                'new_value' => json_encode($showtime->fresh(['movie', 'room', 'cinema'])->toArray()),
+                'created_at' => now(),
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('admin.showtime')
+                ->with('success', 'Tạo suất chiếu thành công.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return back()
+                ->withInput()
+                ->with('error', 'Có lỗi xảy ra khi tạo suất chiếu.');
+        }
     }
 
     public function viewUpdate($id){
@@ -223,15 +283,11 @@ class ShowtimeManageController extends Controller
          */
 
         // Lấy suất chiếu
-        $showtime = Showtime::with(['movie','room'])->findOrFail($id);
+        $showtime = $this->loadShowtime($id);
         // Danh sách phim
-        $movies = Movie::where('status','!=','HIDDEN')
-            ->orderBy('title')
-            ->get();
+        $movies = $this->visibleMovies()->get();
         // Danh sách phòng
-        $rooms = Room::where('status','ACTIVE')
-            ->orderBy('name')
-            ->get();
+        $rooms = $this->activeRoomsForCurrentCinema()->get();
 
             return view('admin.showtime.update',compact('showtime','movies','rooms')
         );
@@ -254,25 +310,22 @@ class ShowtimeManageController extends Controller
         */
 
         // Lấy suất chiếu
-        $showtime = Showtime::findOrFail($id);
-        // BR06:Suất chiếu đã bắt đầu không được chỉnh sửa
-        if ($showtime->start_time <= now()) {
-
-            return redirect()
-                ->route('admin.showtime')
-                ->with(
-                    'error',
-                    'Suất chiếu đã bắt đầu và không thể chỉnh sửa.'
-                );
-        }
         // Validate dữ liệu
         $request->validate([
             'movie_id' => ['required', 'exists:movies,id'],
             'room_id' => ['required', 'exists:rooms,id'],
             'start_time' => ['required', 'date'],
-            'format' => ['required'],
-            'language_type' => ['required'],
+            'format' => ['required', 'in:2D,3D,IMAX'],
+            'language_type' => ['required', 'string', 'max:255'],
         ]);
+
+        $cinema = $this->currentCinema();
+
+        $showtime = Showtime::query()
+            ->with(['bookings'])
+            ->where('cinema_id', $cinema->id)
+            ->findOrFail($id);
+
         // Lấy phim
         $movie = Movie::findOrFail(
             $request->movie_id
@@ -287,39 +340,60 @@ class ShowtimeManageController extends Controller
                 );
         }
         // Lấy phòng
-        $room = Room::findOrFail(
-            $request->room_id
-        );
-        // Kiểm tra phòng hoạt động
-        if ($room->status !== 'ACTIVE') {
+        $room = Room::query()
+            ->where('cinema_id', $cinema->id)
+            ->where('status', 'ACTIVE')
+            ->findOrFail($request->room_id);
+
+        if ((int) $movie->duration_minutes <= 0) {
             return back()
                 ->withInput()
                 ->with(
                     'error',
-                    'Phòng chiếu không hoạt động.'
+                    'Phim chưa có thời lượng hợp lệ.'
                 );
         }
-        // Thời gian bắt đầu mới
-        $startTime = Carbon::parse(
-            $request->start_time
-        );
-        // Tính giờ kết thúc
-        $endTime = $startTime
-            ->copy()
-            ->addMinutes(
-                $movie->duration_minutes
-            );
 
-        //E1: Kiểm tra trùng lịch
-        $conflict = Showtime::where('room_id', $room->id)
-            ->where('id','!=', $showtime->id)
-            ->where('status','!=', 'CANCELLED')
-            ->where(function ($query) use ($startTime,$endTime)
-            {
-                $query->where('start_time','<',$endTime)
-                    ->where('end_time','>',$startTime);
-            })
-            ->exists();
+        $startTime = Carbon::parse($request->start_time);
+
+        if ($startTime->lessThanOrEqualTo(now())) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Thời gian bắt đầu phải lớn hơn thời điểm hiện tại.'
+                );
+        }
+
+        if (! $this->isWithinMovieReleaseWindow($movie, $startTime)) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Ngày chiếu không nằm trong thời gian phát hành của phim.'
+                );
+        }
+
+        $endTime = $startTime->copy()->addMinutes((int) $movie->duration_minutes);
+
+        $criticalFieldsChanged = $showtime->movie_id != $movie->id
+            || $showtime->room_id != $room->id
+            || ! $showtime->start_time->equalTo($startTime)
+            || ! $showtime->end_time->equalTo($endTime);
+
+        if ($showtime->bookings->count() > 0 && $criticalFieldsChanged) {
+            return back()
+                ->withInput()
+                ->with('error', 'Suất chiếu đã có booking nên không thể đổi phim, phòng hoặc thời gian.');
+        }
+
+        if ($showtime->start_time->lessThanOrEqualTo(now()) && $criticalFieldsChanged) {
+            return back()
+                ->withInput()
+                ->with('error', 'Suất chiếu đã bắt đầu nên không thể đổi phim, phòng hoặc thời gian.');
+        }
+
+        $conflict = $this->hasScheduleConflict($room, $startTime, $endTime, $showtime->id);
 
         if ($conflict) {
             return back()
@@ -330,34 +404,59 @@ class ShowtimeManageController extends Controller
                 );
         }
 
-        // Cập nhật dữ liệu
-        $showtime->update([
-            'movie_id' => $movie->id,
-            'cinema_id' => $room->cinema_id,
-            'room_id' => $room->id,
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'format' => $request->format,
-            'language_type' => $request->language_type,
-        ]);
+        DB::beginTransaction();
 
-        return redirect()
-            ->route('admin.showtime')
-            ->with(
-                'success',
-                'Cập nhật suất chiếu thành công.'
-            );
+        try {
+            $before = $showtime->toArray();
+
+            $showtime->update([
+                'movie_id' => $movie->id,
+                'cinema_id' => $cinema->id,
+                'room_id' => $room->id,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'format' => $request->format,
+                'language_type' => $request->language_type,
+            ]);
+
+            AuditLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'UPDATE_SHOWTIME',
+                'entity_name' => 'showtime',
+                'entity_id' => (string) $showtime->id,
+                'old_value' => json_encode($before),
+                'new_value' => json_encode($showtime->fresh(['movie', 'room', 'cinema'])->toArray()),
+                'created_at' => now(),
+            ]);
+
+            DB::commit();
+
+            return redirect()
+                ->route('admin.showtime')
+                ->with(
+                    'success',
+                    'Cập nhật suất chiếu thành công.'
+                );
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return back()
+                ->withInput()
+                ->with('error', 'Có lỗi xảy ra khi cập nhật suất chiếu.');
+        }
     }
 
-    public function detail($id){}
+    public function detail($id)
+    {
+        $showtime = $this->loadShowtime($id);
+
+        return view('admin.showtime.detail', compact('showtime'));
+    }
 
     public function confirmCancel($id)
     {
         // Hiển thị màn hình xác nhận hủy suất chiếu
-        $showtime = Showtime::with([
-            'movie',
-            'room'
-        ])->findOrFail($id);
+        $showtime = $this->loadShowtime($id);
 
         $bookingCount = Booking::where(
             'showtime_id',
@@ -382,16 +481,14 @@ class ShowtimeManageController extends Controller
         DB::beginTransaction();
         try {
             // lock để tránh 2 admin cancel cùng lúc
-            $showtime = Showtime::with(['bookings'])
+            $showtime = Showtime::query()
+                ->with(['bookings', 'movie', 'room', 'cinema'])
+                ->where('cinema_id', $this->currentCinema()->id)
                 ->lockForUpdate()
                 ->findOrFail($id);
             $before = $showtime->toArray();
-            // BR11: không cho hủy nếu đã kết thúc
-            if ($showtime->status === 'FINISHED') {
-                return back()->with('error', 'Suất chiếu đã kết thúc, không thể hủy.');
-            }
-            // BR11: không cho hủy nếu đã bắt đầu
-            if ($showtime->start_time <= now()) {
+            // BR11: không cho hủy nếu đã bắt đầu hoặc đã kết thúc
+            if ($showtime->start_time->lessThanOrEqualTo(now()) || $showtime->end_time->lessThanOrEqualTo(now())) {
                 return back()->with('error', 'Suất chiếu đã bắt đầu, không thể hủy.');
             }
             // BR10: cảnh báo nếu đã có booking
@@ -412,6 +509,7 @@ class ShowtimeManageController extends Controller
                 'entity_id' => $showtime->id,
                 'old_value' => json_encode($before),
                 'new_value' => json_encode($after),
+                'created_at' => now(),
             ]);
             DB::commit();
             return redirect()
@@ -429,5 +527,30 @@ class ShowtimeManageController extends Controller
         }
     }
 
-    public function checkConflict(Request $request){}
+    public function checkConflict(Request $request)
+    {
+        $request->validate([
+            'room_id' => ['required', 'exists:rooms,id'],
+            'movie_id' => ['required', 'exists:movies,id'],
+            'start_time' => ['required', 'date'],
+            'showtime_id' => ['nullable', 'integer', 'exists:showtimes,id'],
+        ]);
+
+        $cinema = $this->currentCinema();
+
+        $movie = Movie::query()->where('status', '!=', 'HIDDEN')->findOrFail($request->movie_id);
+        $room = Room::query()
+            ->where('cinema_id', $cinema->id)
+            ->where('status', 'ACTIVE')
+            ->findOrFail($request->room_id);
+
+        $startTime = Carbon::parse($request->start_time);
+        $endTime = $startTime->copy()->addMinutes((int) $movie->duration_minutes);
+        $conflict = $this->hasScheduleConflict($room, $startTime, $endTime, $request->showtime_id);
+
+        return response()->json([
+            'conflict' => $conflict,
+            'message' => $conflict ? 'Phòng chiếu đã có suất chiếu trong khung giờ này.' : 'OK',
+        ]);
+    }
 }
