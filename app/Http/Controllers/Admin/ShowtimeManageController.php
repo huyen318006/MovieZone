@@ -467,65 +467,83 @@ class ShowtimeManageController extends Controller
         );
     }
     public function cancel(Request $request, $id)
-    {
-        /*
-        UC-A2: Hủy suất chiếu
-        BR05: bắt buộc lý do
-        BR07: phải log
-        BR10: không xóa cứng nếu có booking
-        BR11: không cancel nếu started/finished
-        */
-        $request->validate([
-            'reason' => ['required', 'string', 'max:255']
-        ]);
-        DB::beginTransaction();
-        try {
-            // lock để tránh 2 admin cancel cùng lúc
-            $showtime = Showtime::query()
-                ->with(['bookings', 'movie', 'room', 'cinema'])
-                ->where('cinema_id', $this->currentCinema()->id)
-                ->lockForUpdate()
-                ->findOrFail($id);
-            $before = $showtime->toArray();
-            // BR11: không cho hủy nếu đã bắt đầu hoặc đã kết thúc
-            if ($showtime->start_time->lessThanOrEqualTo(now()) || $showtime->end_time->lessThanOrEqualTo(now())) {
-                return back()->with('error', 'Suất chiếu đã bắt đầu, không thể hủy.');
-            }
-            // BR10: cảnh báo nếu đã có booking
-            $hasBooking = $showtime->bookings->count() > 0;
-            // update trạng thái
-            $showtime->update([
-                'status' => 'CANCELLED',
-                'cancel_reason' => $request->reason,
-                'cancelled_at' => now(),
-            ]);
-            $showtime->refresh();
-            $after = $showtime->toArray();
-            // BR07 + BR14: log đầy đủ
-            AuditLog::create([
-                'user_id' => Auth::id(),
-                'action' => 'CANCEL_SHOWTIME',
-                'entity_name' => 'showtime',
-                'entity_id' => $showtime->id,
-                'old_value' => json_encode($before),
-                'new_value' => json_encode($after),
-                'created_at' => now(),
-            ]);
-            DB::commit();
-            return redirect()
-                ->route('admin.showtime')
-                ->with(
-                    'success',
-                    $hasBooking
-                        ? 'Hủy suất chiếu thành công (đã có booking trước đó).'
-                        : 'Hủy suất chiếu thành công.'
-                );
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()
-                ->with('error', 'Có lỗi xảy ra khi hủy suất chiếu.');
+{
+    /*
+    UC-A2: Hủy suất chiếu
+    BR05: bắt buộc lý do
+    BR07: phải log
+    BR10: không xóa cứng nếu có booking
+    BR11: không cancel nếu started/finished
+    */
+    $request->validate([
+        'reason' => ['required', 'string', 'max:255']
+    ]);
+
+    DB::beginTransaction();
+    
+    try {
+        // Lock để tránh 2 admin cancel cùng lúc
+        $showtime = Showtime::query()
+            ->with(['bookings', 'movie', 'room', 'cinema'])
+            ->where('cinema_id', $this->currentCinema()->id)
+            ->lockForUpdate()
+            ->findOrFail($id);
+
+        // BR11: không cho hủy nếu đã bắt đầu hoặc đã kết thúc
+        if ($showtime->start_time->lessThanOrEqualTo(now()) || $showtime->end_time->lessThanOrEqualTo(now())) {
+            return back()->with('error', 'Suất chiếu đã bắt đầu, không thể hủy.');
         }
+
+        // CHỈ LẤY CÁC THUỘC TÍNH CỦA SHOWTIME ĐỂ TRÁNH LỖI JSON ENCODE ĐỆ QUY
+        $before = $showtime->only(['id', 'movie_id', 'cinema_id', 'room_id', 'start_time', 'end_time', 'status', 'cancel_reason', 'cancelled_at']);
+
+        // BR10: cảnh báo nếu đã có booking
+        $hasBooking = $showtime->bookings->count() > 0;
+
+        // Update trạng thái
+        $showtime->update([
+            'status' => 'CANCELLED',
+            'cancel_reason' => $request->reason,
+            'cancelled_at' => now(),
+        ]);
+
+        // Lấy lại dữ liệu mới sau khi update (chỉ lấy các trường cốt lõi)
+        $after = $showtime->refresh()->only(['id', 'movie_id', 'cinema_id', 'room_id', 'start_time', 'end_time', 'status', 'cancel_reason', 'cancelled_at']);
+
+        // BR07 + BR14: log đầy đủ
+        AuditLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'CANCEL_SHOWTIME',
+            'entity_name' => 'showtime',
+            'entity_id' => $showtime->id,
+            'old_value' => json_encode($before),
+            'new_value' => json_encode($after),
+            'created_at' => now(),
+        ]);
+
+        DB::commit();
+
+        return redirect()
+            ->route('admin.showtime')
+            ->with(
+                'success',
+                $hasBooking
+                    ? 'Hủy suất chiếu thành công (đã có booking trước đó).'
+                    : 'Hủy suất chiếu thành công.'
+            );
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        
+        // Ghi log lỗi thật ra 
+        logger()->error('Lỗi hủy suất chiếu ID ' . $id . ': ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+
+        // Trả về kèm câu thông báo lỗi chi tiết của hệ thống
+        return back()->with('error', 'Có lỗi xảy ra khi hủy suất chiếu. Chi tiết: ' . $e->getMessage());
     }
+}
 
     public function checkConflict(Request $request)
     {
