@@ -39,7 +39,7 @@ class UserSeeder extends Seeder
             [
                 'name'              => 'Staff',
                 'phone'             => '0112233445',
-                'email'             => 'staff@moviezone.com',
+                'email'             => 'customer@moviezone.com',
                 'email_verified_at' => now(),
                 'password'          => Hash::make('password'),
                 'remember_token'    => null,
@@ -47,7 +47,7 @@ class UserSeeder extends Seeder
                 'updated_at'        => now(),
             ],
             [
-                'name'              => 'Customer',
+                'name'              => 'Admin',
                 'phone'             => '0223344556',
                 'email'             => 'xmai4409@gmail.com',
                 'email_verified_at' => now(),

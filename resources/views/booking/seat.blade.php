@@ -25,7 +25,7 @@
                 <div id="selectedSeats">Chưa chọn ghế</div>
 
                 <div class="total-price" id="totalPrice">0VNĐ
-                    
+
                 </div>
 
                 <form action="{{ route('booking.seats.submit') }}" method="POST" id="bookingForm">
@@ -49,7 +49,7 @@
                     </div>
 
                     <button type="submit" class="btn-payment" id="btnPayment" disabled>
-                        Tiếp Tục Thanh Toán
+                        Vui lòng chọn ghế
                     </button>
                 </form>
             </div>
@@ -67,18 +67,16 @@
                 </div>
             @endif
             <div id="ajax-error-box" style="display: none; color: white; background: #dc3545; padding: 10px; text-align: center; margin-bottom: 20px; border-radius: 5px;"></div>
-
-            <div class="seat-map">
-                @foreach(range('A','J') as $rowLabel)
-                    @if(!empty($seatMap[$rowLabel]))
+<div class="seat-map">
+                @foreach($seatMap as $rowLabel => $rowSeats)
+                    @if(!empty($rowSeats))
                         <div class="seat-row">
                             <span class="row-label">{{ $rowLabel }}</span>
-                            
-                            @foreach($seatMap[$rowLabel] as $s)
+
+                            @foreach($rowSeats as $s)
                                 @php
-                                    $isDisabled = in_array($s['status'], ['SOLD', 'BLOCKED', 'HELD']) ? 'disabled' : '';
-                                    
-                                    // Set class and icon based on type
+                                    $isDisabled = in_array($s['status'], ['SOLD', 'BLOCKED', 'LOCKED', 'HELD']) ? 'disabled' : '';
+
                                     if ($s['type'] === 'sweetbox') {
                                         $btnClass = 'sweet-seat-btn';
                                         $icon = '<i class="fa-solid fa-heart"></i> ';
@@ -91,11 +89,11 @@
                                     }
                                 @endphp
 
-                                <button type="button" 
-                                        class="seat {{ $btnClass }} {{ $s['status'] }}" 
-                                        data-id="{{ $s['id'] }}" 
-                                        data-seat="{{ $s['code'] }}" 
-                                        data-type="{{ $s['type'] }}" 
+                                <button type="button"
+                                        class="seat {{ $btnClass }} {{ $s['status'] }}"
+                                        data-id="{{ $s['id'] }}"
+                                        data-seat="{{ $s['code'] }}"
+                                        data-type="{{ $s['type'] }}"
                                         data-price="{{ $s['price'] }}"
                                         {{ $isDisabled }}>
                                     {!! $icon !!}{{ $s['label'] }}
@@ -103,7 +101,7 @@
 
                                 @if($s['is_aisle']) <div class="aisle"></div> @endif
                             @endforeach
-                            
+
                             <span class="row-label">{{ $rowLabel }}</span>
                         </div>
                     @endif
@@ -112,8 +110,8 @@
 
             <div class="seat-legend" style="margin-top: 30px;">
                 <div class="legend-item"><i class="fa-solid fa-couch" style="color: #64748b;"></i><span>Thường</span></div>
-                <div class="legend-item"><i class="fa-solid fa-crown vip-seat-icon"></i><span>VIP (Hàng F)</span></div>
-                <div class="legend-item"><i class="fa-solid fa-heart sweet-seat-icon"></i><span>Sweetbox (Hàng J)</span></div>
+                <div class="legend-item"><i class="fa-solid fa-crown vip-seat-icon"></i><span>VIP</span></div>
+                <div class="legend-item"><i class="fa-solid fa-heart sweet-seat-icon"></i><span>Sweetbox</span></div>
                 <div class="legend-item"><i class="fa-solid fa-couch held-seat" style="color: #28a745;"></i><span>Đã chọn</span></div>
                 <div class="legend-item"><i class="fa-solid fa-couch" style="color: #ff9800;"></i><span>Đang giữ</span></div>
                 <div class="legend-item"><i class="fa-solid fa-couch sold-seat" style="color: #dc3545;"></i><span>Đã bán</span></div>
@@ -126,12 +124,12 @@
     .HELD_BY_ME { background-color: #28a745 !important; color: white !important; border: none !important; }
     .HELD { background-color: #ff9800 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
     .SOLD { background-color: #dc3545 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
-    .BLOCKED { background-color: #343a40 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
+    .BLOCKED, .LOCKED { background-color: #343a40 !important; color: white !important; cursor: not-allowed; opacity: 0.7;}
 
     .vip-seat-btn { color: white !important; border: 2px solid #eab308 !important; font-weight: bold !important; }
     .vip-seat-btn:hover { background-color: #eab308 !important; }
     .vip-seat-icon { color: #ffc107 !important; }
-    
+
     .sweet-seat-btn {color: white !important; width: 90px !important; font-weight: bold !important; border-radius: 8px !important; margin: 3px 6px !important; transition: background-color 0.2s; }
     .sweet-seat-btn:hover { background-color: #db2777 !important; }
     .sweet-seat-icon { color: #ec4899 !important; }
@@ -151,11 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
    // 1. TỰ ĐỘNG KHÔI PHỤC GHẾ ĐANG CHỌN (Từ class HELD_BY_ME trên màn hình)
     document.querySelectorAll('.HELD_BY_ME').forEach(btn => {
         const seatCode = btn.dataset.seat;
-        selectedSeats.set(seatCode, { 
-            id: btn.dataset.id, 
-            code: seatCode, 
-            type: btn.dataset.type, 
-            price: parseInt(btn.dataset.price) 
+        selectedSeats.set(seatCode, {
+            id: btn.dataset.id,
+            code: seatCode,
+            type: btn.dataset.type,
+            price: parseInt(btn.dataset.price)
         });
     });
 
@@ -171,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
             secondsLeft--;
             if(secondsLeft <= 0) {
                 clearInterval(timerInterval);
-                location.reload(); 
+                location.reload();
             }
             let m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
             let s = (secondsLeft % 60).toString().padStart(2, '0');
@@ -183,13 +181,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = e.target.closest('.seat');
         if (!btn || btn.disabled) return;
 
-        const seatIdAttr = btn.dataset.id; 
+        const seatIdAttr = btn.dataset.id;
         const seatCode = btn.dataset.seat;
         const seatType = btn.dataset.type;
         const seatPrice = parseInt(btn.dataset.price);
 
         if (!seatIdAttr) return;
-        
+
         const isSelecting = !selectedSeats.has(seatCode);
         const action = isSelecting ? 'hold' : 'release';
 
@@ -219,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!res.success) {
                     allSuccess = false;
                     lastMessage = res.message;
-                    break; 
+                    break;
                 }
             }
 
@@ -236,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 document.getElementById('ajax-error-box').innerText = lastMessage || 'Có lỗi khi giữ ghế.';
                 document.getElementById('ajax-error-box').style.display = 'block';
-                setTimeout(() => location.reload(), 1500); 
+                setTimeout(() => location.reload(), 1500);
             }
         } catch (error) {
             document.getElementById('ajax-error-box').innerText = 'Lỗi kết nối hệ thống.'; // E5: Lỗi kết nối
@@ -247,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function updateUI() {
-        hiddenSeatInputs.innerHTML = ''; 
+        hiddenSeatInputs.innerHTML = '';
         if (selectedSeats.size === 0) {
             selectedSeatsEl.innerHTML = 'Chưa chọn ghế';
             totalPriceEl.textContent = '0 VNĐ';
@@ -260,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 total += seat.price;
                 const typeLabel = seat.type === 'vip' ? '👑' : seat.type === 'sweetbox' ? '💕' : '🎬';
                 seatTags.push(`<span class="seat-tag seat-tag-${seat.type}">${typeLabel} ${seat.code}</span>`);
-                
+
                 const ids = seat.id.split(',');
                 ids.forEach(id => {
                     hiddenSeatInputs.innerHTML += `<input type="hidden" name="seats[]" value="${id}">`;
@@ -269,9 +267,97 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedSeatsEl.innerHTML = seatTags.join(' ');
             totalPriceEl.textContent = total.toLocaleString('vi-VN') + 'VNĐ';
             btnPayment.disabled = false;
-            btnPayment.textContent = `Thanh Toán ${total.toLocaleString('vi-VN')}VNĐ →`;
+            btnPayment.textContent = `Tiếp tục`;
         }
     }
-});
+    // =================================================================
+    // ĐOẠN MÃ MỚI: KIỂM TRA LỖI LẺ 1 GHẾ TRỐNG KHI BẤM TIẾP TỤC
+    // =================================================================
+    document.getElementById('bookingForm').addEventListener('submit', function (e) {
+        const allSeats = document.querySelectorAll('.seat');
+        let seatMap = {};
+
+        // 1. Quét toàn bộ cấu hình ghế hiển thị trên màn hình hiện tại
+        allSeats.forEach(seat => {
+            const seatCode = seat.getAttribute('data-seat');
+            if (!seatCode) return;
+
+            // Tách chữ (Hàng) và số (Số ghế) một cách an toàn nhất
+            const rowMatch = seatCode.match(/[a-zA-Z]+/);
+            const numMatch = seatCode.match(/\d+/);
+            if (!rowMatch || !numMatch) return;
+
+            const row = rowMatch[0].toUpperCase();
+            const num = parseInt(numMatch[0]);
+
+            // Phân loại trạng thái ghế chuẩn theo Class hiện tại trên giao diện công cộng
+            let status = 'available';
+            if (seat.classList.contains('HELD_BY_ME')) {
+                status = 'selected'; // Ghế khách này đang chọn
+            } else if (
+                seat.classList.contains('SOLD') ||
+                seat.classList.contains('HELD') ||
+                seat.classList.contains('BLOCKED') ||
+                seat.classList.contains('LOCKED') ||
+                seat.disabled
+            ) {
+                status = 'unavailable'; // Ghế không thể mua (đã bán/khóa)
+            }
+
+            if (!seatMap[row]) {
+                seatMap[row] = {};
+            }
+            seatMap[row][num] = status;
+        });
+
+        let hasError = false;
+
+        // 2. Thuật toán kiểm tra ghế trống bị cô lập thông minh
+        for (let row in seatMap) {
+            for (let numStr in seatMap[row]) {
+                let num = parseInt(numStr);
+
+                // CHỈ xét những ghế đang thực sự TRỐNG (available)
+                if (seatMap[row][num] === 'available') {
+                    // Lấy trạng thái 2 bên cạnh (Nếu không có ghế bên cạnh -> coi như là Tường/Lối đi)
+                    let leftStatus = seatMap[row][num - 1] || 'wall';
+                    let rightStatus = seatMap[row][num + 1] || 'wall';
+
+                    // Ghế trống này bị chặn 2 bên nếu hàng xóm không phải là ghế trống ('available')
+                    let isLeftBlocked = (leftStatus !== 'available');
+                    let isRightBlocked = (rightStatus !== 'available');
+
+                    // Nếu bị kẹp cứng cả 2 bên (Trở thành ghế lẻ duy nhất)
+                    if (isLeftBlocked && isRightBlocked) {
+                        // CHỈ tính là lỗi nếu ít nhất 1 trong 2 bên chặn nó là ghế DO KHÁCH NÀY ĐANG CHỌN ('selected')
+                        if (leftStatus === 'selected' || rightStatus === 'selected') {
+                            hasError = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (hasError) break;
+        }
+
+        // 3. Xử lý xuất thông báo trực quan cho khách hàng
+        if (hasError) {
+            e.preventDefault(); // Chặn đứng hành động gửi form lên hệ thống thanh toán
+
+            const errorBox = document.getElementById('ajax-error-box');
+            if (errorBox) {
+                errorBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Vị trí chọn ghế không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống bên cạnh ghế bạn chọn hoặc ở đầu/cuối hàng.';
+                errorBox.style.display = 'block'; // Hiện hộp thông báo màu đỏ lên
+
+                // Tự động cuộn màn hình mượt mà đến vùng báo lỗi để khách nhìn thấy ngay lập tức
+                errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+                // Phòng hờ nếu lỗi giao diện không tìm thấy thẻ div thì xài tạm alert mặc định
+                alert("Vị trí chọn ghế không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống bên cạnh ghế bạn chọn.");
+            }
+        }
+    });
+    });
+
 </script>
 @endsection

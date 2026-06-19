@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\CinemaManageController;
+use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\Admin\SeatManageController;
 use App\Http\Controllers\FilmManageController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
@@ -187,6 +189,18 @@ Route::prefix('admin/cinemas')->name('admin.cinemas.')->group(function () {
     Route::post('/{id}/restore', [CinemaManageController::class, 'restore'])->name('restore');
 });
 
+// Quản lý phòng chiếu - ROOM MANAGEMENT
+Route::prefix('admin/rooms')->name('admin.rooms.')->group(function () {
+    Route::get('/', [RoomManageController::class, 'index'])->name('index');
+    Route::get('/create', [RoomManageController::class, 'create'])->name('create');
+    Route::post('/', [RoomManageController::class, 'store'])->name('store');
+    Route::get('/{room}/edit', [RoomManageController::class, 'edit'])->name('edit');
+    Route::put('/{room}', [RoomManageController::class, 'update'])->name('update');
+    Route::post('/{room}/hide', [RoomManageController::class, 'hide'])->name('hide');
+    Route::post('/{room}/restore', [RoomManageController::class, 'restore'])->name('restore');
+    Route::get('/{room}/seats', [RoomManageController::class, 'seats'])->name('seats');
+});
+
 
 // Route::get('/admin/my-tickets', function () {
 //     return view('ticket.index');
@@ -219,4 +233,27 @@ Route::middleware(['auth'])->group(function () {
 
     // UC-11: Nút "Xác nhận đặt vé" -> Tạo DB -> Chuyển thanh toán
     Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
+});
+
+//UC-04 quan ly ghe
+// Đặt trong group admin
+Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(function () {
+    Route::get('/', [SeatManageController::class, 'index'])->name('index');
+    Route::get('/create', [SeatManageController::class, 'create'])->name('create');
+    Route::post('/store', [SeatManageController::class, 'store'])->name('store');
+
+    Route::get('/{id}/edit', [SeatManageController::class, 'edit'])->name('edit');
+    Route::put('/{id}', [SeatManageController::class, 'update'])->name('update');
+
+    // Nút toggle khóa/mở khóa
+    Route::post('/{id}/toggle-lock', [SeatManageController::class, 'toggleLock'])->name('toggle_lock');
+
+    // Xóa mềm
+    Route::delete('/{id}', [SeatManageController::class, 'destroy'])->name('destroy');
+
+    // Xóa nhiều
+    Route::post('/destroy-many', [SeatManageController::class, 'destroyMany'])->name('destroy_many');
+
+    // Thêm hàng loạt
+    Route::post('/store-batch', [SeatManageController::class, 'storeBatch'])->name('store_batch');
 });

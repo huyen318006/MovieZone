@@ -14,44 +14,48 @@ class ShowtimeSeatSeeder extends Seeder
     {
         ShowtimeSeat::query()->delete();
 
-        $rows = [];
+        ShowtimeSeat::query()->delete();
 
-        foreach (Showtime::all() as $showtime) {
-            $seats = Seat::where('room_id', $showtime->room_id)->get();
+        $rows = [];
+        $showtimes = Showtime::with('room')->get();
+
+        $this->command->info('Đang seed ShowtimeSeat cho ' . $showtimes->count() . ' suất chiếu...');
+
+        foreach ($showtimes as $showtime) {
+            $seats = Seat::where('room_id', $showtime->room_id)
+                ->whereNull('deleted_at')
+                ->get();
 
             foreach ($seats as $seat) {
-                // Lấy nhãn hàng ghế (A, B, C, D, E, F, G, H, I, J)
-                $rowLabel = strtoupper($seat->row_label); 
+                $rowLabel = strtoupper(trim($seat->row_label));
 
-                // XỬ LÝ SỬA LỖI: Ép loại ghế dựa trên hàng thực tế
-                if ($rowLabel === 'F') {
-                    $currentSeatType = 'VIP';
-                } elseif ($rowLabel === 'J') {
-                    $currentSeatType = 'COUPLE'; 
-                } else {
-                    $currentSeatType = 'STANDARD'; 
+                $seatType = $seat->seat_type ?? 'STANDARD';
+
+                // Xác định loại ghế cho hàng J (Sweetbox)
+                if ($rowLabel === 'J') {
+                    $seatType = 'COUPLE';
                 }
 
-                // 1. Cố gắng lấy giá từ bảng cấu hình trước
+                // Lấy giá từ bảng TicketPrice (ưu tiên)
                 $priceRecord = TicketPrice::where('cinema_id', $showtime->cinema_id)
-                    ->where('seat_type', $currentSeatType) 
+                    ->where('seat_type', $seatType)
                     ->first();
 
-                // 2. Nếu tìm thấy giá trong bảng thì dùng, không thì dùng logic cứng fallback
                 if ($priceRecord) {
                     $price = $priceRecord->price;
                 } else {
-                    $price = match ($currentSeatType) {
-                        'VIP' => 150000,
-                        'COUPLE' => 250000, // Giá gốc cho cả cặp ghế đôi
-                        default => 80000, 
+                    // Fallback giá cứng
+                    $price = match ($seatType) {
+                        'VIP'     => 150000,
+                        'COUPLE'  => 250000,   // Giá cho cả cặp
+                        default   => 90000,    // STANDARD
                     };
                 }
 
-                // SỬA LỖI TẠI ĐÂY: Nếu là hàng J (ghế đôi), chia đôi giá ra cho từng ghế đơn trong DB
-                // Khi giao diện cộng 2 ghế J lại (ví dụ J01 + J02) sẽ ra đúng chuẩn 250k!
-                if ($rowLabel === 'J') {
-                    $price = $price / 2; 
+                // Nếu là ghế đôi (COUPLE), chia đôi giá cho từng ghế đơn
+                // (để khi khách chọn 2 ghế J01 + J02 = đúng 250k)
+                if ($seatType === 'COUPLE') {
+                    $price = (int) ($price / 2);
                 }
 
                 $rows[] = [
@@ -67,9 +71,12 @@ class ShowtimeSeatSeeder extends Seeder
             }
         }
 
-        // Tăng chunk size nếu dữ liệu quá lớn để tránh lỗi memory
-        foreach (array_chunk($rows, 500) as $chunk) {
+        // Insert theo chunk để tránh lỗi memory
+        foreach (array_chunk($rows, 800) as $chunk) {
             ShowtimeSeat::insert($chunk);
         }
+
+        $this->command->info("✅ Đã seed xong ShowtimeSeat!");
+        $this->command->info("   - Tổng số bản ghi: " . count($rows));
     }
 }

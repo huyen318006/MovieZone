@@ -128,7 +128,12 @@
 
             <div class="payment-method-box">
 
-                <div class="payment-options-grid">
+                <h4>
+                    <i class="fa-solid fa-credit-card"></i>
+                    Chọn phương thức thanh toán
+                </h4>
+
+                <div >
                     <label class="payment-option">
                         <input type="radio"
                                name="payment_method"
@@ -139,7 +144,6 @@
                             <span class="text">Thanh toán Online</span>
                         </div>
                     </label>
-
                 </div>
 
             </div>
