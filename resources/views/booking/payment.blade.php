@@ -40,6 +40,27 @@
             </div>
         </div>
 
+        {{-- Thông tin khách hàng --}}
+        <div class="customer-info-breakdown" style="background: rgba(59, 130, 246, 0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(59, 130, 246, 0.2);">
+            <h4 style="margin-top: 0; margin-bottom: 12px; color: #60a5fa; font-size: 14px; text-transform: uppercase;">
+                <i class="fa-solid fa-user"></i> Thông tin khách hàng
+            </h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <span style="display: block; color: #9ca3af; font-size: 12px;">Họ và Tên</span>
+                    <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerName() }}</strong>
+                </div>
+                <div>
+                    <span style="display: block; color: #9ca3af; font-size: 12px;">Số điện thoại</span>
+                    <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerPhone() }}</strong>
+                </div>
+                <div style="grid-column: span 2;">
+                    <span style="display: block; color: #9ca3af; font-size: 12px;">Email</span>
+                    <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerEmail() }}</strong>
+                </div>
+            </div>
+        </div>
+
         {{-- Chi tiết giá ghế --}}
         <div class="seat-price-breakdown">
             <h4>Chi tiết giá vé</h4>
