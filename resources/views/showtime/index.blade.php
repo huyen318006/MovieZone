@@ -9,7 +9,7 @@
     <section class="showtime-hero" data-aos="fade-up">
         <span class="badge">MOVIEZONE SCHEDULE</span>
         <h1>Lịch Chiếu</h1>
-        <p>Chọn phim, rạp và ngày chiếu để tìm suất chiếu phù hợp nhất với bạn.</p>
+        <p>Chọn phim và ngày chiếu để tìm suất chiếu phù hợp nhất với bạn.</p>
     </section>
 
     @if(session('error'))
@@ -30,14 +30,7 @@
                 @endforeach
             </select>
 
-            <select id="showtime-cinema" name="cinema">
-                <option value="">Tất cả rạp</option>
-                @foreach($cinemas as $cinema)
-                    <option value="{{ $cinema->id }}" @selected(($filters['cinema'] ?? '') == $cinema->id)>
-                        {{ $cinema->name }} - {{ $cinema->city }}
-                    </option>
-                @endforeach
-            </select>
+
 
             <select id="showtime-date" name="date">
                 <option value="">Ngày gần nhất</option>
@@ -66,10 +59,6 @@
             <span>{{ $selectedMovie?->title ?: 'Tất cả phim' }}</span>
         </div>
         <div>
-            <strong>Rạp</strong>
-            <span>{{ $selectedCinema?->name ?: 'Tất cả rạp' }}</span>
-        </div>
-        <div>
             <strong>Ngày</strong>
             <span>{{ $selectedDate ? \Carbon\Carbon::parse($selectedDate)->format('d/m/Y') : 'Ngày gần nhất' }}</span>
         </div>
@@ -85,7 +74,7 @@
             <div class="showtime-empty-state">
                 <i class="bi bi-calendar-x"></i>
                 <h3>Không có suất chiếu phù hợp</h3>
-                <p>Bạn có thể chọn rạp hoặc ngày khác để tiếp tục tìm kiếm.</p>
+                <p>Bạn có thể chọn ngày khác để tiếp tục tìm kiếm.</p>
             </div>
         @else
             <div class="showtime-grid">
@@ -113,7 +102,6 @@
                             </div>
 
                             <div class="showtime-card-meta">
-                                <span><i class="bi bi-building"></i>{{ $showtime->cinema?->name ?: 'Rạp đang cập nhật' }}</span>
                                 <span><i class="bi bi-door-open"></i>{{ $showtime->room?->name ?: 'Phòng đang cập nhật' }}</span>
                                 <span><i class="bi bi-clock"></i>{{ $startTime->format('H:i') }} - {{ $endTime->format('H:i') }}</span>
                                 <span><i class="bi bi-badge-3d"></i>{{ $showtime->format }} • {{ $showtime->language_type }}</span>

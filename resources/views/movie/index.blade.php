@@ -15,7 +15,7 @@
         <div class="movie-list-hero__content" data-aos="fade-up">
             <span class="badge">MOVIEZONE CINEMA</span>
             <h1>Khám phá kho phim</h1>
-            <p>Lọc phim theo thể loại, độ tuổi, ngôn ngữ, rạp chiếu hoặc tìm nhanh bộ phim bạn yêu thích.</p>
+            <p>Lọc phim theo thể loại, độ tuổi, ngôn ngữ hoặc tìm nhanh bộ phim bạn yêu thích.</p>
         </div>
     </section>
 
@@ -58,14 +58,7 @@
                 @endforeach
             </select>
 
-            <select id="movie-cinema" name="cinema">
-                <option value="">Tất cả rạp</option>
-                @foreach($cinemas as $cinema)
-                    <option value="{{ $cinema->id }}" @selected(($filters['cinema'] ?? '') == $cinema->id)>
-                        {{ $cinema->name }}
-                    </option>
-                @endforeach
-            </select>
+
 
             <select id="movie-status" name="status">
                 <option value="">Mọi trạng thái</option>
