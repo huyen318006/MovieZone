@@ -173,6 +173,33 @@ class SeatManageController extends Controller
 
     // ... (Giữ nguyên các đoạn validate row_label, VIP, BLOCKED, exists ở trên) ...
     $rowLabel = strtoupper($validated['row_label']);
+//     |---------------------------------------------
+// | VALIDATE RULE THEO HÀNG GHẾ (SYNC BATCH)
+// |---------------------------------------------
+// */
+$vipRows = ['E','F','G','H'];
+$coupleRows = ['J','K'];
+
+if ($validated['seat_type'] === 'VIP' && !in_array($rowLabel, $vipRows)) {
+    return back()
+        ->withErrors(['error' => 'VIP chỉ được đặt ở hàng E-F-G-H'])
+        ->withInput();
+}
+
+if ($validated['seat_type'] === 'COUPLE' && !in_array($rowLabel, $coupleRows)) {
+    return back()
+        ->withErrors(['error' => 'COUPLE chỉ được đặt ở hàng J-K'])
+        ->withInput();
+}
+
+if (
+    $validated['seat_type'] === 'STANDARD' &&
+    (in_array($rowLabel, $vipRows) || in_array($rowLabel, $coupleRows))
+) {
+    return back()
+        ->withErrors(['error' => "Hàng {$rowLabel} không hợp lệ cho STANDARD"])
+        ->withInput();
+}
     $seatCode = $rowLabel . $validated['seat_number'];
 
     // ... (Giữ nguyên đoạn check tồn tại) ...
@@ -191,7 +218,7 @@ class SeatManageController extends Controller
         });
     } catch (\Throwable $e) {
         return back()
-            ->withErrors(['error' => 'Không thể lưu ghế. Vui lòng thử lại sau.'])
+            ->withErrors(['error' => 'Không thể lưu, có thể ghế đã tồn tại . Vui lòng kiểm tra lại.'])
             ->withInput();
     }
 
@@ -233,6 +260,15 @@ class SeatManageController extends Controller
         }
 
         $rowLabel = strtoupper($validated['row_label']);
+
+        // Mỗi hàng chỉ được phép có ghế từ 1 -> 10
+        if ($validated['start'] > 10 || $validated['end'] > 10) {
+            return back()
+                ->withErrors([
+                    'error' => 'Số ghế chỉ được phép từ 1 đến 10 trong mỗi hàng.'
+                ])
+                ->withInput();
+        }
         $seatCode = $rowLabel . $validated['seat_number'];
 
         $isDuplicate = Seat::query()
@@ -277,33 +313,100 @@ class SeatManageController extends Controller
     {
         $this->ensureAdminAccess();
 
-        $validated = $request->validate([
-            'room_id' => 'required|exists:rooms,id',
-            'row_label' => 'required|string|max:1',
-            'start' => 'required|integer|min:1',
-            'end' => 'required|integer|gte:start',
-            'seat_type' => 'required|in:STANDARD,VIP,COUPLE',
-            'price' => 'required|numeric|min:0',
-        ]);
+        $validated = $request->validate(
+            [
+                'room_id' => 'required|exists:rooms,id',
+                'row_label' => [
+                    'required',
+                    'string',
+                    'max:1',
+                    'regex:/^[A-Z]$/'
+                ],
+                'start' => 'required|integer|between:1,10',
+                'end' => 'required|integer|between:1,10|gte:start',
+                'seat_type' => 'required|in:STANDARD,VIP,COUPLE',
+                'price' => 'required|numeric|min:0',
+            ],
+            [
+                'row_label.required' => 'Vui lòng nhập hàng ghế.',
+                'row_label.string' => 'Hàng ghế phải là chữ cái A-Z.',
+                'row_label.max' => 'Hàng ghế chỉ 1 ký tự.',
+                'row_label.regex' => 'Hàng ghế chỉ được là chữ cái A-Z (không số, không ký tự đặc biệt).',
+            ]
+        );
 
         $room = Room::find($validated['room_id']);
+
         if (!$room || $room->status !== 'ACTIVE') {
             return back()
                 ->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.'])
                 ->withInput();
         }
 
-        if ($validated['seat_type'] === 'VIP' && strtoupper($validated['row_label']) !== 'F') {
+        $rowLabel = strtoupper($validated['row_label']);
+        /**
+         * CHỈ ĐỊNH KHU VIP / COUPLE
+         * còn lại mặc định STANDARD
+         */
+        $vipRows = ['E', 'F', 'G', 'H'];
+        $coupleRows = ['J', 'K'];
+
+        if (in_array($rowLabel, $vipRows)) {
+            $expectedType = 'VIP';
+        } elseif (in_array($rowLabel, $coupleRows)) {
+            $expectedType = 'COUPLE';
+        } else {
+            $expectedType = 'STANDARD';
+        }
+
+        /**
+         * validate chéo giữa row và seat_type
+         */
+        if ($validated['seat_type'] !== $expectedType) {
+            return back()->withErrors([
+                'error' => "Hàng {$rowLabel} chỉ được phép tạo ghế {$expectedType}."
+            ])->withInput();
+        }
+        // Giới hạn số hàng theo tổng số ghế của phòng
+        $maxRow = chr(64 + ceil($room->total_seats / 10));
+
+        if (ord($rowLabel) > ord($maxRow)) {
             return back()
-                ->withErrors(['error' => 'Ghế VIP chỉ được phép ở hàng F theo cấu hình hệ thống.'])
+                ->withErrors([
+                'error' => "Để đảm bảo chất lượng trải nghiệm xem phim, phòng {$room->name} ({$room->room_type}) chỉ được thiết kế tối đa {$room->total_seats} ghế ngồi. Phòng này chỉ cho phép cấu hình từ hàng A đến {$maxRow}. Quy tắc áp dụng: E-H ghế VIP, J-K ghế Couple.Còn lại ghế thường "
+                ])
                 ->withInput();
         }
 
-        if (($validated['end'] - $validated['start'] + 1) > 20) {
-            return back()->withErrors(['error' => 'Chỉ tạo tối đa 20 ghế/lần để tránh lỗi cấu hình.']);
-        }
+        /*
+|--------------------------------------------------------------------------
+| QUY TẮC CẤU HÌNH GHẾ TOÀN HỆ THỐNG
+|--------------------------------------------------------------------------
+|
+| A-D  : STANDARD (4 hàng đầu)
+| E-H  : VIP
+| I    : STANDARD
+| J-K  : COUPLE
+| L-Z  : STANDARD
+|
+|--------------------------------------------------------------------------
+*/
 
-        $rowLabel = strtoupper($validated['row_label']);
+
+
+        /*
+|--------------------------------------------------------------------------
+| Giới hạn số ghế mỗi lần tạo
+|--------------------------------------------------------------------------
+*/
+
+        if (($validated['end'] - $validated['start'] + 1) > 20) {
+            return back()
+                ->withErrors([
+                    'error' => 'Chỉ tạo tối đa 20 ghế/lần để tránh lỗi cấu hình.'
+                ])
+                ->withInput();
+        }
         $created = [];
         $skipped = [];
 
@@ -413,7 +516,7 @@ class SeatManageController extends Controller
 
     // 1. Chỉ kiểm tra duy nhất trạng thái 'BLOCKED' để thống nhất
     $isCurrentlyBlocked = ($seat->status === 'BLOCKED');
-    
+
     // 2. Chuyển đổi trạng thái
     $oldStatus = $seat->status;
     $newStatus = $isCurrentlyBlocked ? 'ACTIVE' : 'BLOCKED';

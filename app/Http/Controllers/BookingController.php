@@ -19,55 +19,81 @@ class BookingController extends Controller
     // ==========================================
     // UC-CUS-08: CHỌN GHẾ
     // ==========================================
+    // ==========================================
+    // UC-CUS-08: CHỌN GHẾ
+    // ==========================================
     public function showSeats($showtime_id)
     {
-       $showtime = Showtime::with(['movie', 'cinema', 'room', 'showtimeSeats.seat' => function($query) {
-        $query->whereNull('deleted_at'); // Nếu bạn dùng SoftDeletes
-    }])->findOrFail($showtime_id);
+        $showtime = Showtime::with(['movie', 'cinema', 'room'])
+            ->findOrFail($showtime_id);
 
         if (now()->greaterThan($showtime->start_time)) {
             return redirect()->back()->with('error', 'Suất chiếu này đã bắt đầu.');
         }
 
-        $seats = $showtime->showtimeSeats;
-        
-        // 1. Phân loại ghế từ DB vào ma trận để dễ xử lý
+        // ====================== ĐẢM BẢO ĐẦY ĐỦ GHẾ ======================
+        $this->syncShowtimeSeats($showtime);
+
+        // Load lại dữ liệu sau khi sync
+        $showtime->load('showtimeSeats.seat');
+
+        // ====================== XÂY DỰNG DANH SÁCH GHẾ ĐẦY ĐỦ CHO ROOM ======================
+        // UI cần hiển thị đủ mọi ghế được admin add ở phòng (seat.room_id).
+        // Sau đó map sang showtime_seats (nếu showtime_seats chưa có -> syncShowtimeSeats sẽ tạo).
+        $roomSeats = Seat::where('room_id', $showtime->room_id)
+            ->whereNull('deleted_at')
+            ->get();
+
+        // map showtime_seats theo seat_id để lookup nhanh
+        $showtimeSeatsBySeatId = $showtime->showtimeSeats
+            ->keyBy('seat_id');
+
         $allSeatsMatrix = [];
-        foreach ($seats as $seat) {
-            $row = optional($seat->seat)->row_label;
-            $num = optional($seat->seat)->seat_number;
+        foreach ($roomSeats as $seat) {
+            $row = $seat->row_label;
+            $num = $seat->seat_number;
+            if (!$row || $num === null) continue;
 
-            $baseSeatStatus = $seat->seat->status ?? 'ACTIVE';
+            $showtimeSeat = $showtimeSeatsBySeatId->get($seat->id);
+            if (!$showtimeSeat) {
+                // syncShowtimeSeats đáng ra đã tạo đủ, nhưng fallback cho an toàn
+                continue;
+            }
 
-            if ($baseSeatStatus === 'BLOCKED' || $baseSeatStatus === 'BROKEN') {
-                $seat->display_status = $baseSeatStatus;
+            $baseStatus = $seat->status ?? 'ACTIVE';
+
+            if (in_array($baseStatus, ['BLOCKED', 'BROKEN'])) {
+                $displayStatus = $baseStatus;
             } else {
-                // Kiểm tra trạng thái SOLD (BR05, E1)
                 $isSold = DB::table('booking_seats')
                     ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
-                    ->where('booking_seats.showtime_seat_id', $seat->id)
+                    ->where('booking_seats.showtime_seat_id', $showtimeSeat->id)
                     ->where('bookings.showtime_id', $showtime_id)
                     ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
                     ->exists();
 
                 if ($isSold) {
-                    $seat->display_status = 'SOLD';
+                    $displayStatus = 'SOLD';
                 } else {
-                    // Kiểm tra trạng thái HELD trong Cache (E2)
-                    $heldBy = Cache::get('seat_held_' . $showtime_id . '_' . $seat->id);
+                    $heldBy = Cache::get('seat_held_' . $showtime_id . '_' . $showtimeSeat->id);
                     if ($heldBy) {
-                        $seat->display_status = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
+                        $displayStatus = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
                     } else {
-                        // Trạng thái từ DB (AVAILABLE hoặc BLOCKED - BR06, E3)
-                        $seat->display_status = $seat->status ?? 'AVAILABLE';
+                        $displayStatus = $showtimeSeat->status ?? 'AVAILABLE';
                     }
                 }
             }
 
-            $allSeatsMatrix[$row][$num] = $seat;
+            $allSeatsMatrix[$row][$num] = (object) [
+                'id'             => $showtimeSeat->id,
+                'seat'           => $seat,
+                'price'          => $showtimeSeat->price ?? $seat->base_price ?? 90000,
+                'display_status' => $displayStatus,
+            ];
         }
 
-        // 2. Xây dựng mảng UI chuẩn bị sẵn cho View (Tách logic khỏi Blade)
+        // ====================== BUILD SEATMAP ======================
+
         $seatMap = [];
         ksort($allSeatsMatrix);
 
@@ -85,44 +111,58 @@ class BookingController extends Controller
                 }
 
                 $seatMap[$row][] = [
-                    'id' => $dbSeat->id,
-                    'code' => $dbSeat->seat->seat_code ?? ($row . str_pad($i, 2, '0', STR_PAD_LEFT)),
-                    'price' => (int) $dbSeat->price,
-                    'status' => $dbSeat->display_status,
-                    'type' => $mappedType,
-                    'label' => $i,
-                    'is_aisle' => ($i == 5)
+                    'id'        => $dbSeat->id,
+                    'code'      => $dbSeat->seat->seat_code ?? ($row . str_pad($i, 2, '0', STR_PAD_LEFT)),
+                    'price'     => (int) $dbSeat->price,
+                    'status'    => $dbSeat->display_status,
+                    'type'      => $mappedType,
+                    'label'     => $i,
+                    'is_aisle'  => ($i == 5)
                 ];
             }
         }
 
-
         // TÍNH THỜI GIAN CÒN LẠI
         $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtime_id;
-        $secondsLeft = 300; // Mặc định 5 phút
+        $secondsLeft = 300;
         if (Cache::has($masterTimerKey)) {
             $secondsLeft = max(0, Cache::get($masterTimerKey) - now()->timestamp);
         }
-        $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtime_id;
 
-        $secondsLeft = 300;
-
-        if (Cache::has($masterTimerKey)) {
-
-            $secondsLeft = max(
-                0,
-                Cache::get($masterTimerKey) - now()->timestamp
-            );
-
-        }
-        return view('booking.seat',compact('showtime','seatMap','secondsLeft'));
+        return view('booking.seat', compact('showtime', 'seatMap', 'secondsLeft'));
     }
+
+    /**
+     * Đồng bộ tất cả ghế từ phòng vào showtime_seats
+     */
+    private function syncShowtimeSeats(Showtime $showtime)
+    {
+        $roomSeats = Seat::where('room_id', $showtime->room_id)
+            ->whereNull('deleted_at')
+            ->get();
+
+        foreach ($roomSeats as $seat) {
+            ShowtimeSeat::firstOrCreate(
+                [
+                    'showtime_id' => $showtime->id,
+                    'seat_id'     => $seat->id,
+                ],
+                [
+                    'price'  => $seat->base_price ?? 90000,
+                    'status' => 'AVAILABLE',
+                ]
+            );
+        }
+    }
+
+
+    ///
 
     // AJAX API xử lý giữ ghế Realtime (UC-08 bước 5)
     public function holdSeat(Request $request)
     {
         $showtimeId = $request->showtime_id;
-        $seatId = $request->seat_id; 
+        $seatId = $request->seat_id;
         $action = $request->action;
         $cacheKey = 'seat_held_' . $showtimeId . '_' . $seatId;
 
@@ -255,7 +295,7 @@ class BookingController extends Controller
             ]
         ]);
 
-        return redirect()->route('booking.combo'); 
+        return redirect()->route('booking.combo');
     }
 
     // ==========================================
@@ -353,7 +393,7 @@ public function saveCombo(Request $request)
     // UC-CUS-11: XÁC NHẬN ĐẶT VÉ VÀ TẠO BOOKING
     // ==========================================
     public function showConfirm()
-    {   
+    {
         $bookingTam = session('booking_tam');
         if (!$bookingTam) return redirect()->route('home');
 
@@ -395,7 +435,7 @@ public function saveCombo(Request $request)
             foreach ($seatIds as $seatId) {
                 $cacheKey = 'seat_held_' . $showtimeId . '_' . $seatId;
                 $heldBy = Cache::get($cacheKey);
-                
+
                 if (!$heldBy || $heldBy != Auth::id()) {
                     throw new \Exception('Ghế không còn khả dụng do hết thời gian giữ (5 phút) hoặc đã bị mua.');
                 }
@@ -452,7 +492,7 @@ public function saveCombo(Request $request)
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                
+
                 // Giải phóng ghế khỏi Cache sau khi lưu DB thành công
                 Cache::forget('seat_held_' . $showtimeId . '_' . $seat->id);
             }
@@ -584,7 +624,7 @@ public function saveCombo(Request $request)
         // 4. Quét từng hàng ghế để tìm lỗi "lẻ 1 ghế trống"
         foreach ($matrix as $row => $rowSeats) {
             ksort($rowSeats); // Sắp xếp lại số ghế theo thứ tự tăng dần (1, 2, 3...)
-            
+
             $seatNumbers = array_keys($rowSeats);
             $totalInRow = count($seatNumbers);
 
@@ -593,13 +633,13 @@ public function saveCombo(Request $request)
 
                 // Chúng ta chỉ săm soi những ghế đang có trạng thái trống (AVAILABLE)
                 if ($rowSeats[$currentNum] === 'AVAILABLE') {
-                    
+
                     // --- KIỂM TRA BÊN TRÁI ---
-                    // Bị chặn trái nếu: đầu hàng vật lý (i==0), số ghế không liên tục (lối đi rạp), 
+                    // Bị chặn trái nếu: đầu hàng vật lý (i==0), số ghế không liên tục (lối đi rạp),
                     // hoặc ghế bên trái không phải là ghế trống (đã mua/đang chọn)
                     $leftBlocked = false;
                     if ($i === 0) {
-                        $leftBlocked = true; 
+                        $leftBlocked = true;
                     } else {
                         $prevNum = $seatNumbers[$i - 1];
                         if ($prevNum != $currentNum - 1) {
@@ -626,7 +666,7 @@ public function saveCombo(Request $request)
 
                     // Nếu phát hiện 1 ghế trống đơn lẻ bị kẹp thịt ở giữa -> Trả về lỗi luôn lập tức
                     if ($leftBlocked && $rightBlocked) {
-                        return true; 
+                        return true;
                     }
                 }
             }

@@ -29,29 +29,6 @@ class CinemaSeeder extends Seeder
                 'updated_at' => now(),
             ],
 
-            [
-                'name' => 'MovieZone Đà Nẵng',
-                'city' => 'Đà Nẵng',
-                'district' => 'Hải Châu',
-                'address' => '456 Nguyễn Văn Linh, Hải Châu, Đà Nẵng',
-                'hotline' => '19001002',
-                'map_url' => 'https://maps.google.com',
-                'status' => 'ACTIVE',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-
-            [
-                'name' => 'MovieZone Hồ Chí Minh',
-                'city' => 'Hồ Chí Minh',
-                'district' => 'Quận 1',
-                'address' => '789 Lê Lợi, Quận 1, TP.HCM',
-                'hotline' => '19001003',
-                'map_url' => 'https://maps.google.com',
-                'status' => 'ACTIVE',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
         ]);
     }
 }
