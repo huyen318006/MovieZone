@@ -96,7 +96,9 @@
                             <option value="VIP" {{ old('seat_type') == 'VIP' ? 'selected' : '' }}>VIP</option>
                             <option value="COUPLE" {{ old('seat_type') == 'COUPLE' ? 'selected' : '' }}>COUPLE</option>
                         </select>
+                        <div class="form-text">Giá sẽ tự lấy theo `seat_type` trong database.</div>
                     </div>
+
 
                     <!-- Trạng thái -->
                     <div class="col-md-3">
@@ -108,17 +110,7 @@
                         </select>
                     </div>
 
-                    <!-- Giá -->
-                    <div class="col-md-4">
-                        <label class="form-label">Giá ghế</label>
-                        <input type="number"
-                               name="price"
-                               class="form-control"
-                               value="{{ old('price', 90000) }}"
-                               min="0"
-                               step="1000"
-                               required>
-                    </div>
+
 
                 </div>
 

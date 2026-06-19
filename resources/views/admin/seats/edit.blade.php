@@ -81,7 +81,9 @@
                             <option value="VIP" {{ old('seat_type', $seat->seat_type) == 'VIP' ? 'selected' : '' }}>VIP</option>
                             <option value="COUPLE" {{ old('seat_type', $seat->seat_type) == 'COUPLE' ? 'selected' : '' }}>COUPLE</option>
                         </select>
+                        <div class="form-text">Giá sẽ tự cập nhật theo database.</div>
                     </div>
+
                     <div class="col-md-3">
                         <label class="form-label">Trạng thái</label>
                         <select name="status" class="form-select">
@@ -90,10 +92,7 @@
                             <option value="BROKEN" {{ old('status', $seat->status) == 'BROKEN' ? 'selected' : '' }}>BROKEN</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Giá ghế</label>
-                        <input type="number" name="price" class="form-control" value="{{ old('price', $seat->price) }}" required>
-                    </div>
+
                 </div>
 
                 <hr>
