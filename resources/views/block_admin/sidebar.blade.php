@@ -41,7 +41,7 @@
              Ghế ngồi
         </a>
 
-        <a class="nav-link" href="">
+        <a class="nav-link" href="{{ route('admin.showtime') }}">
             <i class="bi bi-calendar-event"></i>
             Suất chiếu
         </a>
