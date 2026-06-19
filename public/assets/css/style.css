@@ -1712,15 +1712,21 @@ html[data-theme="dark"] {
 }
 
 .room-seat-cell {
-  width: 72px;
-  min-height: 54px;
-  display: grid;
-  place-items: center;
-  padding: 7px 6px;
-  border: 1px solid;
-  border-radius: 14px 14px 8px 8px;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  width: 68px;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 6px;
+  border: 1.5px solid;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.room-seat-cell.is-couple {
+  width: 144px;
 }
 
 .room-seat-cell:hover {
@@ -1728,10 +1734,74 @@ html[data-theme="dark"] {
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
 }
 
-.room-seat-cell small {
-  font-size: 10px;
-  color: #64748b;
+.room-seat-cell strong {
+  font-size: 13px;
+  line-height: 1.2;
+  margin-bottom: 2px;
 }
+
+.room-seat-cell small {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* --- SEAT COLORS --- */
+.seat-status-active {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+}
+.seat-status-broken {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+}
+.seat-status-locked {
+  background: rgba(100, 116, 139, 0.12);
+  border-color: #64748b;
+}
+
+/* --- SEAT TEXT BASE COLORS --- */
+.seat-type-standard { color: #475569; }
+.seat-type-vip { color: #2563eb; }
+.seat-type-couple { color: #ea580c; }
+
+html[data-theme="dark"] .seat-type-standard { color: #94a3b8; }
+html[data-theme="dark"] .seat-type-vip { color: #60a5fa; }
+html[data-theme="dark"] .seat-type-couple { color: #fbbf24; }
+
+/* Light Theme: ACTIVE Text Colors (brighter/more distinct) */
+.seat-status-active .seat-type-standard { color: #059669; }
+.seat-status-active .seat-type-vip { color: #1d4ed8; }
+.seat-status-active .seat-type-couple { color: #c2410c; }
+
+/* Dark Theme: ACTIVE Text Colors (very bright!) */
+html[data-theme="dark"] .seat-status-active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #34d399;
+}
+html[data-theme="dark"] .seat-status-broken {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #f87171;
+}
+html[data-theme="dark"] .seat-status-locked {
+  background: rgba(100, 116, 139, 0.2);
+  border-color: #94a3b8;
+}
+
+html[data-theme="dark"] .seat-status-active .seat-type-standard { color: #6ee7b7; }
+html[data-theme="dark"] .seat-status-active .seat-type-vip { color: #93c5fd; }
+html[data-theme="dark"] .seat-status-active .seat-type-couple { color: #fde047; }
+
+/* Dimmed Text for Broken/Locked */
+.seat-status-broken .seat-type-standard,
+.seat-status-broken .seat-type-vip,
+.seat-status-broken .seat-type-couple,
+.seat-status-locked .seat-type-standard,
+.seat-status-locked .seat-type-vip,
+.seat-status-locked .seat-type-couple {
+    opacity: 0.7;
+}
+
 
 @media (max-width: 767.98px) {
   .room-seat-cell {

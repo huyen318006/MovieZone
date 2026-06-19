@@ -72,15 +72,15 @@
         <div class="card-body">
             <div class="d-flex flex-wrap gap-3 mb-4">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="room-seat-preview border-success bg-success-subtle"></span>
+                    <span class="room-seat-preview seat-status-active"></span>
                     <span class="small text-muted">ACTIVE</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="room-seat-preview border-danger bg-danger-subtle"></span>
+                    <span class="room-seat-preview seat-status-broken"></span>
                     <span class="small text-muted">BROKEN</span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                    <span class="room-seat-preview border-secondary bg-secondary-subtle"></span>
+                    <span class="room-seat-preview seat-status-locked"></span>
                     <span class="small text-muted">LOCKED</span>
                 </div>
                 <div class="vr d-none d-md-block"></div>
@@ -110,21 +110,23 @@
                                 @foreach($seats as $seat)
                                     @php
                                         $statusClass = match ($seat->status) {
-                                            'ACTIVE' => 'border-success bg-success-subtle',
-                                            'BROKEN' => 'border-danger bg-danger-subtle',
-                                            'LOCKED' => 'border-secondary bg-secondary-subtle',
-                                            default => 'border-secondary',
+                                            'ACTIVE' => 'seat-status-active',
+                                            'BROKEN' => 'seat-status-broken',
+                                            'LOCKED' => 'seat-status-locked',
+                                            default => 'seat-status-default',
                                         };
 
                                         $typeClass = match ($seat->seat_type) {
-                                            'VIP' => 'text-primary',
-                                            'COUPLE' => 'text-warning',
-                                            default => 'text-dark',
+                                            'VIP' => 'seat-type-vip',
+                                            'COUPLE' => 'seat-type-couple',
+                                            default => 'seat-type-standard',
                                         };
+                                        
+                                        $isCouple = $seat->seat_type === 'COUPLE' ? 'is-couple' : '';
                                     @endphp
-                                    <div class="room-seat-cell {{ $statusClass }}" title="{{ $seat->seat_code }} • {{ $seat->seat_type }} • {{ $seat->status }}">
+                                    <div class="room-seat-cell {{ $statusClass }} {{ $isCouple }}" title="{{ $seat->seat_code }} • {{ $seat->seat_type }} • {{ $seat->status }}">
                                         <strong class="{{ $typeClass }}">{{ $seat->seat_code }}</strong>
-                                        <small>{{ $seat->seat_type }}</small>
+                                        <small class="{{ $typeClass }}">{{ $seat->seat_type }}</small>
                                     </div>
                                 @endforeach
                             </div>
