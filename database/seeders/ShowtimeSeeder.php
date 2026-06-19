@@ -16,14 +16,12 @@ class ShowtimeSeeder extends Seeder
         Showtime::query()->delete();
 
         $showtimes = [];
-        $cinema_id =1;
 
         for ($i = 1; $i <= 20; $i++) {
             $start = now()->addDays(rand(1, 10));
 
             $showtimes[] = [
                 'movie_id' => rand(1, 5),
-                'cinema_id' => $cinema_id,
                 'room_id' => rand(1, 5),
                 'start_time' => $start,
                 'end_time' => $start->copy()->addHours(2),
