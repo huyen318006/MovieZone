@@ -1,18 +1,20 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Models\Booking;
+use App\Models\BookingCombo;
+use App\Models\Combo;
+use App\Models\Seat;
+use App\Models\SepayOrder;
+use App\Models\Showtime;
+use App\Models\ShowtimeSeat;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use App\Models\Showtime;
-use App\Models\Seat;
-use App\Models\Booking;
-use App\Models\Combo;
 use Illuminate\Support\Str;
-use App\Models\ShowtimeSeat;
-use App\Models\BookingCombo;
-use App\Models\SepayOrder;
 
 class BookingController extends Controller
 {
@@ -24,7 +26,7 @@ class BookingController extends Controller
     // ==========================================
     public function showSeats($showtime_id)
     {
-        $showtime = Showtime::with(['movie', 'cinema', 'room'])
+        $showtime = Showtime::with(['movie', 'room'])
             ->findOrFail($showtime_id);
 
         if (now()->greaterThan($showtime->start_time)) {
@@ -52,10 +54,12 @@ class BookingController extends Controller
         foreach ($roomSeats as $seat) {
             $row = $seat->row_label;
             $num = $seat->seat_number;
-            if (!$row || $num === null) continue;
+            if (! $row || $num === null) {
+                continue;
+            }
 
             $showtimeSeat = $showtimeSeatsBySeatId->get($seat->id);
-            if (!$showtimeSeat) {
+            if (! $showtimeSeat) {
                 // syncShowtimeSeats đáng ra đã tạo đủ, nhưng fallback cho an toàn
                 continue;
             }
@@ -75,7 +79,7 @@ class BookingController extends Controller
                 if ($isSold) {
                     $displayStatus = 'SOLD';
                 } else {
-                    $heldBy = Cache::get('seat_held_' . $showtime_id . '_' . $showtimeSeat->id);
+                    $heldBy = Cache::get('seat_held_'.$showtime_id.'_'.$showtimeSeat->id);
                     if ($heldBy) {
                         $displayStatus = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
                     } else {
@@ -85,9 +89,9 @@ class BookingController extends Controller
             }
 
             $allSeatsMatrix[$row][$num] = (object) [
-                'id'             => $showtimeSeat->id,
-                'seat'           => $seat,
-                'price'          => $showtimeSeat->price ?? $seat->base_price ?? 90000,
+                'id' => $showtimeSeat->id,
+                'seat' => $seat,
+                'price' => $showtimeSeat->price ?? $seat->base_price ?? 90000,
                 'display_status' => $displayStatus,
             ];
         }
@@ -111,19 +115,19 @@ class BookingController extends Controller
                 }
 
                 $seatMap[$row][] = [
-                    'id'        => $dbSeat->id,
-                    'code'      => $dbSeat->seat->seat_code ?? ($row . str_pad($i, 2, '0', STR_PAD_LEFT)),
-                    'price'     => (int) $dbSeat->price,
-                    'status'    => $dbSeat->display_status,
-                    'type'      => $mappedType,
-                    'label'     => $i,
-                    'is_aisle'  => ($i == 5)
+                    'id' => $dbSeat->id,
+                    'code' => $dbSeat->seat->seat_code ?? ($row.str_pad($i, 2, '0', STR_PAD_LEFT)),
+                    'price' => (int) $dbSeat->price,
+                    'status' => $dbSeat->display_status,
+                    'type' => $mappedType,
+                    'label' => $i,
+                    'is_aisle' => ($i == 5),
                 ];
             }
         }
 
         // TÍNH THỜI GIAN CÒN LẠI
-        $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtime_id;
+        $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$showtime_id;
         $secondsLeft = 300;
         if (Cache::has($masterTimerKey)) {
             $secondsLeft = max(0, Cache::get($masterTimerKey) - now()->timestamp);
@@ -145,18 +149,17 @@ class BookingController extends Controller
             ShowtimeSeat::firstOrCreate(
                 [
                     'showtime_id' => $showtime->id,
-                    'seat_id'     => $seat->id,
+                    'seat_id' => $seat->id,
                 ],
                 [
-                    'price'  => $seat->base_price ?? 90000,
+                    'price' => $seat->base_price ?? 90000,
                     'status' => 'AVAILABLE',
                 ]
             );
         }
     }
 
-
-    ///
+    // /
 
     // AJAX API xử lý giữ ghế Realtime (UC-08 bước 5)
     public function holdSeat(Request $request)
@@ -164,15 +167,15 @@ class BookingController extends Controller
         $showtimeId = $request->showtime_id;
         $seatId = $request->seat_id;
         $action = $request->action;
-        $cacheKey = 'seat_held_' . $showtimeId . '_' . $seatId;
+        $cacheKey = 'seat_held_'.$showtimeId.'_'.$seatId;
 
         if ($action === 'hold') {
             $seat = ShowtimeSeat::with('seat')->find($seatId);
-            if (!$seat || in_array($seat->seat->status ?? 'ACTIVE', ['BLOCKED', 'BROKEN'])) {
+            if (! $seat || in_array($seat->seat->status ?? 'ACTIVE', ['BLOCKED', 'BROKEN'])) {
                 return response()->json([
                     'success' => false,
                     'error_type' => 'BLOCKED',
-                    'message' => 'Ghế này hiện không thể chọn.'
+                    'message' => 'Ghế này hiện không thể chọn.',
                 ]);
             }
 
@@ -195,11 +198,11 @@ class BookingController extends Controller
             }
 
             // Key lưu thời gian giữ ghế tổng của user cho suất chiếu này
-            $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtimeId;
+            $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$showtimeId;
 
             // Nếu chưa có timer tổng
             // (nghĩa là đây là ghế đầu tiên user chọn)
-            if (!Cache::has($masterTimerKey)) {
+            if (! Cache::has($masterTimerKey)) {
 
                 // Tính thời điểm hết hạn sau 5 phút
                 $expireAt = now()->addMinutes(5);
@@ -218,7 +221,7 @@ class BookingController extends Controller
                 // Nếu timer đã tồn tại
                 // lấy lại thời điểm hết hạn cũ
                 // KHÔNG tạo mới để tránh reset về 5 phút
-                $expireAt = \Carbon\Carbon::createFromTimestamp(
+                $expireAt = Carbon::createFromTimestamp(
                     Cache::get($masterTimerKey)
                 );
             }
@@ -238,12 +241,14 @@ class BookingController extends Controller
                 // Không phải thêm 5 phút mới
                 $expireAt
             );
+
             return response()->json(['success' => true]);
         } elseif ($action === 'release') {
             // Luồng phụ A2: Bỏ chọn ghế
             if (Cache::get($cacheKey) == Auth::id()) {
                 Cache::forget($cacheKey);
             }
+
             return response()->json(['success' => true]);
         }
     }
@@ -252,7 +257,7 @@ class BookingController extends Controller
     {
         $request->validate([
             'showtime_id' => 'required',
-            'seats' => 'required|array|min:1' // BR01: Ít nhất 1 ghế
+            'seats' => 'required|array|min:1', // BR01: Ít nhất 1 ghế
         ]);
 
         $seats = ShowtimeSeat::with('seat')->whereIn('id', $request->seats)->get();
@@ -273,26 +278,26 @@ class BookingController extends Controller
 
         session([
             'booking_tam' => [
-                'showtime_id'       => $request->showtime_id,
-                'seats'             => $request->seats,
-                'seats'             => $request->seats,
+                'showtime_id' => $request->showtime_id,
+                'seats' => $request->seats,
+                'seats' => $request->seats,
 
                 // Ticket
                 'total_seat_amount' => $totalSeatAmount,
 
                 // Combo
-                'combos'            => [],
-                'total_combo_amount'=> 0,
+                'combos' => [],
+                'total_combo_amount' => 0,
 
                 // Voucher
-                'voucher_id'        => null,
-                'voucher_code'      => null,
-                'discount_amount'   => 0,
+                'voucher_id' => null,
+                'voucher_code' => null,
+                'discount_amount' => 0,
 
                 // Total
-                'subtotal'          => $totalSeatAmount,
-                'total'             => $totalSeatAmount,
-            ]
+                'subtotal' => $totalSeatAmount,
+                'total' => $totalSeatAmount,
+            ],
         ]);
 
         return redirect()->route('booking.combo');
@@ -306,12 +311,12 @@ class BookingController extends Controller
         $bookingTam = session('booking_tam');
         $combos = Combo::where('status', 'ACTIVE')->get();
 
-        if (!empty($bookingTam['showtime_id']) && !empty($bookingTam['seats'])) {
+        if (! empty($bookingTam['showtime_id']) && ! empty($bookingTam['seats'])) {
             $seatLabels = ShowtimeSeat::with('seat')
                 ->whereIn('id', $bookingTam['seats'])
                 ->get()
                 ->map(function ($item) {
-                    return $item->seat->seat_code ?? ('Ghế #' . $item->id);
+                    return $item->seat->seat_code ?? ('Ghế #'.$item->id);
                 })
                 ->values()
                 ->all();
@@ -322,80 +327,84 @@ class BookingController extends Controller
 
         return view('booking.combo', compact('combos'));
     }
-public function saveCombo(Request $request)
-{
-    $bookingTam = session()->get('booking_tam');
 
-    if (!$bookingTam) {
-        return redirect()->route('home')
-            ->with('error', 'Phiên đặt vé không tồn tại.');
-    }
+    public function saveCombo(Request $request)
+    {
+        $bookingTam = session()->get('booking_tam');
 
-    $seatCount = count($bookingTam['seats'] ?? []);
-    $confirmOverSeat = $request->boolean('confirm_over_seat');
+        if (! $bookingTam) {
+            return redirect()->route('home')
+                ->with('error', 'Phiên đặt vé không tồn tại.');
+        }
 
-    $selectedCombos = [];
-    $comboTotal = 0;
-    $comboQuantityTotal = 0;
+        $seatCount = count($bookingTam['seats'] ?? []);
+        $confirmOverSeat = $request->boolean('confirm_over_seat');
 
-    foreach ($request->input('combos', []) as $comboId => $item) {
-        $quantity = (int) ($item['quantity'] ?? 0);
+        $selectedCombos = [];
+        $comboTotal = 0;
+        $comboQuantityTotal = 0;
 
-        if ($quantity > 0) {
-            if ($quantity > 10) {
-                return back()
-                    ->withInput()
-                    ->with('error', 'Mỗi loại combo chỉ được chọn tối đa 10.');
-            }
+        foreach ($request->input('combos', []) as $comboId => $item) {
+            $quantity = (int) ($item['quantity'] ?? 0);
 
-            $combo = Combo::where('status', 'ACTIVE')->find($comboId);
+            if ($quantity > 0) {
+                if ($quantity > 10) {
+                    return back()
+                        ->withInput()
+                        ->with('error', 'Mỗi loại combo chỉ được chọn tối đa 10.');
+                }
 
-            if ($combo) {
-                $subtotal = $combo->price * $quantity;
+                $combo = Combo::where('status', 'ACTIVE')->find($comboId);
 
-                $selectedCombos[] = [
-                    'combo_id' => $combo->id,
-                    'name' => $combo->name,
-                    'quantity' => $quantity,
-                    'unit_price' => $combo->price,
-                    'total_price' => $subtotal,
-                ];
+                if ($combo) {
+                    $subtotal = $combo->price * $quantity;
 
-                $comboTotal += $subtotal;
-                $comboQuantityTotal += $quantity;
+                    $selectedCombos[] = [
+                        'combo_id' => $combo->id,
+                        'name' => $combo->name,
+                        'quantity' => $quantity,
+                        'unit_price' => $combo->price,
+                        'total_price' => $subtotal,
+                    ];
+
+                    $comboTotal += $subtotal;
+                    $comboQuantityTotal += $quantity;
+                }
             }
         }
+
+        if ($seatCount > 0 && $comboQuantityTotal > $seatCount && ! $confirmOverSeat) {
+            return back()
+                ->withInput()
+                ->with('warning', 'Bạn đang chọn combo nhiều hơn số ghế đã đặt. Bạn có chắc chắn muốn tiếp tục không?');
+        }
+
+        // 🔥 UPDATE SESSION ĐÚNG CÁCH (KHÔNG GHI ĐÈ LUNG TUNG)
+        $bookingTam['combos'] = $selectedCombos;
+        $bookingTam['total_combo_amount'] = $comboTotal;
+
+        // 🔥 BẮT BUỘC: lấy lại seat total + discount từ session hiện tại
+        $seatTotal = $bookingTam['total_seat_amount'] ?? 0;
+        $discount = $bookingTam['discount_amount'] ?? 0;
+
+        $bookingTam['subtotal'] = $seatTotal + $comboTotal;
+        $bookingTam['total'] = max(0, $bookingTam['subtotal'] - $discount);
+
+        // 🔥 QUAN TRỌNG NHẤT: dùng put (KHÔNG dùng session([...]) kiểu overwrite)
+        session()->put('booking_tam', $bookingTam);
+
+        return redirect()->route('booking.confirm');
     }
 
-    if ($seatCount > 0 && $comboQuantityTotal > $seatCount && !$confirmOverSeat) {
-        return back()
-            ->withInput()
-            ->with('warning', 'Bạn đang chọn combo nhiều hơn số ghế đã đặt. Bạn có chắc chắn muốn tiếp tục không?');
-    }
-
-    // 🔥 UPDATE SESSION ĐÚNG CÁCH (KHÔNG GHI ĐÈ LUNG TUNG)
-    $bookingTam['combos'] = $selectedCombos;
-    $bookingTam['total_combo_amount'] = $comboTotal;
-
-    // 🔥 BẮT BUỘC: lấy lại seat total + discount từ session hiện tại
-    $seatTotal = $bookingTam['total_seat_amount'] ?? 0;
-    $discount  = $bookingTam['discount_amount'] ?? 0;
-
-    $bookingTam['subtotal'] = $seatTotal + $comboTotal;
-    $bookingTam['total'] = max(0, $bookingTam['subtotal'] - $discount);
-
-    // 🔥 QUAN TRỌNG NHẤT: dùng put (KHÔNG dùng session([...]) kiểu overwrite)
-    session()->put('booking_tam', $bookingTam);
-
-    return redirect()->route('booking.confirm');
-}
     // ==========================================
     // UC-CUS-11: XÁC NHẬN ĐẶT VÉ VÀ TẠO BOOKING
     // ==========================================
     public function showConfirm()
     {
         $bookingTam = session('booking_tam');
-        if (!$bookingTam) return redirect()->route('home');
+        if (! $bookingTam) {
+            return redirect()->route('home');
+        }
 
         $showtime = Showtime::with(['movie', 'cinema', 'room'])->findOrFail($bookingTam['showtime_id']);
         $seats = ShowtimeSeat::with('seat')
@@ -407,7 +416,9 @@ public function saveCombo(Request $request)
         $totalComboPrice = $bookingTam['total_combo_amount'] ?? 0;
         $discountAmount = $bookingTam['discount_amount'] ?? 0;
         $totalPrice = $totalTicketPrice + $totalComboPrice - $discountAmount;
-        if ($totalPrice < 0) $totalPrice = 0;
+        if ($totalPrice < 0) {
+            $totalPrice = 0;
+        }
 
         return view('booking.confirm', compact(
             'showtime', 'seats', 'totalTicketPrice', 'combos',
@@ -421,11 +432,13 @@ public function saveCombo(Request $request)
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:20',
             'customer_email' => 'required|email|max:255',
-            'payment_method' => 'required|string'
+            'payment_method' => 'required|string',
         ]);
 
         $bookingTam = session('booking_tam');
-        if (!$bookingTam) return redirect()->route('home');
+        if (! $bookingTam) {
+            return redirect()->route('home');
+        }
 
         $showtimeId = $bookingTam['showtime_id'];
         $seatIds = $bookingTam['seats'];
@@ -440,10 +453,10 @@ public function saveCombo(Request $request)
 
             // E1, E4: Kiểm tra lại toàn bộ ghế
             foreach ($seatIds as $seatId) {
-                $cacheKey = 'seat_held_' . $showtimeId . '_' . $seatId;
+                $cacheKey = 'seat_held_'.$showtimeId.'_'.$seatId;
                 $heldBy = Cache::get($cacheKey);
 
-                if (!$heldBy || $heldBy != Auth::id()) {
+                if (! $heldBy || $heldBy != Auth::id()) {
                     throw new \Exception('Ghế không còn khả dụng do hết thời gian giữ (5 phút) hoặc đã bị mua.');
                 }
             }
@@ -462,7 +475,7 @@ public function saveCombo(Request $request)
             }
 
             // BR03: Mã định danh duy nhất
-            $bookingCode = strtoupper('BK' . Str::random(8));
+            $bookingCode = strtoupper('BK'.Str::random(8));
 
             // BR07: Trạng thái dựa vào phương thức thanh toán
             $paymentMethod = $request->input('payment_method', 'ONLINE');
@@ -501,7 +514,7 @@ public function saveCombo(Request $request)
                 ]);
 
                 // Giải phóng ghế khỏi Cache sau khi lưu DB thành công
-                Cache::forget('seat_held_' . $showtimeId . '_' . $seat->id);
+                Cache::forget('seat_held_'.$showtimeId.'_'.$seat->id);
             }
 
             foreach (($bookingTam['combos'] ?? []) as $comboItem) {
@@ -550,25 +563,25 @@ public function saveCombo(Request $request)
             $customerEmail = $request->input('customer_email');
 
             $sepayOrder = SepayOrder::create([
-                'order_code'   => $bookingCode,
-                'booking_id'   => $booking->id,
-                'package_id'   => 'booking',
+                'order_code' => $bookingCode,
+                'booking_id' => $booking->id,
+                'package_id' => 'booking',
                 'package_name' => 'Vé xem phim',
-                'amount'       => $finalAmount,
-                'status'       => 'pending',
-                'metadata'     => [
-                    'movie_title'    => $showtime->movie->title ?? '',
-                    'cinema'         => $showtime->cinema->name ?? '',
-                    'room'           => $showtime->room->name ?? '',
-                    'showtime'       => \Carbon\Carbon::parse($showtime->start_time)->format('H:i') . ' - ' . \Carbon\Carbon::parse($showtime->end_time)->format('H:i'),
-                    'show_date'      => \Carbon\Carbon::parse($showtime->start_time)->format('d/m/Y'),
-                    'format'         => '2D',
-                    'seats'          => $seatDetails,
-                    'seat_count'     => count($seatDetails),
-                    'combos'         => $comboDetails,
-                    'showtime_id'    => $showtimeId,
+                'amount' => $finalAmount,
+                'status' => 'pending',
+                'metadata' => [
+                    'movie_title' => $showtime->movie->title ?? '',
+                    'cinema' => $showtime->cinema->name ?? '',
+                    'room' => $showtime->room->name ?? '',
+                    'showtime' => Carbon::parse($showtime->start_time)->format('H:i').' - '.Carbon::parse($showtime->end_time)->format('H:i'),
+                    'show_date' => Carbon::parse($showtime->start_time)->format('d/m/Y'),
+                    'format' => '2D',
+                    'seats' => $seatDetails,
+                    'seat_count' => count($seatDetails),
+                    'combos' => $comboDetails,
+                    'showtime_id' => $showtimeId,
                     'customer_email' => $customerEmail,
-                    'customer_name'  => $customerName,
+                    'customer_name' => $customerName,
                     'customer_phone' => $customerPhone,
                 ],
             ]);
@@ -580,10 +593,12 @@ public function saveCombo(Request $request)
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
-                             ->with('error', 'Lỗi: ' . $e->getMessage());
+                ->with('error', 'Lỗi: '.$e->getMessage());
         }
     }
+
     /**
      * Thuật toán kiểm tra xem cấu trúc ghế khách chọn có để lại "ghế trống cô đơn" nào không.
      * Trả về true nếu PHÁT HIỆN lỗi lẻ ghế, false nếu HỢP LỆ.
@@ -608,7 +623,9 @@ public function saveCombo(Request $request)
         foreach ($allShowtimeSeats as $seat) {
             $row = $seat->seat->row_label ?? null;
             $num = $seat->seat->seat_number ?? null;
-            if (!$row || $num === null) continue;
+            if (! $row || $num === null) {
+                continue;
+            }
 
             // Nếu ghế nằm trong danh sách khách đang chọn click sended lên
             if (in_array($seat->id, $selectedSeatIds)) {
@@ -621,7 +638,7 @@ public function saveCombo(Request $request)
                     $status = 'SOLD';
                 } else {
                     // Check xem có ai khác đang giữ trong cache không
-                    $heldBy = Cache::get('seat_held_' . $showtimeId . '_' . $seat->id);
+                    $heldBy = Cache::get('seat_held_'.$showtimeId.'_'.$seat->id);
                     if ($heldBy && $heldBy != Auth::id()) {
                         $status = 'HELD';
                     } else {
