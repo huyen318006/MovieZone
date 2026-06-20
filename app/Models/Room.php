@@ -11,6 +11,7 @@ class Room extends Model
     use HasFactory;
 
     protected $fillable = [
+        'cinema_id',
         'name',
         'room_type',
         'total_seats',

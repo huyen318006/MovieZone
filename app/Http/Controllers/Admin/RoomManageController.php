@@ -59,6 +59,7 @@ class RoomManageController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateRoom($request);
+        $validated['cinema_id'] = 1;
 
         $room = Room::create($validated);
 
