@@ -32,7 +32,7 @@
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
                 <h3 class="mb-1">Quản lý ghế ngồi</h3>
-                <p class="text-muted mb-0">Chọn rạp và phòng để xem sơ đồ ghế, khóa/mở ghế hoặc cập nhật thông tin ghế.</p>
+                <p class="text-muted mb-0">Chọn phòng để xem sơ đồ ghế, khóa/mở ghế hoặc cập nhật thông tin ghế.</p>
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
 
@@ -77,19 +77,7 @@
         <div class="card border-0 shadow-sm">
             <div class="card-body p-4">
                 <form action="{{ route('admin.seats.index') }}" method="GET" class="row g-3 align-items-end">
-                    <div class="col-md-5">
-                        <label class="form-label fw-semibold">Tên rạp chiếu</label>
-                        <select name="cinema_id" class="form-select" onchange="this.form.submit()">
-                            <option value="">-- Chọn rạp chiếu --</option>
-                            @foreach ($cinemas as $cinema)
-                                <option value="{{ $cinema->id }}"
-                                    {{ request('cinema_id') == $cinema->id ? 'selected' : '' }}>
-                                    {{ $cinema->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-5">
+                    <div class="col-md-8">
                         <label class="form-label fw-semibold">Phòng chiếu</label>
                         <select name="room_id" class="form-select" onchange="this.form.submit()">
                             <option value="">-- Chọn phòng --</option>
@@ -101,7 +89,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <a href="{{ route('admin.seats.index') }}" class="btn btn-outline-secondary w-100">
                             <i class="bi bi-arrow-clockwise me-1"></i> Làm mới
                         </a>
@@ -114,14 +102,7 @@
     @if (request('room_id'))
         <div class="col-12 mt-3">
             <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="panel panel-sm">
-                        <div class="text-muted small">Rạp</div>
-                        <div class="fw-bold">{{ $rooms->firstWhere('id', request('room_id'))?->cinema?->name ?? '—' }}
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Phòng</div>
                         <div class="fw-bold">
@@ -133,13 +114,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Tổng ghế</div>
                         <div class="fw-bold">{{ count($seatsGrouped->flatten()) }}</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Tình trạng</div>
                         <div class="fw-bold text-success">Đã cấu hình</div>
@@ -170,7 +151,7 @@
                 </div>
                 <div class="col-md-3">
                     <div class="summary-card summary-blocked">
-                        <div class="summary-label">LOCKED</div>
+                        <div class="summary-label">ĐÃ KHÓA</div>
                         <div class="summary-value">
                             {{ $seatsGrouped->flatten()->whereIn('status', ['LOCKED', 'BLOCKED'])->count() }}</div>
                     </div>
@@ -179,95 +160,122 @@
         </div>
 
         <div class="col-12 mt-3">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm seat-map-card">
                 <div class="card-header bg-transparent">
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h5 class="mb-0 fw-bold">Sơ đồ ghế</h5>
-                        <div class="d-flex gap-2 flex-wrap">
-                            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal">
-                                <i class="bi bi-trash3 me-1"></i> Xóa nhiều
+                        <div>
+                            <h5 class="mb-1 fw-bold">Sơ đồ ghế</h5>
+                            <small class="text-muted">Chọn ghế trên sơ đồ để xem thông tin và thao tác.</small>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap align-items-center">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="bulkSelectModeBtn">
+                                <i class="bi bi-ui-checks-grid me-1"></i> Chọn nhiều
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" id="bulkDeleteOpenBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal" disabled>
+                                <i class="bi bi-trash3 me-1"></i> Xóa nhiều <span class="badge text-bg-danger ms-1" id="bulkDeleteCountBadge">0</span>
                             </button>
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkCreateModal">
                                 <i class="bi bi-plus-square me-1"></i> Tạo nhiều
                             </button>
                         </div>
                     </div>
-                    <div class="mt-2">
+                    <div class="mt-3">
                         <div class="legend-wrap mb-0">
                             <span class="legend-item"><span class="dot" style="background:#3b82f6"></span> STANDARD</span>
                             <span class="legend-item"><span class="dot" style="background:#eab308"></span> VIP</span>
                             <span class="legend-item"><span class="dot" style="background:#ec4899"></span> COUPLE</span>
-                            <span class="legend-item"><span class="dot" style="background:#475569"></span> LOCKED</span>
+                            <span class="legend-item"><span class="dot" style="background:#475569"></span> BLOCKED</span>
                             <span class="legend-item"><span class="dot" style="background:#ef4444"></span> BROKEN</span>
                         </div>
+                    <div class="bulk-mode-hint d-none" id="bulkModeHint">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Đang bật chế độ chọn nhiều: click ghế để chọn/bỏ chọn, sau đó bấm Xóa nhiều.
                     </div>
                 </div>
 
                 <div class="card-body p-3">
-                    <div class="cinema-screen">MÀN HÌNH</div>
+                    <div class="row g-3 align-items-start">
+                        <div class="col-12 col-xl-9">
+                            <div class="cinema-screen">MÀN HÌNH</div>
 
-                    <div class="map-wrapper seat-grid">
-                        @foreach ($seatsGrouped as $row => $seats)
-                            <div class="seat-row">
-                                <div class="row-label">{{ $row }}</div>
-                                <div class="row-seats">
-                                    @foreach ($seats as $seat)
-                                        <div class="seat-wrapper" tabindex="0">
-                                            <div class="seat-select">
-                                                <input type="checkbox" class="seat-checkbox form-check-input"
-                                                       name="seat_ids[]" value="{{ $seat->id }}" form="bulkDeleteForm"
-                                                       aria-label="Chọn ghế {{ $seat->seat_code }}">
-                                            </div>
+                            <div class="map-wrapper seat-grid">
+                                @foreach ($seatsGrouped as $row => $seats)
+                                    <div class="seat-row">
+                                        <div class="row-label">{{ $row }}</div>
+                                        <div class="row-seats">
+                                            @foreach ($seats as $seat)
+                                                @php
+                                                    $isLocked = in_array($seat->status, ['LOCKED', 'BLOCKED']);
+                                                @endphp
+                                                <div class="seat-wrapper" data-seat-wrapper="{{ $seat->id }}">
+                                                    <input type="checkbox"
+                                                           class="seat-checkbox visually-hidden"
+                                                           name="seat_ids[]"
+                                                           value="{{ $seat->id }}"
+                                                           form="bulkDeleteForm"
+                                                           aria-label="Chọn ghế {{ $seat->seat_code }}">
 
-                                            <a href="{{ route('admin.seats.edit', $seat->id) }}"
-                                               class="seat-link"
-                                               title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
-                                                <div class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}">
-                                                    {{ $seat->seat_number }}
-                                                </div>
-                                            </a>
-
-                                            <div class="seat-actions">
-                                                <form action="{{ route('admin.seats.toggle_lock', $seat->id) }}" method="POST" class="d-inline">
-                                                    @csrf
-                                                    <button type="submit" class="icon-btn"
-                                                            title="{{ in_array($seat->status, ['LOCKED', 'BLOCKED']) ? 'Mở khóa' : 'Khóa ghế' }}">
-                                                        <i class="bi {{ in_array($seat->status, ['LOCKED', 'BLOCKED']) ? 'bi-unlock-fill' : 'bi-lock-fill' }}"></i>
+                                                    <button type="button"
+                                                            class="seat-trigger"
+                                                            data-seat-id="{{ $seat->id }}"
+                                                            data-seat-code="{{ $seat->seat_code }}"
+                                                            data-seat-type="{{ $seat->seat_type }}"
+                                                            data-seat-status="{{ $seat->status }}"
+                                                            data-seat-price="{{ number_format($seat->price) }}đ"
+                                                            data-edit-url="{{ route('admin.seats.edit', $seat->id) }}"
+                                                            data-toggle-url="{{ route('admin.seats.toggle_lock', $seat->id) }}"
+                                                            data-delete-url="{{ route('admin.seats.destroy', $seat->id) }}"
+                                                            data-is-locked="{{ $isLocked ? '1' : '0' }}"
+                                                            data-is-broken="{{ $seat->status === 'BROKEN' ? '1' : '0' }}"
+                                                            title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
+                                                        <span class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}">
+                                                            <strong>{{ $seat->seat_code }}</strong>
+                                                            <small>{{ $seat->seat_type }}</small>
+                                                        </span>
                                                     </button>
-                                                </form>
-
-                                                <button type="button" class="icon-btn"
-                                                        title="Xóa ghế" data-bs-toggle="modal" data-bs-target="#deleteSeatModal{{ $seat->id }}">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div class="modal fade" id="deleteSeatModal{{ $seat->id }}" tabindex="-1">
-                                            <div class="modal-dialog modal-dialog-centered">
-                                                <div class="modal-content">
-                                                    <div class="modal-header">
-                                                        <h5 class="modal-title">Xác nhận xóa ghế</h5>
-                                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        Bạn có chắc chắn muốn xóa mềm ghế <strong>{{ $seat->seat_code }}</strong> không?
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                                                        <form action="{{ route('admin.seats.destroy', $seat->id) }}" method="POST">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="btn btn-danger">Xác nhận</button>
-                                                        </form>
-                                                    </div>
                                                 </div>
-                                            </div>
+                                            @endforeach
                                         </div>
-                                    @endforeach
-                                </div>
+                                    </div>
+                                @endforeach
                             </div>
-                        @endforeach
+                        </div>
+
+                        <div class="col-12 col-xl-3">
+                            <aside class="selected-seat-panel" id="selectedSeatPanel">
+                                <div class="selected-seat-empty" id="selectedSeatEmpty">
+                                    <i class="bi bi-hand-index-thumb"></i>
+                                    <strong>Chọn một ghế</strong>
+                                    <span>Thông tin và thao tác ghế sẽ hiển thị tại đây.</span>
+                                </div>
+
+                                <div class="selected-seat-detail d-none" id="selectedSeatDetail">
+                                    <div class="selected-seat-code" id="selectedSeatCode">—</div>
+                                    <div class="selected-seat-meta">
+                                        <span id="selectedSeatType">—</span>
+                                        <span id="selectedSeatStatus">—</span>
+                                    </div>
+                                    <div class="selected-seat-price" id="selectedSeatPrice">—</div>
+
+                                    <div class="selected-seat-actions">
+                                        <a href="#" class="btn btn-outline-primary btn-sm disabled" id="selectedSeatEditLink">
+                                            <i class="bi bi-pencil me-1"></i>Sửa ghế
+                                        </a>
+
+                                        <form method="POST" action="" id="selectedSeatToggleForm">
+                                            @csrf
+                                            <button type="submit" class="btn btn-outline-warning btn-sm w-100" id="selectedSeatToggleBtn" disabled>
+                                                <i class="bi bi-lock-fill me-1"></i>Khóa ghế
+                                            </button>
+                                        </form>
+
+                                        <button type="button" class="btn btn-outline-danger btn-sm" id="selectedSeatDeleteBtn" data-bs-toggle="modal" data-bs-target="#singleDeleteModal" disabled>
+                                            <i class="bi bi-trash me-1"></i>Xóa ghế
+                                        </button>
+                                    </div>
+                                </div>
+                            </aside>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -291,6 +299,28 @@
                             @csrf
                             <button type="submit" class="btn btn-danger" id="bulkDeleteSubmit" disabled>Xác nhận
                                 xóa</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="singleDeleteModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Xác nhận xóa ghế</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Bạn có chắc chắn muốn xóa mềm ghế <strong id="singleDeleteSeatCode">—</strong> không?
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <form id="singleDeleteForm" action="" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-danger">Xác nhận</button>
                         </form>
                     </div>
                 </div>
@@ -357,26 +387,111 @@
             });
 
             const bulkDeleteCount = document.getElementById('bulkDeleteCount');
+            const bulkDeleteCountBadge = document.getElementById('bulkDeleteCountBadge');
             const bulkDeleteSubmit = document.getElementById('bulkDeleteSubmit');
-            const seatCheckboxes = document.querySelectorAll('.seat-checkbox');
+            const bulkDeleteOpenBtn = document.getElementById('bulkDeleteOpenBtn');
+            const bulkSelectModeBtn = document.getElementById('bulkSelectModeBtn');
+            const bulkModeHint = document.getElementById('bulkModeHint');
+            const selectedSeatEmpty = document.getElementById('selectedSeatEmpty');
+            const selectedSeatDetail = document.getElementById('selectedSeatDetail');
+            const selectedSeatCode = document.getElementById('selectedSeatCode');
+            const selectedSeatType = document.getElementById('selectedSeatType');
+            const selectedSeatStatus = document.getElementById('selectedSeatStatus');
+            const selectedSeatPrice = document.getElementById('selectedSeatPrice');
+            const selectedSeatEditLink = document.getElementById('selectedSeatEditLink');
+            const selectedSeatToggleForm = document.getElementById('selectedSeatToggleForm');
+            const selectedSeatToggleBtn = document.getElementById('selectedSeatToggleBtn');
+            const selectedSeatDeleteBtn = document.getElementById('selectedSeatDeleteBtn');
+            const singleDeleteForm = document.getElementById('singleDeleteForm');
+            const singleDeleteSeatCode = document.getElementById('singleDeleteSeatCode');
+            let isBulkMode = false;
 
             function updateBulkDeleteState() {
                 const selectedCount = document.querySelectorAll('.seat-checkbox:checked').length;
                 if (bulkDeleteCount) bulkDeleteCount.textContent = selectedCount;
+                if (bulkDeleteCountBadge) bulkDeleteCountBadge.textContent = selectedCount;
                 if (bulkDeleteSubmit) bulkDeleteSubmit.disabled = selectedCount === 0;
+                if (bulkDeleteOpenBtn) bulkDeleteOpenBtn.disabled = selectedCount === 0;
             }
 
-            seatCheckboxes.forEach(function(checkbox) {
-                checkbox.addEventListener('change', updateBulkDeleteState);
-            });
+            function clearActiveSeat() {
+                document.querySelectorAll('.seat-wrapper.is-selected').forEach(function(wrapper) {
+                    wrapper.classList.remove('is-selected');
+                });
+            }
 
-            document.querySelectorAll('.seat-wrapper').forEach(function(wrapper) {
-                wrapper.addEventListener('click', function(event) {
-                    if (event.target.closest('button, a, input, form')) return;
-                    wrapper.classList.toggle('show-actions');
+            function setBulkMode(enabled) {
+                isBulkMode = enabled;
+                document.body.classList.toggle('seat-bulk-mode', enabled);
+                if (bulkModeHint) bulkModeHint.classList.toggle('d-none', !enabled);
+
+                if (bulkSelectModeBtn) {
+                    bulkSelectModeBtn.classList.toggle('btn-secondary', enabled);
+                    bulkSelectModeBtn.classList.toggle('btn-outline-secondary', !enabled);
+                    bulkSelectModeBtn.innerHTML = enabled
+                        ? '<i class="bi bi-x-circle me-1"></i> Thoát chọn nhiều'
+                        : '<i class="bi bi-ui-checks-grid me-1"></i> Chọn nhiều';
+                }
+            }
+
+            function toggleSeatForBulk(wrapper, checkbox) {
+                if (!checkbox) return;
+                checkbox.checked = !checkbox.checked;
+                wrapper.classList.toggle('is-bulk-selected', checkbox.checked);
+                updateBulkDeleteState();
+            }
+
+            document.querySelectorAll('.seat-trigger').forEach(function(trigger) {
+                trigger.addEventListener('click', function() {
+                    const wrapper = trigger.closest('.seat-wrapper');
+                    const checkbox = wrapper.querySelector('.seat-checkbox');
+                    const isLocked = trigger.dataset.isLocked === '1';
+                    const isBroken = trigger.dataset.isBroken === '1';
+
+                    if (isBulkMode) {
+                        toggleSeatForBulk(wrapper, checkbox);
+                        return;
+                    }
+
+                    clearActiveSeat();
+                    wrapper.classList.add('is-selected');
+
+                    if (selectedSeatEmpty) selectedSeatEmpty.classList.add('d-none');
+                    if (selectedSeatDetail) selectedSeatDetail.classList.remove('d-none');
+
+                    if (selectedSeatCode) selectedSeatCode.textContent = trigger.dataset.seatCode;
+                    if (selectedSeatType) selectedSeatType.textContent = trigger.dataset.seatType;
+                    if (selectedSeatStatus) selectedSeatStatus.textContent = trigger.dataset.seatStatus;
+                    if (selectedSeatPrice) selectedSeatPrice.textContent = trigger.dataset.seatPrice;
+
+                    if (selectedSeatEditLink) {
+                        selectedSeatEditLink.href = trigger.dataset.editUrl;
+                        selectedSeatEditLink.classList.remove('disabled');
+                    }
+
+                    if (selectedSeatToggleForm) selectedSeatToggleForm.action = trigger.dataset.toggleUrl;
+                    if (selectedSeatToggleBtn) {
+                        selectedSeatToggleBtn.disabled = isBroken;
+                        selectedSeatToggleBtn.innerHTML = isLocked
+                            ? '<i class="bi bi-unlock-fill me-1"></i>Mở khóa'
+                            : '<i class="bi bi-lock-fill me-1"></i>Khóa ghế';
+                    }
+
+                    if (singleDeleteForm) singleDeleteForm.action = trigger.dataset.deleteUrl;
+                    if (singleDeleteSeatCode) singleDeleteSeatCode.textContent = trigger.dataset.seatCode;
+                    if (selectedSeatDeleteBtn) selectedSeatDeleteBtn.disabled = false;
+
+                    updateBulkDeleteState();
                 });
             });
 
+            if (bulkSelectModeBtn) {
+                bulkSelectModeBtn.addEventListener('click', function() {
+                    setBulkMode(!isBulkMode);
+                });
+            }
+
+            setBulkMode(false);
             updateBulkDeleteState();
         });
     </script>
@@ -490,25 +605,70 @@
         box-shadow: 0 3px 10px rgba(15, 23, 42, .08);
     }
 
+    .seat-map-card {
+        overflow: hidden;
+    }
+
+    .seat-trigger {
+        border: 0;
+        padding: 0;
+        background: transparent;
+        display: inline-flex;
+        border-radius: 16px;
+    }
+
     .seat {
-        width: 44px;
-        height: 42px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: relative;
+        width: 58px;
+        min-height: 52px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        padding: 7px 6px;
         font-size: 11px;
         font-weight: 800;
         cursor: pointer;
         color: #fff;
-        transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+        transition: transform .14s ease, box-shadow .14s ease, filter .14s ease, outline-color .14s ease;
         box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .16), 0 4px 10px rgba(15, 23, 42, .08);
         border: 1px solid rgba(255, 255, 255, .22);
+        outline: 0 solid transparent;
     }
 
-    .seat:hover {
-        transform: translateY(-1px);
-        filter: brightness(1.04);
+    .seat strong,
+    .seat small {
+        line-height: 1.05;
+    }
+
+    .seat small {
+        font-size: 9px;
+        opacity: .78;
+    }
+
+    .seat-trigger:hover .seat {
+        transform: translateY(-2px);
+        filter: brightness(1.05);
+    }
+
+    .seat-wrapper.is-selected .seat {
+        outline: 3px solid rgba(96, 165, 250, .95);
+        box-shadow: 0 0 0 6px rgba(37, 99, 235, .16), inset 0 -3px 0 rgba(0, 0, 0, .16), 0 12px 24px rgba(15, 23, 42, .18);
+    }
+
+    .seat-wrapper.is-bulk-selected .seat::after {
+        content: "✓";
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 20px;
+        height: 20px;
+        display: grid;
+        place-items: center;
+        border-radius: 999px;
+        background: #2563eb;
+        color: #fff;
+        font-size: 12px;
+        box-shadow: 0 6px 14px rgba(37, 99, 235, .3);
     }
 
     .seat-STANDARD {
@@ -525,7 +685,7 @@
 
     .seat-COUPLE {
         background: linear-gradient(180deg, #fbcfe8 0%, #ec4899 100%);
-        width: 78px;
+        width: 88px;
         border-color: #f9a8d4;
     }
 
@@ -540,44 +700,82 @@
         color: #fff7ed;
     }
 
-    .seat-actions {
+    .selected-seat-panel {
+        position: sticky;
+        top: 92px;
+        min-height: 320px;
+        border: 1px solid rgba(148, 163, 184, .28);
+        border-radius: 18px;
+        padding: 18px;
+        background: linear-gradient(180deg, rgba(15, 23, 42, .72), rgba(15, 23, 42, .48));
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 18px 36px rgba(0, 0, 0, .14);
+    }
+
+    .selected-seat-empty {
+        min-height: 280px;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        gap: 10px;
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    .selected-seat-empty i {
+        font-size: 2rem;
+        color: #60a5fa;
+    }
+
+    .selected-seat-empty strong {
+        color: #e5e7eb;
+        font-size: 1.05rem;
+    }
+
+    .selected-seat-empty span {
+        max-width: 210px;
+        font-size: .86rem;
+    }
+
+    .selected-seat-code {
+        width: 86px;
+        height: 76px;
+        display: grid;
+        place-items: center;
+        margin-bottom: 14px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, #dbeafe 0%, #60a5fa 100%);
+        color: #0f172a;
+        font-size: 1.4rem;
+        font-weight: 900;
+        box-shadow: 0 14px 30px rgba(37, 99, 235, .22);
+    }
+
+    .selected-seat-meta {
         display: flex;
-        gap: 4px;
-        background: #fff;
-        padding: 4px;
-        border-radius: 10px;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 8px 24px rgba(15, 23, 42, .1);
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity .15s ease;
-        margin-top: 6px;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
     }
 
-    .seat-wrapper:hover .seat-actions,
-    .seat-wrapper:focus-within .seat-actions,
-    .seat-wrapper.show-actions .seat-actions {
-        opacity: 1;
-        visibility: visible;
+    .selected-seat-meta span,
+    .selected-seat-price {
+        border: 1px solid rgba(148, 163, 184, .24);
+        border-radius: 999px;
+        padding: 6px 10px;
+        color: #dbeafe;
+        background: rgba(15, 23, 42, .45);
+        font-size: .82rem;
+        font-weight: 700;
     }
 
-    .seat-actions button,
-    .seat-actions a {
-        background: none;
-        border: none;
-        color: #334155;
-        width: 30px;
-        height: 30px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background-color .15s ease;
+    .selected-seat-price {
+        display: inline-flex;
+        margin-bottom: 18px;
     }
 
-    .seat-actions button:hover,
-    .seat-actions a:hover {
-        background: #eef6ff;
+    .selected-seat-actions {
+        display: grid;
+        gap: 10px;
     }
 
     .legend-wrap {
@@ -600,6 +798,22 @@
         padding: 5px 9px;
     }
 
+    .bulk-mode-hint {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        color: #1e3a8a;
+        background: linear-gradient(90deg, #eff6ff 0%, #dbeafe 100%);
+        border: 1px solid #bfdbfe;
+        font-size: .86rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .seat-bulk-mode .seat-trigger:hover .seat {
+        outline: 3px solid rgba(37, 99, 235, .35);
+    }
+
     .dot {
         width: 9px;
         height: 9px;
@@ -613,33 +827,15 @@
         cursor: pointer;
     }
 
-    .seat-link {
-        text-decoration: none;
-        display: inline-flex;
-    }
-
     .row-seats {
         display: flex;
         gap: 10px;
         align-items: flex-start;
     }
 
-    .icon-btn {
-        background: none;
-        border: none;
-        padding: 0;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 10px;
-        color: #334155;
-        cursor: pointer;
-        transition: background-color .15s ease;
-    }
-
-    .icon-btn:hover {
-        background: #eef6ff;
+    @media (max-width: 1199.98px) {
+        .selected-seat-panel {
+            position: static;
+        }
     }
 </style>

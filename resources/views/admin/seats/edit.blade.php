@@ -8,9 +8,9 @@
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
             <h3 class="mb-1">Sửa ghế {{ $seat->seat_code }}</h3>
-            <p class="text-muted mb-0">Phòng {{ $seat->room->name }} · {{ $seat->room->cinema->name }}</p>
+            <p class="text-muted mb-0">Phòng {{ $seat->room->name }}</p>
         </div>
-        <a href="{{ route('admin.seats.index', ['cinema_id' => $seat->room->cinema_id, 'room_id' => $seat->room_id]) }}"
+        <a href="{{ route('admin.seats.index', ['room_id' => $seat->room_id]) }}"
            class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i> Quay lại
         </a>
@@ -28,25 +28,19 @@
 
 <div class="col-12 mt-3">
     <div class="row g-3">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="panel panel-sm">
                 <small class="text-muted">Mã ghế</small>
                 <div class="fw-semibold">{{ $seat->seat_code }}</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="panel panel-sm">
                 <small class="text-muted">Phòng</small>
                 <div class="fw-semibold">{{ $seat->room->name }}</div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="panel panel-sm">
-                <small class="text-muted">Rạp</small>
-                <div class="fw-semibold">{{ $seat->room->cinema->name }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="panel panel-sm">
                 <small class="text-muted">Trạng thái đang dùng</small>
                 @if($seat->status == 'ACTIVE')
@@ -107,7 +101,7 @@
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-lg me-1"></i> Cập nhật ghế
                     </button>
-                    <a href="{{ route('admin.seats.index', ['cinema_id' => $seat->room->cinema_id, 'room_id' => $seat->room_id]) }}"
+                    <a href="{{ route('admin.seats.index', ['room_id' => $seat->room_id]) }}"
                        class="btn btn-outline-secondary">Hủy</a>
                 </div>
             </form>

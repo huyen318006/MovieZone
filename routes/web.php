@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Admin\CinemaManageController;
+
 use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
@@ -92,10 +92,7 @@ Route::get('/movies', [MovieController::class, 'index'])->name('movies');
 Route::get('/showtimes', [ShowtimeController::class, 'index'])->name('showtimes');
 Route::get('/showtimes/{showtime}/select', [ShowtimeController::class, 'select'])->name('showtimes.select');
 
-// Rạp chiếu
-Route::get('/cinemas', function () {
-    return view('cinema.index');
-})->name('cinemas');
+
 
 // Chọn ghế
 
@@ -179,16 +176,7 @@ Route::controller(FilmManageController::class)->group(function () {
 
 });
 
-// Quản lý rạp - CINEMA MANAGEMENT
-Route::prefix('admin/cinemas')->name('admin.cinemas.')->group(function () {
-    Route::get('/', [CinemaManageController::class, 'index'])->name('index');
-    Route::get('/create', [CinemaManageController::class, 'create'])->name('create');
-    Route::post('/', [CinemaManageController::class, 'store'])->name('store');
-    Route::get('/{id}/edit', [CinemaManageController::class, 'edit'])->name('edit');
-    Route::put('/{id}', [CinemaManageController::class, 'update'])->name('update');
-    Route::post('/{id}/hide', [CinemaManageController::class, 'hide'])->name('hide');
-    Route::post('/{id}/restore', [CinemaManageController::class, 'restore'])->name('restore');
-});
+
 
 // Quản lý phòng chiếu - ROOM MANAGEMENT
 Route::prefix('admin/rooms')->name('admin.rooms.')->group(function () {
