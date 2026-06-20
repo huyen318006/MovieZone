@@ -11,7 +11,6 @@ use App\Models\Room;
 use App\Models\Seat;
 use App\Models\Showtime;
 use App\Models\ShowtimeSeat;
-use App\Models\SystemLog;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +19,18 @@ use Illuminate\Support\Facades\DB;
 class ShowtimeManageController extends Controller
 {
     private const MIN_GAP_MINUTES = 15;
+
+    private function hasBookingActivity(Showtime $showtime): bool
+    {
+        $hasBooking = $showtime->bookings()->exists();
+
+        $hasReservedSeat = $showtime->showtimeSeats()
+            ->whereIn('status', ['HELD', 'SOLD'])
+            ->exists();
+
+        return $hasBooking || $hasReservedSeat;
+    }
+
 
     private function currentCinema(): Cinema
     {
@@ -79,7 +90,7 @@ class ShowtimeManageController extends Controller
         $cinemaId = $this->currentCinema()->id;
 
         return Showtime::query()
-            ->with(['movie', 'room', 'cinema', 'bookings'])
+            ->with(['movie', 'room', 'cinema', 'bookings','showtimeSeats'])
             ->where('cinema_id', $cinemaId)
             ->findOrFail($id);
     }
@@ -217,6 +228,19 @@ class ShowtimeManageController extends Controller
             ->where('status', 'ACTIVE')
             ->get();
 
+        $invalidSeat = $seats->first(function ($seat) {
+            return (float) $seat->price <= 0;
+        });
+
+        if ($invalidSeat) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Phòng chiếu có ghế chưa được cấu hình giá vé hợp lệ.'
+                );
+        }
+
         if ($seats->isEmpty()) {
             return back()
                 ->withInput()
@@ -248,6 +272,7 @@ class ShowtimeManageController extends Controller
                     'updated_at' => now(),
                 ];
             }
+
             // Chạy 1 câu lệnh duy nhất thay vì lặp từng câu lệnh
             ShowtimeSeat::insert($showtimeSeatsData);
 
@@ -257,7 +282,16 @@ class ShowtimeManageController extends Controller
                 'entity_name' => 'showtime',
                 'entity_id' => (string) $showtime->id,
                 'old_value' => null,
-                'new_value' => json_encode($showtime->fresh(['movie', 'room', 'cinema'])->toArray()),
+                'new_value' => json_encode([
+                    'id' => $showtime->id,
+                    'movie_id' => $showtime->movie_id,
+                    'room_id' => $showtime->room_id,
+                    'start_time' => $showtime->start_time,
+                    'end_time' => $showtime->end_time,
+                    'format' => $showtime->format,
+                    'language_type' => $showtime->language_type,
+                    'status' => $showtime->status,
+                ]),
                 'created_at' => now(),
             ]);
 
@@ -294,8 +328,16 @@ class ShowtimeManageController extends Controller
         if ($showtime->status === 'CANCELLED') {
             return back()->with('error', 'Suất chiếu đã bị hủy, không thể chỉnh sửa.');
         }
-        if ($showtime->end_time->lessThan(now())) {
-            return back()->with('error', 'Suất chiếu trong quá khứ đã kết thúc, không thể chỉnh sửa.');
+        // BR10: nếu đã bắt đầu thì không cho chỉnh sửa
+        if ($showtime->start_time->lessThanOrEqualTo(now())) {
+            return back()->with('error', 'Suất chiếu đã bắt đầu, không thể chỉnh sửa.');
+        }
+        if ($this->hasBookingActivity($showtime)) {
+
+            return back()->with(
+                'error',
+                'Suất chiếu đã phát sinh hoạt động đặt vé nên không thể chỉnh sửa.'
+            );
         }
         // Danh sách phim
         $movies = $this->visibleMovies()->get();
@@ -333,17 +375,13 @@ class ShowtimeManageController extends Controller
         ]);
 
         $cinema = $this->currentCinema();
-
-        $showtime = Showtime::query()
-            ->with(['bookings'])
-            ->where('cinema_id', $cinema->id)
-            ->findOrFail($id);
+        $showtime = $this->loadShowtime($id);
         // Nếu suất chiểu đã bị hủy thì không thể sửa đc.
         if ($showtime->status === 'CANCELLED') {
             return back()->with('error', 'Suất chiếu đã bị hủy, không thể chỉnh sửa.');
         }
-        if ($showtime->end_time->lessThan(now())) {
-            return back()->with('error', 'Suất chiếu trong quá khứ đã kết thúc, không thể chỉnh sửa.');
+        if ($showtime->start_time->lessThanOrEqualTo(now())) {
+            return back()->with('error', 'Suất chiếu đã bắt đầu, không thể chỉnh sửa.');
         }
 
         // Lấy phim
@@ -374,7 +412,18 @@ class ShowtimeManageController extends Controller
                 );
         }
 
+        // Best practice theo BR: không cho phép đổi phòng sau khi tạo
+        if ($showtime->room_id != $room->id) {
+            return back()
+                ->withInput()
+                ->with(
+                    'error',
+                    'Không được thay đổi phòng chiếu sau khi tạo suất chiếu.'
+                );
+        }
+
         $startTime = Carbon::parse($request->start_time);
+
 
         if ($startTime->lessThanOrEqualTo(now())) {
             return back()
@@ -396,24 +445,12 @@ class ShowtimeManageController extends Controller
 
         $endTime = $startTime->copy()->addMinutes((int) $movie->duration_minutes);
 
-        $criticalFieldsChanged = $showtime->movie_id != $movie->id
-            || $showtime->room_id != $room->id
-            || $showtime->format != $request->format
-            || ! $showtime->start_time->equalTo($startTime)
-            || ! $showtime->end_time->equalTo($endTime);
+        if ($this->hasBookingActivity($showtime)) {
 
-        if ($showtime->bookings->count() > 0 && $criticalFieldsChanged) {
             return back()
                 ->withInput()
-                ->with('error', 'Suất chiếu đã có booking nên không thể đổi phim, phòng hoặc thời gian.');
+                ->with('error', 'Suất chiếu đã phát sinh hoạt động đặt vé nên không thể chỉnh sửa.');
         }
-
-        if ($showtime->start_time->lessThanOrEqualTo(now()) && $criticalFieldsChanged) {
-            return back()
-                ->withInput()
-                ->with('error', 'Suất chiếu đã bắt đầu nên không thể đổi phim, phòng hoặc thời gian.');
-        }
-
         $conflict = $this->hasScheduleConflict($room, $startTime, $endTime, $showtime->id);
 
         if ($conflict) {
@@ -439,8 +476,6 @@ class ShowtimeManageController extends Controller
                 'format' => $request->format,
                 'language_type' => $request->language_type,
             ]);
-
-            $after = $showtime->only(['id', 'movie_id', 'room_id', 'start_time', 'end_time', 'format', 'status']);
 
             AuditLog::create([
                 'user_id' => Auth::id(),
@@ -521,7 +556,14 @@ class ShowtimeManageController extends Controller
             $before = $showtime->only(['id', 'movie_id', 'cinema_id', 'room_id', 'start_time', 'end_time', 'status', 'cancel_reason', 'cancelled_at']);
 
             // BR10: cảnh báo nếu đã có booking
-            $hasBooking = $showtime->bookings->count() > 0;
+            if ($this->hasBookingActivity($showtime)) {
+                DB::rollBack();
+
+                return back()->with(
+                    'error',
+                    'Không thể hủy suất chiếu vì đã phát sinh hoạt động đặt vé.'
+                );
+            }
 
             // Update trạng thái
             $showtime->update([
@@ -529,6 +571,7 @@ class ShowtimeManageController extends Controller
                 'cancel_reason' => $request->reason,
                 'cancelled_at' => now(),
             ]);
+
 
             // Lấy lại dữ liệu mới sau khi update (chỉ lấy các trường cốt lõi)
             $after = [
@@ -560,10 +603,9 @@ class ShowtimeManageController extends Controller
                 ->route('admin.showtime')
                 ->with(
                     'success',
-                    $hasBooking
-                        ? 'Hủy suất chiếu thành công (đã có booking trước đó).'
-                        : 'Hủy suất chiếu thành công.'
+                    'Hủy suất chiếu thành công.'
                 );
+
 
         } catch (\Exception $e) {
             DB::rollBack();
