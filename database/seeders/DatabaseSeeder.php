@@ -43,6 +43,7 @@ class DatabaseSeeder extends Seeder
     MovieGenreSeeder::class,
 
     // Cinema structure
+    CinemaSeeder::class,
     RoomSeeder::class,
     SeatSeeder::class,
 

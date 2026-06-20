@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Cinema;
 use App\Models\Room;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -16,37 +17,29 @@ class RoomSeeder extends Seeder
         // ==================== SEEDER ROOM - DỄ MỞ RỘNG ====================//
         Room::query()->delete();
 
-        $roomData = [
-            [
-                'name'        => 'Room 1',
-                'room_type'   => '2D',
-                'total_seats' => 120,
-            ],
-            [
-                'name'        => 'Room 2',
-                'room_type'   => '3D',
-                'total_seats' => 140,
-            ],
-            [
-                'name'        => 'Room 3',
-                'room_type'   => 'IMAX',
-                'total_seats' => 160,
-            ],
-            [
-                'name'        => 'Room 4',
-                'room_type'   => 'VIP',
-                'total_seats' => 80,
-            ],
-            [
-                'name'        => 'Room 5',
-                'room_type'   => '4DX',
-                'total_seats' => 100,
-            ],
+        $cinemas = Cinema::all();
+
+        if ($cinemas->isEmpty()) {
+            $this->command->warn('Không có cinema');
+            return;
+        }
+
+        $data = [
+            ['name' => 'Room 1', 'room_type' => '2D', 'total_seats' => 120],
+            ['name' => 'Room 2', 'room_type' => '3D', 'total_seats' => 140],
+            ['name' => 'Room 3', 'room_type' => 'IMAX', 'total_seats' => 160],
+            ['name' => 'Room 4', 'room_type' => 'VIP', 'total_seats' => 80],
+            ['name' => 'Room 5', 'room_type' => '4DX', 'total_seats' => 100],
         ];
 
         $rooms = [];
-        foreach ($roomData as $room) {
+
+        foreach ($data as $i => $room) {
+
+            $cinema = $cinemas->random();
+
             $rooms[] = [
+                'cinema_id'   => $cinema->id,
                 'name'        => $room['name'],
                 'room_type'   => $room['room_type'],
                 'total_seats' => $room['total_seats'],
