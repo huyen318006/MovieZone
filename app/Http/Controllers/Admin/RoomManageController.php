@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
+use App\Models\Booking;
 use App\Models\Room;
+use App\Models\ShowtimeSeat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -41,6 +43,19 @@ class RoomManageController extends Controller
         $rooms = $query->orderBy('name')
             ->paginate(10)
             ->appends($request->query());
+
+        // Tính toán thông tin ràng buộc cho từng phòng
+        foreach ($rooms as $room) {
+            $roomConstraints = $this->getRoomConstraints($room);
+            $room->held_seats_count = $roomConstraints['held_seats_count'];
+            $room->sold_seats_count = $roomConstraints['sold_seats_count'];
+            $room->active_bookings_count = $roomConstraints['active_bookings_count'];
+            $room->is_currently_showing = $roomConstraints['is_currently_showing'];
+            $room->is_about_to_show = $roomConstraints['is_about_to_show'];
+            $room->block_reasons = $roomConstraints['block_reasons'];
+            $room->can_hide = empty($roomConstraints['block_reasons']);
+            $room->can_edit_important = empty($roomConstraints['block_reasons']);
+        }
 
         return view('admin.room.index', compact('rooms'));
     }
@@ -79,7 +94,10 @@ class RoomManageController extends Controller
                     ->where('status', '!=', 'CANCELLED');
             }]);
 
-        return view('admin.room.edit', compact('room'));
+        // Lấy thông tin ràng buộc chi tiết
+        $constraints = $this->getRoomConstraints($room);
+
+        return view('admin.room.edit', compact('room', 'constraints'));
     }
 
     /**
@@ -89,12 +107,28 @@ class RoomManageController extends Controller
     {
         $validated = $this->validateRoom($request, $room);
         $oldValue = $room->toArray();
-        $hasUpcomingShowtimes = $this->hasUpcomingShowtimes($room);
+        $constraints = $this->getRoomConstraints($room);
+        $blockReasons = $constraints['block_reasons'];
 
-        if ($hasUpcomingShowtimes && $this->changesImportantFields($room, $validated)) {
+        // Nếu phòng đang chiếu hoặc sắp chiếu → chặn sửa hoàn toàn
+        if ($constraints['is_currently_showing']) {
             return back()
                 ->withInput()
-                ->with('error', 'Phòng đang có suất chiếu chưa diễn ra. Vui lòng xử lý suất chiếu liên quan trước khi sửa sức chứa hoặc ẩn phòng.');
+                ->with('error', 'Phòng đang có suất chiếu đang diễn ra. Không thể sửa thông tin phòng lúc này.');
+        }
+
+        if ($constraints['is_about_to_show']) {
+            return back()
+                ->withInput()
+                ->with('error', 'Phòng có suất chiếu sắp bắt đầu trong 30 phút. Không thể sửa thông tin phòng lúc này.');
+        }
+
+        // Nếu thay đổi trường quan trọng → kiểm tra tất cả điều kiện
+        if ($this->changesImportantFields($room, $validated) && !empty($blockReasons)) {
+            $reasonText = implode('; ', $blockReasons);
+            return back()
+                ->withInput()
+                ->with('error', 'Không thể thay đổi sức chứa hoặc ẩn phòng. Lý do: ' . $reasonText);
         }
 
         $room->update($validated);
@@ -115,9 +149,13 @@ class RoomManageController extends Controller
                 ->with('error', 'Phòng chiếu "' . $room->name . '" đã ở trạng thái ẩn.');
         }
 
-        if ($this->hasUpcomingShowtimes($room)) {
+        $constraints = $this->getRoomConstraints($room);
+        $blockReasons = $constraints['block_reasons'];
+
+        if (!empty($blockReasons)) {
+            $reasonText = implode(' | ', $blockReasons);
             return redirect()->route('admin.rooms.index')
-                ->with('error', 'Phòng "' . $room->name . '" đang có suất chiếu chưa diễn ra. Vui lòng xử lý suất chiếu liên quan trước khi ẩn phòng.');
+                ->with('error', 'Không thể ẩn phòng "' . $room->name . '". Lý do: ' . $reasonText);
         }
 
         $oldValue = $room->toArray();
@@ -160,6 +198,55 @@ class RoomManageController extends Controller
         $seatRows = $room->seats->groupBy('row_label');
 
         return view('admin.room.seats', compact('room', 'seatRows'));
+    }
+
+    /**
+     * Lấy tất cả thông tin ràng buộc và lý do chặn của phòng.
+     */
+    private function getRoomConstraints(Room $room): array
+    {
+        $isCurrentlyShowing = $room->currentlyShowingShowtimes()->exists();
+        $isAboutToShow = $room->aboutToStartShowtimes()->exists();
+        $heldSeatsCount = $room->heldSeatsCount();
+        $soldSeatsCount = $room->soldSeatsCount();
+        $activeBookingsCount = $room->activeBookingsCount();
+        $upcomingShowtimesCount = $room->upcomingShowtimes()->count();
+
+        $blockReasons = [];
+
+        if ($isCurrentlyShowing) {
+            $blockReasons[] = 'Phòng đang có suất chiếu đang diễn ra';
+        }
+
+        if ($isAboutToShow) {
+            $blockReasons[] = 'Phòng có suất chiếu sắp bắt đầu trong 30 phút';
+        }
+
+        if ($heldSeatsCount > 0) {
+            $blockReasons[] = 'Phòng đang có ' . $heldSeatsCount . ' ghế đang được giữ bởi khách hàng';
+        }
+
+        if ($soldSeatsCount > 0) {
+            $blockReasons[] = 'Phòng đang có ' . $soldSeatsCount . ' vé đã bán cho suất chiếu chưa diễn ra';
+        }
+
+        if ($activeBookingsCount > 0) {
+            $blockReasons[] = 'Phòng đang có ' . $activeBookingsCount . ' đơn đặt vé chưa hoàn tất';
+        }
+
+        if ($upcomingShowtimesCount > 0 && !$isCurrentlyShowing && !$isAboutToShow) {
+            $blockReasons[] = 'Phòng đang có ' . $upcomingShowtimesCount . ' suất chiếu chưa diễn ra';
+        }
+
+        return [
+            'is_currently_showing' => $isCurrentlyShowing,
+            'is_about_to_show' => $isAboutToShow,
+            'held_seats_count' => $heldSeatsCount,
+            'sold_seats_count' => $soldSeatsCount,
+            'active_bookings_count' => $activeBookingsCount,
+            'upcoming_showtimes_count' => $upcomingShowtimesCount,
+            'block_reasons' => $blockReasons,
+        ];
     }
 
     private function validateRoom(Request $request, ?Room $room = null): array
