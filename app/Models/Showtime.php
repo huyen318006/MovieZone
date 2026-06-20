@@ -27,6 +27,13 @@ class Showtime extends Model
         'end_time' => 'datetime',
         'cancelled_at' => 'datetime',
     ];
+
+
+
+    public function cinema()
+    {
+        return $this->belongsTo(Cinema::class);
+    }
     public function movie()
     {
         return $this->belongsTo(Movie::class);

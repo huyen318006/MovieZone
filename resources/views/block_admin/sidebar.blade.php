@@ -36,10 +36,10 @@
             Quản lý phòng chiếu
         </a>
 
-        <a class="nav-link {{ Request::routeIs('admin.seats.*') ? 'active' : '' }}" href="{{ route('admin.seats.index') }}">
+        {{-- <a class="nav-link {{ Request::routeIs('admin.seats.*') ? 'active' : '' }}" href="{{ route('admin.seats.index') }}">
             <i class="bi bi-grid-3x3-gap"></i>
              Ghế ngồi
-        </a>
+        </a> --}}
 
         <a class="nav-link" href="{{ route('admin.showtime') }}">
             <i class="bi bi-calendar-event"></i>

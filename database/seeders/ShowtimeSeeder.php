@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Cinema;
 use App\Models\Showtime;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -14,6 +15,8 @@ class ShowtimeSeeder extends Seeder
     public function run(): void
     {
         Showtime::query()->delete();
+        $cinemas = 1;
+
 
         $showtimes = [];
 
@@ -22,6 +25,7 @@ class ShowtimeSeeder extends Seeder
 
             $showtimes[] = [
                 'movie_id' => rand(1, 5),
+                'cinema_id' => $cinemas,
                 'room_id' => rand(1, 5),
                 'start_time' => $start,
                 'end_time' => $start->copy()->addHours(2),

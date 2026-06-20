@@ -171,6 +171,7 @@ class FilmManageController extends Controller
         if ($request->hasFile('banner')) {
             $banner = $request->file('banner')?->store('banner_film', 'public');
         }
+        // dd($poster);
 
 
         $movie = Movie::create([
@@ -192,6 +193,7 @@ class FilmManageController extends Controller
             'banner_url' => $banner,
             'trailer_url' => $request->trailer_url ?? null,
         ]);
+        // dd($movie);
         $movie->genres()->sync($request->input('genres', []));
 
 
@@ -438,6 +440,8 @@ class FilmManageController extends Controller
                     ->whereIn('status', ['PAID', 'PENDING'])
                     ->with(['user', 'showtime.movie'])   // ← Thêm dòng này
                     ->get();
+
+
 
                 // 5. Hủy các đơn hàng và chuyển trạng thái thanh toán của đơn PAID sang REFUNDED (hoàn tiền)
                 foreach ($bookings as $b) {

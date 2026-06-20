@@ -29,3 +29,4 @@ class Cinema extends Model
         return $this->hasMany(Showtime::class);
     }
 }
+//banner_film

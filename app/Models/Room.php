@@ -27,6 +27,12 @@ class Room extends Model
         return $this->hasMany(Showtime::class);
     }
 
+    // 🏢 Room thuộc về Cinema
+    public function cinema()
+    {
+        return $this->belongsTo(Cinema::class);
+    }
+
     public function seats()
     {
         return $this->hasMany(Seat::class);
