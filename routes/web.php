@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Admin\SeatManageController;
+use App\Http\Controllers\Admin\ShowtimeManageController;
 use App\Http\Controllers\FilmManageController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
@@ -189,6 +190,28 @@ Route::prefix('admin/rooms')->name('admin.rooms.')->group(function () {
     Route::get('/{room}/seats', [RoomManageController::class, 'seats'])->name('seats');
 });
 
+// QUẢN LÝ SUẤT CHIẾU - SHOWTIME MANAGEMENT
+Route::controller(ShowtimeManageController::class)->group(function () {
+    // Danh sách suất chiếu
+    Route::get('/admin/showtime/management', 'listShowtime')->name('admin.showtime');
+    // Form thêm suất chiếu
+    Route::get('/admin/showtime/store', 'formAdd')->name('admin.showtime.add');
+    // Lưu suất chiếu
+    Route::post('/admin/showtime/store', 'store')->name('admin.store.showtime');
+    // Form sửa suất chiếu
+    Route::get('/admin/view/update/showtime/{id}', 'viewUpdate')->name('admin.view.update.showtime');
+    // Cập nhật suất chiếu
+    Route::post('/admin/update/showtime/{id}', 'update')->name('update.showtime');
+    // Xem chi tiết suất chiếu
+    Route::get('/admin/showtime/detail/{id}', 'detail')->name('detail.showtime');
+    // Xác nhận hủy suất chiếu
+    Route::get('/admin/showtime/{id}/confirm-cancel', 'confirmCancel')->name('admin.showtime.confirm_cancel');
+    // Thực hiện hủy suất chiếu
+    Route::post('/admin/showtime/{id}/cancel', 'cancel')->name('admin.showtime.cancel');
+    // API kiểm tra trùng lịch
+    Route::post('/showtimes/check-conflict', 'checkConflict')->name('admin.showtimes.check-conflict');
+});
+// =====================================================================//
 
 // Route::get('/admin/my-tickets', function () {
 //     return view('ticket.index');

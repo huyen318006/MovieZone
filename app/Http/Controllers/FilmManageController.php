@@ -436,6 +436,7 @@ class FilmManageController extends Controller
                 // 4. Lấy các đơn đặt vé (PAID hoặc PENDING) liên quan đến các suất chiếu bị hủy
                 $bookings = Booking::whereIn('showtime_id', $showtimeIds)
                     ->whereIn('status', ['PAID', 'PENDING'])
+                    ->with(['user', 'showtime.movie'])   // ← Thêm dòng này
                     ->get();
 
                 // 5. Hủy các đơn hàng và chuyển trạng thái thanh toán của đơn PAID sang REFUNDED (hoàn tiền)
@@ -450,21 +451,31 @@ class FilmManageController extends Controller
 
                     // KHÔNG gửi mail trực tiếp ở đây nữa. Gom đơn hàng vào mảng tạm
                     if ($b->user && $b->user->email) {
-                        $bookingsToEmail[] = $b;
+                        $userId = $b->user_id;
+
+                        if (!isset($bookingsToEmail[$userId])) {
+                            $bookingsToEmail[$userId] = [
+                                'user' => $b->user,
+                                'bookings' => []
+                            ];
+                        }
+                        $bookingsToEmail[$userId]['bookings'][] = $b;
+
+
                     }
                 }
             });
 
             // --- ĐƯA LUỒNG GỬI MAIL RA NGOÀI TRANSACTION VÀ VÒNG LẶP CẬP NHẬT DB ---
             // Hệ thống sẽ gửi tuần tự, nếu có độ trễ nhỏ giữa các mail cũng không làm ảnh hưởng đến dữ liệu DB
-            foreach ($bookingsToEmail as $booking) {
+            foreach ($bookingsToEmail as $data) {
                 try {
-                    Mail::to($booking->user->email)->send(new FilmCancelledNotification($booking));
+                    Mail::to($data['user']->email)->send(new FilmCancelledNotification($data['bookings']));
 
                     // Thêm một khoảng trễ cực nhỏ (0.5 giây) để tránh việc ép Mail Server của Google nhận request quá dồn dập
                     usleep(500000);
                 } catch (\Exception $e) {
-                    Log::error("Lỗi gửi mail cho đơn hàng số " . $booking->id . ": " . $e->getMessage());
+                    Log::error("Lỗi gửi mail cho đơn hàng số " . $data['bookings']->id . ": " . $e->getMessage());
                 }
             }
 

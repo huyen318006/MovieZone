@@ -91,7 +91,7 @@
                             <tr>
                                 <td>{{ $rooms->firstItem() + $i }}</td>
                                 <td>
-                                    <a href="{{ route('admin.rooms.seats', $room) }}" class="fw-semibold text-decoration-none">
+                                    <a href="{{ route('admin.seats.index', ['room_id' => $room->id]) }}" class="fw-semibold text-decoration-none">
                                         {{ $room->name }}
                                     </a>
                                     {{-- Badge trạng thái hoạt động chi tiết --}}
@@ -146,7 +146,7 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2 flex-wrap">
-                                        <a href="{{ route('admin.rooms.seats', $room) }}" class="btn btn-outline-info btn-sm">
+                                        <a href="{{ route('admin.seats.index', ['room_id' => $room->id]) }}" class="btn btn-outline-info btn-sm">
                                             <i class="bi bi-grid-3x3-gap"></i> Sơ đồ ghế
                                         </a>
                                         <a href="{{ route('admin.rooms.edit', $room) }}" class="btn btn-outline-primary btn-sm">

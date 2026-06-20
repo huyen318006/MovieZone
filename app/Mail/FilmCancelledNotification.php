@@ -17,12 +17,12 @@ class FilmCancelledNotification extends Mailable
 
 
 
-    public $booking;
+    public $bookings;
 
     // Nhận dữ liệu đơn hàng được truyền từ Controller sang
-    public function __construct(Booking $booking)
+    public function __construct($bookings)
     {
-        $this->booking = $booking;
+        $this->bookings = $bookings;
     }
 
     public function build()

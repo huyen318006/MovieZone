@@ -45,7 +45,7 @@
                         <form method="GET" action="{{ route('admin.film') }}">
                             <div class="d-flex gap-2 align-items-center">
 
-                                <h5 class="mb-0">Tìm kiếm</h5>
+                                <h5 class="mb-0"></h5>
 
                                 {{-- Genre --}}
                                 <select name="genre" class="form-select form-select-sm" style="width: 180px;"
