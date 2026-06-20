@@ -37,8 +37,7 @@ class ShowtimeSeatSeeder extends Seeder
                 }
 
                 // Lấy giá từ bảng TicketPrice (ưu tiên)
-                $priceRecord = TicketPrice::where('cinema_id', $showtime->cinema_id)
-                    ->where('seat_type', $seatType)
+                $priceRecord = TicketPrice::where('seat_type', $seatType)
                     ->first();
 
                 if ($priceRecord) {

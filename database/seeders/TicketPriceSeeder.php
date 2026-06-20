@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Cinema;
 use App\Models\TicketPrice;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -18,7 +17,6 @@ class TicketPriceSeeder extends Seeder
         TicketPrice::query()->delete();
 
         // 2. Định nghĩa các tập thuộc tính để chạy vòng lặp sinh ma trận
-        $cinemas = [1]; // Thêm các ID rạp khác vào đây nếu cậu có nhiều rạp
         $roomTypes = ['STANDARD', 'VIP']; 
         $dayTypes = ['WEEKDAY', 'WEEKEND']; 
         $timeTypes = ['MORNING', 'AFTERNOON', 'EVENING']; 
@@ -33,28 +31,25 @@ class TicketPriceSeeder extends Seeder
         $ticketPrices = [];
 
         // 4. Vòng lặp tự động tạo ra tất cả các trường hợp có thể xảy ra khi chọn ghế
-        foreach ($cinemas as $cinemaId) {
-            foreach ($roomTypes as $roomType) {
-                foreach ($basePrices as $seatType => $price) {
-                    foreach ($dayTypes as $dayType) {
-                        foreach ($timeTypes as $timeType) {
-                            
-                            // Giữ nguyên mức giá cơ sở cậu muốn (80k - 150k - 250k) cho tất cả các khung giờ
-                            // (Nếu muốn cuối tuần hay buổi tối tăng giá thì cậu cộng thêm ở đây, còn đồ án muốn chính xác giá đó thì giữ nguyên $price)
-                            $finalPrice = $price; 
+        foreach ($roomTypes as $roomType) {
+            foreach ($basePrices as $seatType => $price) {
+                foreach ($dayTypes as $dayType) {
+                    foreach ($timeTypes as $timeType) {
+                        
+                        // Giữ nguyên mức giá cơ sở cậu muốn (80k - 150k - 250k) cho tất cả các khung giờ
+                        // (Nếu muốn cuối tuần hay buổi tối tăng giá thì cậu cộng thêm ở đây, còn đồ án muốn chính xác giá đó thì giữ nguyên $price)
+                        $finalPrice = $price; 
 
-                            $ticketPrices[] = [
-                                'cinema_id' => Cinema::first()->id,
-                                'room_type'  => $roomType,
-                                'seat_type'  => $seatType,
-                                'day_type'   => $dayType,
-                                'time_type'  => $timeType,
-                                'price'      => $finalPrice,
-                                'status'     => 'ACTIVE',
-                                'created_at' => now(),
-                                'updated_at' => now(),
-                            ];
-                        }
+                        $ticketPrices[] = [
+                            'room_type'  => $roomType,
+                            'seat_type'  => $seatType,
+                            'day_type'   => $dayType,
+                            'time_type'  => $timeType,
+                            'price'      => $finalPrice,
+                            'status'     => 'ACTIVE',
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
                     }
                 }
             }

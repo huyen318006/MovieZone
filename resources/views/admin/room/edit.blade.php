@@ -8,9 +8,9 @@
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
             <h3 class="mb-1">Sửa phòng chiếu</h3>
-            <p class="text-muted mb-0">Cập nhật thông tin phòng thuộc rạp {{ $room->cinema?->name }}.</p>
+            <p class="text-muted mb-0">Cập nhật thông tin phòng chiếu.</p>
         </div>
-        <a href="{{ route('admin.rooms.index', ['cinema' => $room->cinema_id]) }}" class="btn btn-outline-secondary">
+        <a href="{{ route('admin.rooms.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Quay lại danh sách
         </a>
     </div>
@@ -38,12 +38,6 @@
     <div class="row g-3">
         <div class="col-auto">
             <div class="card card-body py-2 px-3">
-                <small class="text-muted">Rạp</small>
-                <span class="fw-semibold">{{ $room->cinema?->name ?? '—' }}</span>
-            </div>
-        </div>
-        <div class="col-auto">
-            <div class="card card-body py-2 px-3">
                 <small class="text-muted">Ghế đã cấu hình</small>
                 <span class="fw-semibold"><i class="bi bi-grid-3x3-gap me-1"></i>{{ $room->seats_count }} ghế</span>
             </div>
@@ -67,7 +61,7 @@
     <div class="col-12 mt-3">
         <div class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-1"></i>
-            Phòng này đang có {{ $room->upcoming_showtimes_count }} suất chiếu chưa diễn ra. Hệ thống sẽ chặn thay đổi rạp, sức chứa hoặc chuyển phòng sang trạng thái đã ẩn.
+            Phòng này đang có {{ $room->upcoming_showtimes_count }} suất chiếu chưa diễn ra. Hệ thống sẽ chặn thay đổi sức chứa hoặc chuyển phòng sang trạng thái đã ẩn.
         </div>
     </div>
 @endif
@@ -86,20 +80,6 @@
 
                 <div class="row g-3">
                     <div class="col-12 col-md-6">
-                        <label for="cinema_id" class="form-label">Rạp <span class="text-danger">*</span></label>
-                        <select id="cinema_id" name="cinema_id" class="form-select @error('cinema_id') is-invalid @enderror" required>
-                            @foreach($cinemas as $cinema)
-                                <option value="{{ $cinema->id }}" {{ old('cinema_id', $room->cinema_id) == $cinema->id ? 'selected' : '' }}>
-                                    {{ $cinema->name }} - {{ $cinema->city }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('cinema_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="col-12 col-md-6">
                         <label for="name" class="form-label">Tên phòng <span class="text-danger">*</span></label>
                         <input type="text" id="name" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $room->name) }}" required>
                         @error('name')
@@ -107,7 +87,7 @@
                         @enderror
                     </div>
 
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-6">
                         <label for="room_type" class="form-label">Loại phòng <span class="text-danger">*</span></label>
                         <input type="text" id="room_type" name="room_type" class="form-control @error('room_type') is-invalid @enderror" value="{{ old('room_type', $room->room_type) }}" required>
                         @error('room_type')
@@ -115,7 +95,7 @@
                         @enderror
                     </div>
 
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-6">
                         <label for="total_seats" class="form-label">Sức chứa <span class="text-danger">*</span></label>
                         <input type="number" id="total_seats" name="total_seats" class="form-control @error('total_seats') is-invalid @enderror" value="{{ old('total_seats', $room->total_seats) }}" min="1" required>
                         @error('total_seats')
@@ -128,7 +108,7 @@
                         @endif
                     </div>
 
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-6">
                         <label for="status" class="form-label">Trạng thái <span class="text-danger">*</span></label>
                         <select id="status" name="status" class="form-select @error('status') is-invalid @enderror" required>
                             <option value="ACTIVE" {{ old('status', $room->status) == 'ACTIVE' ? 'selected' : '' }}>Hoạt động</option>
@@ -148,7 +128,7 @@
                     <a href="{{ route('admin.rooms.seats', $room) }}" class="btn btn-outline-info">
                         <i class="bi bi-grid-3x3-gap me-1"></i> Xem sơ đồ ghế
                     </a>
-                    <a href="{{ route('admin.rooms.index', ['cinema' => $room->cinema_id]) }}" class="btn btn-outline-secondary">
+                    <a href="{{ route('admin.rooms.index') }}" class="btn btn-outline-secondary">
                         Huỷ bỏ
                     </a>
                 </div>

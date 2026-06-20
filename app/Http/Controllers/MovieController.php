@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Cinema;
+
 use App\Models\Genre;
 use App\Models\Movie;
 use Illuminate\Http\Request;
@@ -16,7 +16,6 @@ class MovieController extends Controller
             'genre',
             'age_rating',
             'language',
-            'cinema',
             'status',
         ]);
 
@@ -42,11 +41,7 @@ class MovieController extends Controller
                 ->when($filters['language'] ?? null, function ($query, $language) {
                     $query->where('language', $language);
                 })
-                ->when($filters['cinema'] ?? null, function ($query, $cinemaId) {
-                    $query->whereHas('showtimes', function ($showtimeQuery) use ($cinemaId) {
-                        $showtimeQuery->where('cinema_id', $cinemaId);
-                    });
-                })
+
                 ->when($filters['status'] ?? null, function ($query, $status) use ($allowedStatuses) {
                     if (in_array($status, $allowedStatuses, true)) {
                         $query->where('status', $status);
@@ -57,10 +52,7 @@ class MovieController extends Controller
             $movies = $moviesQuery->paginate(12)->withQueryString();
 
             $genres = Genre::query()->orderBy('name')->get();
-            $cinemas = Cinema::query()
-                ->where('status', 'ACTIVE')
-                ->orderBy('name')
-                ->get();
+
             $ageRatings = Movie::query()
                 ->visible()
                 ->whereNotNull('age_rating')
@@ -77,7 +69,6 @@ class MovieController extends Controller
             return view('movie.index', compact(
                 'movies',
                 'genres',
-                'cinemas',
                 'ageRatings',
                 'languages',
                 'filters',
@@ -89,7 +80,6 @@ class MovieController extends Controller
             return view('movie.index', [
                 'movies' => collect(),
                 'genres' => collect(),
-                'cinemas' => collect(),
                 'ageRatings' => collect(),
                 'languages' => collect(),
                 'filters' => $filters,
@@ -108,7 +98,7 @@ class MovieController extends Controller
                 'showtimes' => function ($query) {
                     $query->where('status', 'OPEN')
                         ->where('start_time', '>=', now())
-                        ->with(['cinema', 'room'])
+                        ->with(['room'])
                         ->orderBy('start_time')
                         ->limit(8);
                 },
