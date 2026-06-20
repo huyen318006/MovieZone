@@ -188,13 +188,26 @@ class ShowtimeManageController extends Controller
             ->where('status', 'ACTIVE')
             ->findOrFail($request->room_id);
 
-        $startTime = Carbon::parse($request->start_time);
+        // start_time từ input datetime-local sẽ có dạng 'YYYY-MM-DDTHH:mm'
+        // Carbon::parse có thể hiểu sai timezone/định dạng trên một số máy.
+        // Ép sang cùng format rõ ràng và so sánh với now() theo thời gian hệ thống.
+        try {
+            // datetime-local thường có dạng: YYYY-MM-DDTHH:mm
+            $startTime = Carbon::createFromFormat(
+                'Y-m-d\TH:i',
+                (string) $request->start_time,
+                config('app.timezone')
+            );
+        } catch (\Throwable $e) {
+            $startTime = Carbon::parse($request->start_time);
+        }
         $now = now();
 
-        if ($startTime->lessThanOrEqualTo($now)) {
+        // Cho phép start_time bằng thời điểm hiện tại (tùy business), tránh báo lỗi sai do chênh vài ms/giây.
+        if ($startTime->lt($now)) {
             return back()
                 ->withInput()
-                ->with('error', 'Thời gian bắt đầu phải lớn hơn thời điểm hiện tại.');
+                ->with('error', 'Thời gian bắt đầu phải lớn hơn hoặc bằng thời điểm hiện tại.');
         }
 
         if ((int) $movie->duration_minutes <= 0) {
@@ -302,10 +315,14 @@ class ShowtimeManageController extends Controller
                 ->with('success', 'Tạo suất chiếu thành công.');
         } catch (\Throwable $e) {
             DB::rollBack();
-
-            return back()
-                ->withInput()
-                ->with('error', 'Có lỗi xảy ra khi tạo suất chiếu.');
+            dd(
+                $e->getMessage(),
+                $e->getFile(),
+                $e->getLine()
+            );
+        //     return back()
+        //         ->withInput()
+        //         ->with('error', 'Có lỗi xảy ra khi tạo suất chiếu.');
         }
     }
 
