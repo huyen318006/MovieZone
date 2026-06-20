@@ -19,8 +19,14 @@ class Showtime extends Model
         'format',
         'language_type',
         'status',
+        'cancel_reason',
+        'cancelled_at',
     ];
-
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
+        'cancelled_at' => 'datetime',
+    ];
     public function movie()
     {
         return $this->belongsTo(Movie::class);
@@ -34,6 +40,11 @@ class Showtime extends Model
     public function room()
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
     }
 
     public function showtimeSeats()
