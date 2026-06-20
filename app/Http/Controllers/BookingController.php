@@ -406,7 +406,7 @@ class BookingController extends Controller
             return redirect()->route('home');
         }
 
-        $showtime = Showtime::with(['movie', 'cinema', 'room'])->findOrFail($bookingTam['showtime_id']);
+        $showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_id']);
         $seats = ShowtimeSeat::with('seat')
             ->whereIn('id', $bookingTam['seats'])
             ->get();
@@ -571,7 +571,6 @@ class BookingController extends Controller
                 'status' => 'pending',
                 'metadata' => [
                     'movie_title' => $showtime->movie->title ?? '',
-                    'cinema' => $showtime->cinema->name ?? '',
                     'room' => $showtime->room->name ?? '',
                     'showtime' => Carbon::parse($showtime->start_time)->format('H:i').' - '.Carbon::parse($showtime->end_time)->format('H:i'),
                     'show_date' => Carbon::parse($showtime->start_time)->format('d/m/Y'),
