@@ -58,22 +58,43 @@
 <div class="col-12 mt-3">
     <div class="card shadow-sm border-0">
         <div class="card-header bg-transparent">
-            <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Thông tin ghế</h5>
+            <h5 class="mb-0">
+                <i class="bi bi-plus-circle me-2"></i>Thêm dãy ghế
+            </h5>
         </div>
+
         <div class="card-body">
             <form action="{{ route('admin.seats.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="room_id" value="{{ $room->id }}">
 
                 <div class="row g-3">
+
+                    <!-- Hàng ghế -->
                     <div class="col-md-3">
                         <label class="form-label">Hàng ghế</label>
-                        <input type="text" name="row_label" class="form-control" value="{{ old('row_label') }}" placeholder="A" required>
+                        <input type="text"
+                               name="row_label"
+                               class="form-control text-uppercase"
+                               value="{{ old('row_label') }}"
+                               placeholder="A, B, C..."
+                               maxlength="3"
+                               required>
                     </div>
+
+                    <!-- Số ghế / hàng -->
                     <div class="col-md-3">
-                        <label class="form-label">Số ghế</label>
-                        <input type="number" name="seat_number" class="form-control" value="{{ old('seat_number') }}" min="1" required>
+                        <label class="form-label">Số ghế mỗi hàng</label>
+                        <input type="number"
+                               name="seat_number"
+                               class="form-control"
+                               value="{{ old('seat_number') }}"
+                               min="1"
+                               max="50"
+                               required>
                     </div>
+
+                    <!-- Loại ghế -->
                     <div class="col-md-3">
                         <label class="form-label">Loại ghế</label>
                         <select name="seat_type" class="form-select">
@@ -81,7 +102,11 @@
                             <option value="VIP" {{ old('seat_type') == 'VIP' ? 'selected' : '' }}>VIP</option>
                             <option value="COUPLE" {{ old('seat_type') == 'COUPLE' ? 'selected' : '' }}>COUPLE</option>
                         </select>
+                        <div class="form-text">Giá sẽ tự lấy theo `seat_type` trong database.</div>
                     </div>
+
+
+                    <!-- Trạng thái -->
                     <div class="col-md-3">
                         <label class="form-label">Trạng thái</label>
                         <select name="status" class="form-select">
@@ -90,10 +115,9 @@
                             <option value="BROKEN" {{ old('status') == 'BROKEN' ? 'selected' : '' }}>BROKEN</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Giá ghế</label>
-                        <input type="number" name="price" class="form-control" value="{{ old('price', 90000) }}" min="0" required>
-                    </div>
+
+
+
                 </div>
 
                 <hr>
@@ -102,8 +126,11 @@
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-lg me-1"></i> Lưu ghế
                     </button>
+
                     <a href="{{ route('admin.seats.index', ['cinema_id' => $room->cinema_id, 'room_id' => $room->id]) }}"
-                       class="btn btn-outline-secondary">Hủy</a>
+                       class="btn btn-outline-secondary">
+                        Hủy
+                    </a>
                 </div>
             </form>
         </div>
@@ -113,10 +140,10 @@
 @endsection
 
 <style>
-    .panel-sm {
-        background: #f8f9fa;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 16px;
-    }
+.panel-sm {
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+}
 </style>

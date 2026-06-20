@@ -106,6 +106,27 @@
                     </div>
                 </div>
 
+                {{-- Thông tin khách hàng --}}
+                <div class="bill-customer-section" style="padding: 20px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2); margin-bottom: 25px;">
+                    <h4 style="margin: 0 0 15px 0; color: #60a5fa; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-user"></i> Thông tin khách hàng
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Họ và Tên</span>
+                            <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerName() }}</strong>
+                        </div>
+                        <div>
+                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Số điện thoại</span>
+                            <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerPhone() }}</strong>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Email</span>
+                            <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerEmail() }}</strong>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Chi tiết giá --}}
                 <div class="bill-price-section">
                     <h4><i class="fa-solid fa-receipt"></i> Chi tiết thanh toán</h4>
