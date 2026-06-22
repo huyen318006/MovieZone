@@ -78,7 +78,7 @@
 
                     <!-- Số ghế / hàng -->
                     <div class="col-md-3">
-                        <label class="form-label">Số ghế mỗi hàng</label>
+                        <label class="form-label">Số thứ tự ghế</label>
                         <input type="number"
                                name="seat_number"
                                class="form-control"
