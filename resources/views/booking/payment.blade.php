@@ -2,6 +2,9 @@
 
 @section('content')
 
+{{-- COUNTDOWN TIMER CHUNG 5 PHÚT --}}
+@include('booking._countdown_timer', ['secondsLeft' => $secondsLeft])
+
 <section class="payment-page">
 <div class="payment-wrapper">
 
@@ -98,25 +101,7 @@
     {{-- RIGHT: QR + Thanh toán --}}
     <div class="payment-qr-panel" style="position: relative;">
 
-        {{-- Expired overlay --}}
-        <div class="payment-expired-overlay" id="expiredOverlay">
-            <div class="expired-content">
-                <i class="fa-solid fa-clock-rotate-left expired-icon-big"></i>
-                <h3>Đơn hàng đã hết hạn</h3>
-                <p>Vui lòng quay lại chọn ghế và thử lại</p>
-                <a href="{{ route('home') }}" class="btn-back-seat">
-                    <i class="fa-solid fa-arrow-left"></i> Chọn ghế lại
-                </a>
-            </div>
-        </div>
-
-        {{-- Timer --}}
-        <div class="payment-timer-wrapper">
-            <div class="payment-timer" id="timer">
-                <i class="fa-solid fa-stopwatch"></i>
-                <span id="timerText">15:00</span>
-            </div>
-        </div>
+        {{-- Timer cũ 15 phút đã được thay bằng countdown chung ở đầu trang --}}
 
         {{-- Số tiền --}}
         <div class="payment-amount-big">
@@ -179,39 +164,6 @@
 
 <script>
     // ============================
-    // Countdown Timer
-    // ============================
-    const expiresAt = new Date('{{ $expiresAt }}');
-    const timerEl = document.getElementById('timer');
-    const timerTextEl = document.getElementById('timerText');
-    const expiredOverlay = document.getElementById('expiredOverlay');
-
-    function updateTimer() {
-        const now = new Date();
-        const diff = expiresAt - now;
-
-        if (diff <= 0) {
-            timerTextEl.textContent = 'Hết hạn';
-            timerEl.classList.add('timer-danger');
-            expiredOverlay.classList.add('show');
-            clearInterval(timerInterval);
-            clearInterval(pollingInterval);
-            return;
-        }
-
-        const minutes = Math.floor(diff / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-        timerTextEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-        if (diff < 120000) {
-            timerEl.classList.add('timer-danger');
-        }
-    }
-
-    const timerInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-
-    // ============================
     // Copy to Clipboard
     // ============================
     function copyText(text, btn) {
@@ -227,7 +179,7 @@
     }
 
     // ============================
-    // Payment Polling
+    // Payment Polling (giữ nguyên)
     // ============================
     const checkUrl = '{{ route("booking.check", $order->order_code) }}';
     const billUrl = '{{ route("booking.bill", $order->order_code) }}';
@@ -257,7 +209,6 @@
                     statusText.textContent = '⏰ Đơn hàng đã hết hạn';
                     statusSubtext.textContent = '';
                     clearInterval(pollingInterval);
-                    expiredOverlay.classList.add('show');
                 } else {
                     const dots = '.'.repeat((pollCount % 3) + 1);
                     statusText.textContent = `Đang chờ thanh toán${dots}`;

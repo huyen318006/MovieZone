@@ -16,8 +16,20 @@
             </div>
 
             <div class="selected-seat-box">
-                <div id="timer-box" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; margin-bottom: 15px; font-weight: bold; text-align: center;">
-                    ⏳ Thời gian giữ ghế: <span id="clock">05:00</span>
+                {{-- Timer giữ ghế đồng bộ thiết kế mới --}}
+                <div id="timer-box" class="seat-timer-box" style="display: none;">
+                    <div class="seat-timer-inner">
+                        <div class="seat-timer-icon">
+                            <i class="fa-solid fa-stopwatch"></i>
+                        </div>
+                        <div class="seat-timer-info">
+                            <span class="seat-timer-label">Thời gian giữ ghế</span>
+                            <span class="seat-timer-clock" id="clock">05:00</span>
+                        </div>
+                    </div>
+                    <div class="seat-timer-progress">
+                        <div class="seat-timer-progress-fill" id="seatTimerProgressFill"></div>
+                    </div>
                 </div>
 
                 <h3>GHẾ ĐÃ CHỌN</h3>
@@ -120,7 +132,186 @@
     .sweet-seat-btn {color: white !important; width: 90px !important; font-weight: bold !important; border-radius: 8px !important; margin: 3px 6px !important; transition: background-color 0.2s; }
     .sweet-seat-btn:hover { background-color: #db2777 !important; }
     .sweet-seat-icon { color: #ec4899 !important; }
+
+    /* === SEAT TIMER BOX (đồng bộ design mới) === */
+    .seat-timer-box {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border: 1px solid #f59e0b;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 15px;
+    }
+    .seat-timer-inner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+    .seat-timer-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(245, 158, 11, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        color: #f59e0b;
+        flex-shrink: 0;
+        animation: seatIconPulse 2s infinite;
+    }
+    @keyframes seatIconPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+    .seat-timer-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .seat-timer-label {
+        font-size: 11px;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+    .seat-timer-clock {
+        font-size: 22px;
+        font-weight: 800;
+        color: #f59e0b;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: 2px;
+        line-height: 1;
+    }
+    .seat-timer-progress {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .seat-timer-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #f59e0b, #eab308);
+        border-radius: 10px;
+        transition: width 1s linear;
+        width: 100%;
+    }
+    /* Danger mode */
+    .seat-timer-box.danger {
+        border-color: #ef4444;
+        animation: seatTimerPulse 1s infinite;
+    }
+    .seat-timer-box.danger .seat-timer-icon {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+    .seat-timer-box.danger .seat-timer-clock {
+        color: #ef4444;
+        animation: seatTimeBlink 1s infinite;
+    }
+    .seat-timer-box.danger .seat-timer-progress-fill {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+    @keyframes seatTimerPulse {
+        0%, 100% { border-color: #ef4444; }
+        50% { border-color: rgba(239, 68, 68, 0.4); }
+    }
+    @keyframes seatTimeBlink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    /* === EXPIRED MODAL cho seat page === */
+    .seat-expired-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+    .seat-expired-overlay.show {
+        display: flex;
+        animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .seat-expired-modal {
+        background: linear-gradient(145deg, #1e293b, #111827);
+        border: 1px solid #374151;
+        border-radius: 20px;
+        padding: 40px;
+        max-width: 420px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+        animation: slideUp 0.5s ease;
+    }
+    @keyframes slideUp {
+        from { transform: translateY(40px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .seat-expired-modal .expired-icon {
+        width: 70px; height: 70px;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.1);
+        border: 2px solid rgba(239, 68, 68, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 32px;
+        color: #ef4444;
+    }
+    .seat-expired-modal h3 {
+        color: #f8fafc;
+        font-size: 20px;
+        margin: 0 0 10px;
+    }
+    .seat-expired-modal p {
+        color: #9ca3af;
+        font-size: 14px;
+        margin: 0 0 20px;
+        line-height: 1.6;
+    }
+    .seat-expired-modal .btn-reload {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #ef4444;
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 14px;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+    .seat-expired-modal .btn-reload:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+    }
 </style>
+
+{{-- Modal hết giờ cho seat page --}}
+<div class="seat-expired-overlay" id="seatExpiredOverlay">
+    <div class="seat-expired-modal">
+        <div class="expired-icon">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+        <h3>Hết thời gian giữ ghế!</h3>
+        <p>Phiên giữ ghế 5 phút đã hết. Vui lòng chọn lại ghế.</p>
+        <a href="{{ route('booking.seat', ['showtime_id' => $showtime->id]) }}" class="btn-reload">
+            <i class="fa-solid fa-rotate-right"></i> Chọn ghế lại
+        </a>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -152,16 +343,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startTimer() {
         document.getElementById('timer-box').style.display = 'block';
+        updateSeatTimerDisplay();
         timerInterval = setInterval(() => {
             secondsLeft--;
+            updateSeatTimerDisplay();
             if(secondsLeft <= 0) {
                 clearInterval(timerInterval);
-                location.reload();
+                // Hiển thị modal hết giờ
+                document.getElementById('seatExpiredOverlay').classList.add('show');
             }
-            let m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
-            let s = (secondsLeft % 60).toString().padStart(2, '0');
-            document.getElementById('clock').textContent = m + ':' + s;
         }, 1000);
+    }
+
+    function updateSeatTimerDisplay() {
+        let m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
+        let s = (secondsLeft % 60).toString().padStart(2, '0');
+        document.getElementById('clock').textContent = m + ':' + s;
+
+        // Progress bar
+        const pct = (secondsLeft / 300) * 100;
+        const fillEl = document.getElementById('seatTimerProgressFill');
+        if (fillEl) fillEl.style.width = pct + '%';
+
+        // Danger mode khi còn < 60 giây
+        const timerBox = document.getElementById('timer-box');
+        if (secondsLeft <= 60 && timerBox) {
+            timerBox.classList.add('danger');
+        }
     }
 
     document.querySelector('.seat-map').addEventListener('click', async (e) => {

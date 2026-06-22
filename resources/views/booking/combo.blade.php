@@ -4,6 +4,9 @@
 
 @section('content')
 
+{{-- COUNTDOWN TIMER 5 PHÚT --}}
+@include('booking._countdown_timer', ['secondsLeft' => $secondsLeft])
+
 <div class="combo-page">
 
     <div class="booking-step">
