@@ -195,7 +195,18 @@ class FilmManageController extends Controller
         ]);
         // dd($movie);
         $movie->genres()->sync($request->input('genres', []));
+        DB::table('audit_logs')->insert([
+            'user_id'     => auth()->id(),
+            'action'      => 'create_movie',
+            'entity_name' => 'movies',
+            'entity_id'   => (string) $movie->id,
 
+            'old_value'   => json_encode(null),
+
+            'new_value'   => json_encode($movie->toArray()),
+
+            'created_at'  => now(),
+        ]);
 
         return redirect()->route('admin.film')->with('success', 'Phim đã được thêm thành công!');
     }
@@ -372,6 +383,21 @@ class FilmManageController extends Controller
 
         // ── Cập nhật thể loại ─────────────────────────────────────────────
         $movie->genres()->sync($request->genres ?? []);
+
+        $oldMovie = $movie->getOriginal();
+
+        DB::table('audit_logs')->insert([
+            'user_id'     => auth()->id(),
+            'action'      => 'update_movie',
+            'entity_name' => 'movies',
+            'entity_id'   => (string) $movie->id,
+
+            'old_value'   => json_encode($oldMovie),
+
+            'new_value'   => json_encode($payload),
+
+            'created_at'  => now(),
+        ]);
 
         return redirect()->route('admin.film')
             ->with('success', 'Cập nhật phim thành công!');

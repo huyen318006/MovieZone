@@ -61,7 +61,7 @@
             Voucher
         </a>
 
-        <a class="nav-link" href="">
+        <a class="nav-link" href="{{ route('admin.list_account') }}">
             <i class="bi bi-people"></i>
             Người dùng
         </a>
