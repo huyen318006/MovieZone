@@ -1,6 +1,6 @@
 <?php
 
-
+use App\Http\Controllers\Admin\AccountManageController;
 use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
@@ -267,4 +267,21 @@ Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(
 
     // Thêm hàng loạt
     Route::post('/store-batch', [SeatManageController::class, 'storeBatch'])->name('store_batch');
+
+
+
+
+
 });
+
+// Quản lý tài khoản - account management
+Route::controller(AccountManageController::class)->group(function(){
+    Route::get('/account/management/admin', 'listaccount')->name('admin.list_account');
+    Route::get('/account_detail/management/{id}', 'detailaccount')->name('admin.detail.account');
+    Route::post('/admin/users/{id}/lock',  'lock')
+        ->name('admin.users.lock');
+
+    Route::get('/admin/users/{id}/open',  'open')
+        ->name('admin.users.open');
+});
+

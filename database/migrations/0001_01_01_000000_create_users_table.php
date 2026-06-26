@@ -20,6 +20,11 @@ return new class extends Migration
             $table->string('password');
             $table->string('google_id')->nullable();
             $table->rememberToken();
+            $table->enum('status', [
+                'ACTIVE',
+                'LOCK',
+
+            ])->default('ACTIVE');
             $table->timestamps();
         });
 
