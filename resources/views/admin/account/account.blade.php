@@ -101,7 +101,7 @@
 
                 <table class="table table-hover align-middle">
 
-                    <thead class="table-light">
+                    <thead class="table-dark">
                         <tr>
                             <th>ID</th>
                             <th>Tên người dùng</th>
