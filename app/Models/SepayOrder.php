@@ -227,10 +227,19 @@ class SepayOrder extends Model
     }
 
     /**
-     * Tạo dữ liệu JSON cho QR code quét được
-     * Chứa đầy đủ thông tin vé: mã hoá đơn, tên phim, rạp, phòng, thời gian, ghế, số lượng, combo
+     * Tạo chuỗi dữ liệu cho QR code hoá đơn (chuẩn mới MZ|...|...).
      */
     public function generateTicketQrData(): string
+    {
+        $qrService = new \App\Services\QRCodeService();
+        return $qrService->generateQRContent($this->order_code);
+    }
+
+    /**
+     * Tạo dữ liệu JSON chi tiết (backward compatibility hoặc dùng cho hiển thị khác).
+     * Chứa đầy đủ thông tin vé: mã hoá đơn, tên phim, rạp, phòng, thời gian, ghế, số lượng, combo
+     */
+    public function generateTicketQrJson(): string
     {
         $combos = $this->metadata['combos'] ?? [];
         $comboList = [];
