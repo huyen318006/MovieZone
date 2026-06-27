@@ -26,9 +26,9 @@ class CheckInService
     ) {}
 
     /**
-     * Validate QR content và trả về thông tin preview.
+     * Validate QR content và trả về thông tin preview hoặc list vé (nếu là booking).
      *
-     * @return array{can_checkin: bool, ticket: ?Ticket, error: ?array}
+     * @return array{can_checkin: bool, ticket: ?array, booking: ?array, tickets: ?array, error: ?array}
      */
     public function validateQRScan(string $qrContent): array
     {
@@ -39,6 +39,8 @@ class CheckInService
             return [
                 'can_checkin' => false,
                 'ticket' => null,
+                'booking' => null,
+                'tickets' => null,
                 'error' => [
                     'code' => $qrResult['error'],
                     'message' => $this->getErrorMessage($qrResult['error']),
@@ -46,8 +48,13 @@ class CheckInService
             ];
         }
 
-        // Step 2: Find ticket + validate
-        return $this->validateTicket($qrResult['ticket_code'], 'QR_SCAN', $qrContent);
+        // Step 2: Route dựa trên loại QR (ticket hay booking)
+        if ($qrResult['type'] === 'booking') {
+            return $this->lookupManual($qrResult['code'], 'booking_code');
+        }
+
+        // Default: type = ticket
+        return $this->validateTicket($qrResult['code'], 'QR_SCAN', $qrContent);
     }
 
     /**

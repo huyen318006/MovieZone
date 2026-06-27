@@ -66,6 +66,8 @@ class CheckInController extends Controller
             'success'     => $result['can_checkin'],
             'can_checkin' => $result['can_checkin'],
             'data'        => $result['ticket'] ?? null,
+            'booking'     => $result['booking'] ?? null,
+            'tickets'     => $result['tickets'] ?? null,
             'error'       => $result['error'] ?? null,
         ], $statusCode);
     }

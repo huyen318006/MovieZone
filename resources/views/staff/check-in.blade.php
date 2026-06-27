@@ -620,7 +620,13 @@ async function onQRSuccess(decodedText) {
         });
 
         const data = await res.json();
-        showConfirmCard(data);
+        
+        if (data.tickets) {
+            showBatchPanel(data);
+        } else {
+            showConfirmCard(data);
+        }
+        
         status.innerHTML = '<span class="dot"></span> Đang quét...';
 
     } catch (err) {
