@@ -285,3 +285,27 @@ Route::controller(AccountManageController::class)->group(function(){
         ->name('admin.users.open');
 });
 
+/* --------------------- UC-STAFF-03: TRA CỨU BOOKING/VÉ ------------------ */
+use App\Http\Controllers\Staff\BookingLookupController;
+
+Route::middleware(['auth', 'staff.permission:booking.lookup'])
+    ->prefix('staff')
+    ->name('staff.')
+    ->group(function () {
+        // Trang tra cứu booking (Blade)
+        Route::get('/booking-lookup', [BookingLookupController::class, 'index'])
+            ->name('booking-lookup');
+
+        // API endpoints
+        Route::get('/api/bookings/search', [BookingLookupController::class, 'search'])
+            ->name('api.bookings.search');
+
+        Route::get('/api/bookings/{id}', [BookingLookupController::class, 'detail'])
+            ->name('api.bookings.detail');
+
+        Route::get('/api/bookings/{id}/audit-logs', [BookingLookupController::class, 'auditLogs'])
+            ->name('api.bookings.audit-logs');
+
+        Route::get('/api/cinemas', [BookingLookupController::class, 'cinemas'])
+            ->name('api.cinemas');
+    });
