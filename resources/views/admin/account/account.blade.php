@@ -13,6 +13,10 @@
                     Danh sách tài khoản hệ thống
                 </p>
             </div>
+            <a href="#" class="btn btn-success">
+                <i class="fas fa-user-plus"></i>
+                Thêm tài khoản
+            </a>
         </div>
 
         {{-- Bộ lọc --}}
@@ -20,11 +24,16 @@
             <div class="card mb-4">
                 <div class="card-body">
 
-                    <form method="GET">
-
                         <div class="row g-3">
 
-                            <div class="col-md-4">
+                            <div class="col-md-3">
+                                <label class="form-label">
+                                    Tìm theo Email
+                                </label>
+                                <input type="text" name="email" class="form-control" placeholder="Nhập email cần tìm..." value="{{ request('email') }}">
+                            </div>
+
+                            <div class="col-md-3">
                                 <label class="form-label">
                                     Trạng thái
                                 </label>
@@ -45,7 +54,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label class="form-label">
                                     Vai trò
                                 </label>
@@ -69,8 +78,8 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-4 d-flex align-items-end gap-2">
-                                <button class="btn btn-primary">
+                            <div class="col-md-3 d-flex align-items-end gap-2">
+                                <button type="submit" class="btn btn-primary">
                                     Lọc
                                 </button>
 
@@ -80,8 +89,6 @@
                             </div>
 
                         </div>
-
-                    </form>
 
                 </div>
             </div>
@@ -93,7 +100,7 @@
 
                 <div class="table-responsive">
 
-                    <table class="table table-hover align-middle">
+                    <table class="table table-hover align-middle text-center">
 
                         <thead class="table-dark">
                             <tr>
@@ -154,9 +161,19 @@
                                                 Nâng lên Staff
                                             </button>
                                         @elseif($user->role_name == 'STAFF')
-                                            <span class="badge bg-warning text-dark px-3 py-2">
-                                                <i class="fas fa-check-circle"></i> Staff
-                                            </span>
+                                            <div class="d-flex gap-2 justify-content-center">
+
+                                                {{-- Nút hạ cấp --}}
+                                                <button type="button" class="btn btn-danger btn-sm demote-btn"
+                                                    data-id="{{ $user->id }}" data-name="{{ $user->name }}"
+                                                    data-bs-toggle="modal" data-bs-target="#demoteModal">
+
+                                                    <i class="fas fa-arrow-down"></i>
+                                                    Hạ về Customer
+                                                </button>
+
+
+                                            </div>
                                         @elseif($user->role_name == 'ADMIN')
                                             <span class="badge bg-danger px-3 py-2">
                                                 <i class="fas fa-crown"></i> Admin
@@ -270,38 +287,99 @@
         </div>
     </div>
     <!-- ====================================================== -->
-    @push('scripts')
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
 
-                const promoteModal =
-                    document.getElementById('promoteModal');
 
-                promoteModal.addEventListener(
-                    'show.bs.modal',
-                    function(event) {
+    <!-- ==================== MODAL HẠ QUYỀN ==================== -->
+    <div class="modal fade" id="demoteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
 
-                        const button = event.relatedTarget;
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        Xác nhận hạ quyền
+                    </h5>
 
-                        const userId =
-                            button.getAttribute('data-id');
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
 
-                        const userName =
-                            button.getAttribute('data-name');
+                <div class="modal-body">
+                    Bạn có chắc muốn hạ quyền của
 
-                        document.getElementById(
-                            'modalUserId'
-                        ).value = userId;
+                    <strong id="demoteUserName"></strong>
 
-                        document.getElementById(
-                            'modalUserName'
-                        ).textContent = userName;
-                    }
-                );
+                    về Customer?
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Hủy
+                    </button>
+
+                    <form method="POST" action="{{ route('admin.users.demote') }}">
+                        @csrf
+                        @method('PUT')
+
+                        <input type="hidden" name="user_id" id="demoteUserId">
+
+                        <button type="submit" class="btn btn-danger">
+                            Xác nhận hạ quyền
+                        </button>
+                    </form>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <!-- ====================================================== -->
+   @push('scripts')
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function() {
+
+            const promoteModal =
+                document.getElementById('promoteModal');
+
+            promoteModal.addEventListener(
+                'show.bs.modal',
+                function(event) {
+
+                    const button = event.relatedTarget;
+
+                    const userId =
+                        button.getAttribute('data-id');
+
+                    const userName =
+                        button.getAttribute('data-name');
+
+                    document.getElementById(
+                        'modalUserId'
+                    ).value = userId;
+
+                    document.getElementById(
+                        'modalUserName'
+                    ).textContent = userName;
+                }
+            );
+
+
+
+            const demoteModal = document.getElementById('demoteModal');
+
+            demoteModal.addEventListener('show.bs.modal', function(event) {
+
+                const button = event.relatedTarget;
+
+                const userId = button.getAttribute('data-id');
+                const userName = button.getAttribute('data-name');
+
+                document.getElementById('demoteUserId').value = userId;
+                document.getElementById('demoteUserName').textContent = userName;
             });
-        </script>
 
-
-    @endpush
+        });
+    </script>
+@endpush
 
 @endsection

@@ -292,6 +292,9 @@ Route::middleware(['auth', 'admin'])
 
         Route::put('/admin/users/promote', 'promote')
             ->name('admin.users.promote');
+
+    Route::put('/admin/users/demote', 'demote')
+        ->name('admin.users.demote');
     });
 
 /* --------------------- UC-STAFF-03: TRA CỨU BOOKING/VÉ ------------------ */
