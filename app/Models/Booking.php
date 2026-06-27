@@ -44,4 +44,14 @@ class Booking extends Model
     {
         return $this->hasMany(BookingCombo::class);
     }
+
+    public function bookingSeats()
+    {
+        return $this->hasMany(BookingSeat::class);
+    }
+
+    public function voucherUsages()
+    {
+        return $this->hasMany(VoucherUsage::class);
+    }
 }

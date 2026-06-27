@@ -2,8 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\RolePermission;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class RolePermissionSeeder extends Seeder
@@ -13,14 +14,34 @@ class RolePermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        //
         RolePermission::truncate();
 
-        for ($i = 1; $i <= 10; $i++) {
-            RolePermission::create([
-                'role_id' => 1,
-                'permission_id' => $i,
-            ]);
+        // ── ADMIN: Tất cả permissions ──
+        $adminRole = Role::where('name', 'ADMIN')->first();
+        if ($adminRole) {
+            $allPermissions = Permission::pluck('id');
+            foreach ($allPermissions as $permId) {
+                RolePermission::create([
+                    'role_id'       => $adminRole->id,
+                    'permission_id' => $permId,
+                ]);
+            }
+        }
+
+        // ── STAFF: Chỉ các quyền tra cứu booking ──
+        $staffRole = Role::where('name', 'STAFF')->first();
+        if ($staffRole) {
+            $staffPermissions = Permission::whereIn('name', [
+                'booking.lookup',
+                'movie.view',
+            ])->pluck('id');
+
+            foreach ($staffPermissions as $permId) {
+                RolePermission::create([
+                    'role_id'       => $staffRole->id,
+                    'permission_id' => $permId,
+                ]);
+            }
         }
     }
 }

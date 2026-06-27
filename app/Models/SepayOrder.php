@@ -125,7 +125,7 @@ class SepayOrder extends Model
      */
     public function getFormattedAmountAttribute(): string
     {
-        return number_format($this->amount, 0, ',', '.') . 'đ';
+        return number_format($this->amount, 0, ',', '.').'đ';
     }
 
     /*
@@ -156,6 +156,7 @@ class SepayOrder extends Model
     public function getSeatCodesFormatted(): string
     {
         $seats = $this->getBookingSeats();
+
         return implode(', ', array_column($seats, 'code'));
     }
 
@@ -172,7 +173,7 @@ class SepayOrder extends Model
      */
     public function isEmailSent(): bool
     {
-        return !empty($this->metadata['email_sent']);
+        return ! empty($this->metadata['email_sent']);
     }
 
     /**
@@ -181,7 +182,7 @@ class SepayOrder extends Model
     public function getCustomerEmail(): string
     {
         // Ưu tiên email trong metadata
-        if (!empty($this->metadata['customer_email'])) {
+        if (! empty($this->metadata['customer_email'])) {
             return $this->metadata['customer_email'];
         }
 
@@ -198,7 +199,7 @@ class SepayOrder extends Model
      */
     public function getCustomerName(): string
     {
-        if (!empty($this->metadata['customer_name'])) {
+        if (! empty($this->metadata['customer_name'])) {
             return $this->metadata['customer_name'];
         }
 
@@ -214,7 +215,7 @@ class SepayOrder extends Model
      */
     public function getCustomerPhone(): string
     {
-        if (!empty($this->metadata['customer_phone'])) {
+        if (! empty($this->metadata['customer_phone'])) {
             return $this->metadata['customer_phone'];
         }
 
@@ -241,16 +242,16 @@ class SepayOrder extends Model
         }
 
         $data = [
-            'ma_hoa_don'         => $this->order_code,
-            'ten_phim'           => $this->getBookingInfo('movie_title'),
-            'rap_chieu'          => $this->getBookingInfo('cinema'),
-            'phong_chieu'        => $this->getBookingInfo('room'),
-            'thoi_gian_chieu'    => $this->getBookingInfo('showtime') . ', ' . $this->getBookingInfo('show_date'),
-            'ghe_ngoi'           => $this->getSeatCodesFormatted(),
-            'so_luong'           => $this->metadata['seat_count'] ?? count($this->getBookingSeats()),
-            'combo'              => $comboList,
-            'tong_tien'          => number_format($this->amount, 0, ',', '.') . 'đ',
-            'trang_thai'         => $this->isPaid() ? 'DA_THANH_TOAN' : 'CHO_THANH_TOAN',
+            'ma_hoa_don' => $this->order_code,
+            'ten_phim' => $this->getBookingInfo('movie_title'),
+            'rap_chieu' => $this->getBookingInfo('cinema'),
+            'phong_chieu' => $this->getBookingInfo('room'),
+            'thoi_gian_chieu' => $this->getBookingInfo('showtime').', '.$this->getBookingInfo('show_date'),
+            'ghe_ngoi' => $this->getSeatCodesFormatted(),
+            'so_luong' => $this->metadata['seat_count'] ?? count($this->getBookingSeats()),
+            'combo' => $comboList,
+            'tong_tien' => number_format($this->amount, 0, ',', '.').'đ',
+            'trang_thai' => $this->isPaid() ? 'DA_THANH_TOAN' : 'CHO_THANH_TOAN',
             'thoi_gian_thanh_toan' => $this->paid_at ? $this->paid_at->format('d/m/Y H:i') : null,
         ];
 
