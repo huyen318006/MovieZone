@@ -108,7 +108,7 @@
                                 <th>Tên người dùng</th>
                                 <th>Email</th>
                                 <th>Vai trò</th>
-                                <th>Nâng Quyền</th>
+                                <th>Phân Quyền</th>
                                 <th>Trạng thái</th>
                                 <th>Ngày tạo</th>
                                 <th width="150">
