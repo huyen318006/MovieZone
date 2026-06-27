@@ -34,6 +34,7 @@ class RolePermissionSeeder extends Seeder
             $staffPermissions = Permission::whereIn('name', [
                 'booking.lookup',
                 'movie.view',
+                'ticket.checkin',
             ])->pluck('id');
 
             foreach ($staffPermissions as $permId) {

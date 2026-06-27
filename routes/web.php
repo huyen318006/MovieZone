@@ -309,3 +309,31 @@ Route::middleware(['auth', 'staff.permission:booking.lookup'])
         Route::get('/api/cinemas', [BookingLookupController::class, 'cinemas'])
             ->name('api.cinemas');
     });
+
+/* --------------------- UC-STAFF-01: CHECK-IN VÉ QR ------------------ */
+use App\Http\Controllers\Staff\CheckInController;
+
+Route::middleware(['auth', 'staff.permission:ticket.checkin'])
+    ->prefix('staff')
+    ->name('staff.')
+    ->group(function () {
+        // Trang check-in (Blade)
+        Route::get('/check-in', [CheckInController::class, 'index'])
+            ->name('check-in');
+
+        // API endpoints
+        Route::post('/api/check-in/scan', [CheckInController::class, 'scan'])
+            ->name('api.checkin.scan');
+
+        Route::post('/api/check-in/manual', [CheckInController::class, 'manual'])
+            ->name('api.checkin.manual');
+
+        Route::post('/api/check-in/confirm', [CheckInController::class, 'confirm'])
+            ->name('api.checkin.confirm');
+
+        Route::post('/api/check-in/confirm-batch', [CheckInController::class, 'confirmBatch'])
+            ->name('api.checkin.confirm-batch');
+
+        Route::get('/api/check-in/history', [CheckInController::class, 'history'])
+            ->name('api.checkin.history');
+    });

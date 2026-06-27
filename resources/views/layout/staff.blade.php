@@ -126,7 +126,8 @@
                 <i class="bi bi-search"></i> Tra cứu Booking/Vé
             </a>
 
-            <a class="nav-link" href="#">
+            <a class="nav-link {{ Request::routeIs('staff.check-in') ? 'active' : '' }}"
+               href="{{ route('staff.check-in') }}">
                 <i class="bi bi-qr-code-scan"></i> Check-in Vé
             </a>
 

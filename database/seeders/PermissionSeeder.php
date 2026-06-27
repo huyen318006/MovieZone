@@ -116,6 +116,15 @@ class PermissionSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+
+            // ── UC-STAFF-01: Check-in Vé QR ──
+            [
+                'code' => 'TICKET_CHECKIN',
+                'name' => 'ticket.checkin',
+                'description' => 'Check-in vé tại cổng soát',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 }
