@@ -30,6 +30,10 @@ class AccountManageController {
             $account->where('roles.name', $request->role);
         }
 
+        if ($request->email) {
+            $account->where('users.email', 'like', '%' . $request->email . '%');
+        }
+
         $account = $account->paginate(10);
         return view('admin.account.account',compact('account'));
     }
@@ -198,6 +202,50 @@ class AccountManageController {
         );
 
     }
+
+
+        //giáng chức
+        public function demote(Request $request)
+        {
+        $userRole = UserRole::where('user_id', $request->user_id)->first();
+
+        if (!$userRole) {
+            return back()->with('error', 'Không tìm thấy role user');
+        }
+
+        // ❌ Không cho hạ admin
+        if ($userRole->role_id == 1) {
+            return back()->with('error', 'Không thể hạ quyền admin');
+        }
+
+        // ❌ Không tự hạ chính mình
+        if ($userRole->user_id == auth()->id()) {
+            return back()->with('error', 'Không thể thay đổi quyền chính bạn');
+        }
+
+        // ❌ Chỉ staff mới được hạ
+        if ($userRole->role_id != 2) {
+            return back()->with('error', 'Chỉ có thể hạ quyền STAFF');
+        }
+
+        $oldRole = $userRole->role_id;
+
+        $userRole->where('user_id', $request->user_id)->update([
+            'role_id' => 3
+        ]);
+
+        DB::table('audit_logs')->insert([
+            'user_id'     => auth()->id(),
+            'action'      => 'demote_user',
+            'entity_name' => 'user_roles',
+            'entity_id'   => $request->user_id,
+            'old_value'   => json_encode(['role_id' => $oldRole]),
+            'new_value'   => json_encode(['role_id' => 3]),
+            'created_at'  => now(),
+        ]);
+
+        return back()->with('success', 'Hạ quyền thành công');
+        }
 
 
 
