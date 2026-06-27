@@ -86,6 +86,36 @@ class PermissionSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
+
+            // ── UC-STAFF-03: Tra cứu Booking/Vé ──
+            [
+                'code' => 'BOOKING_LOOKUP',
+                'name' => 'booking.lookup',
+                'description' => 'Tra cứu và xem thông tin booking/vé',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'code' => 'BOOKING_LOOKUP_ALL_CINEMAS',
+                'name' => 'booking.lookup.all_cinemas',
+                'description' => 'Tra cứu booking ở tất cả rạp (không giới hạn)',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'code' => 'BOOKING_VIEW_FULL_CUSTOMER',
+                'name' => 'booking.view_full_customer',
+                'description' => 'Xem đầy đủ thông tin KH không bị mask',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'code' => 'AUDIT_LOG_VIEW',
+                'name' => 'audit_log.view',
+                'description' => 'Xem audit log của booking',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
         ]);
     }
 }
