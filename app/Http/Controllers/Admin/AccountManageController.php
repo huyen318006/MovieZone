@@ -97,7 +97,7 @@ class AccountManageController {
             'entity_id'   => (string) $user->id,
             'old_value'   => json_encode(['status' => $oldStatus]),
             'new_value'   => json_encode([
-                'status' => 'SUSPENDED',
+                'status' => 'LOCK',
                 'reason' => $request->reason
             ]),
             'created_at'  => now(),
@@ -146,6 +146,57 @@ class AccountManageController {
             ->send(new AccountOpenedMail($user));
 
         return back()->with('success', 'Mở khóa tài khoản thành công');
+    }
+
+    public function promote(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id'
+        ]);
+
+        // Lấy role của người cần nâng
+        $userRole = UserRole::where('user_id', $request->user_id)->first();
+
+        if (!$userRole) {
+            return back()->with('error', 'Không tìm thấy vai trò của người dùng.');
+        }
+
+        // Chỉ cho phép CUSTOMER lên STAFF
+        if ($userRole->role_id != 3) {
+            return back()->with('error', 'Chỉ khách hàng mới được nâng lên Staff.');
+        }
+        // Lưu role cũ
+        $oldRole = $userRole->role_id;
+
+
+        // Đổi role sang STAFF
+        $userRole->where('user_id',$request->user_id)->update([
+            'role_id' => 2
+        ]);
+
+        //lưu lại audi_log
+        DB::table('audit_logs')->insert([
+            'user_id'     => auth()->id(),
+            'action'      => 'promote_user',
+            'entity_name' => 'user_roles',
+            'entity_id'   => $request->user_id,
+            'old_value'   =>  json_encode([
+                'role_id' => $oldRole
+            ]),
+            'new_value'   => json_encode([
+                'role_id' => json_encode(
+                    [
+                        'role_id'=>2
+                    ]
+                )
+            ]),
+            'created_at'  => now(),
+        ]);
+        return back()->with(
+            'success',
+            'Nâng quyền nhân viên thành công.'
+        );
+
     }
 
 

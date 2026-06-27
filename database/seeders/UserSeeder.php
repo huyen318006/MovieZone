@@ -52,7 +52,7 @@ class UserSeeder extends Seeder
             [
                 'name'              => 'Admin',
                 'phone'             => '0223344556',
-                'email'             => 'xmai4409@gmail.com',
+                'email'             => 'nguyenhungpro2k6@gmail.com',
                 'email_verified_at' => now(),
                 'password'          => Hash::make('password'),
                 'remember_token'    => null,

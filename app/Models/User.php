@@ -48,4 +48,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function roles()
+    {
+        return $this->belongsToMany(
+            Role::class,
+            'user_roles',   // tên bảng pivot
+            'user_id',      // khóa ngoại user
+            'role_id'       // khóa ngoại role
+        );
+    }
 }
