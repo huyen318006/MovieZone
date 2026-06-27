@@ -3,11 +3,12 @@
 namespace App\Services;
 
 use App\Mail\BookingInvoiceMail;
+use App\Models\Payment;
 use App\Models\SepayOrder;
+use App\Notifications\BookingPaidNotification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 class SepayService
@@ -43,7 +44,7 @@ class SepayService
     {
         $package = $this->getPackage($packageId);
 
-        if (!$package) {
+        if (! $package) {
             return null;
         }
 
@@ -63,7 +64,7 @@ class SepayService
      */
     const SEAT_PRICES = [
         'standard' => 10000,
-        'vip'      => 150000,
+        'vip' => 150000,
         'sweetbox' => 200000,
     ];
 
@@ -96,22 +97,22 @@ class SepayService
         $orderCode = $this->generateOrderCode();
 
         return SepayOrder::create([
-            'order_code'   => $orderCode,
-            'package_id'   => 'booking',
+            'order_code' => $orderCode,
+            'package_id' => 'booking',
             'package_name' => 'Vé xem phim',
-            'amount'       => $totalAmount,
-            'status'       => 'pending',
-            'metadata'     => [
-                'movie_title'    => $bookingData['movie_title'] ?? '',
-                'cinema'         => $bookingData['cinema'] ?? '',
-                'room'           => $bookingData['room'] ?? '',
-                'showtime'       => $bookingData['showtime'] ?? '',
-                'show_date'      => $bookingData['show_date'] ?? '',
-                'format'         => $bookingData['format'] ?? '',
-                'seats'          => $seatDetails,
-                'seat_count'     => count($seatDetails),
+            'amount' => $totalAmount,
+            'status' => 'pending',
+            'metadata' => [
+                'movie_title' => $bookingData['movie_title'] ?? '',
+                'cinema' => $bookingData['cinema'] ?? '',
+                'room' => $bookingData['room'] ?? '',
+                'showtime' => $bookingData['showtime'] ?? '',
+                'show_date' => $bookingData['show_date'] ?? '',
+                'format' => $bookingData['format'] ?? '',
+                'seats' => $seatDetails,
+                'seat_count' => count($seatDetails),
                 'customer_email' => $bookingData['customer_email'] ?? '',
-                'customer_name'  => $bookingData['customer_name'] ?? null,
+                'customer_name' => $bookingData['customer_name'] ?? null,
             ],
         ]);
     }
@@ -124,7 +125,7 @@ class SepayService
         $prefix = config('sepay.order_prefix', 'DH');
 
         do {
-            $code = $prefix . strtoupper(Str::random(8));
+            $code = $prefix.strtoupper(Str::random(8));
         } while (SepayOrder::where('order_code', $code)->exists());
 
         return $code;
@@ -142,9 +143,9 @@ class SepayService
 
         // Sử dụng API VietQR để tạo QR code
         return "https://qr.sepay.vn/img?acc={$accountNumber}"
-            . "&bank={$bankCode}"
-            . "&amount={$amount}"
-            . "&des={$content}";
+            ."&bank={$bankCode}"
+            ."&amount={$amount}"
+            ."&des={$content}";
     }
 
     /**
@@ -156,7 +157,7 @@ class SepayService
     {
         $order = SepayOrder::where('order_code', $orderCode)->first();
 
-        if (!$order) {
+        if (! $order) {
             return ['status' => 'not_found', 'message' => 'Không tìm thấy đơn hàng'];
         }
 
@@ -183,14 +184,14 @@ class SepayService
             $accountNumber = config('sepay.bank_account');
 
             $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiToken,
+                'Authorization' => 'Bearer '.$apiToken,
                 'Content-Type' => 'application/json',
             ])->get($apiUrl, [
                 'account_number' => $accountNumber,
                 'transaction_date_min' => $order->created_at->format('Y-m-d H:i:s'),
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('SePay API error', [
                     'status' => $response->status(),
                     'body' => $response->body(),
@@ -227,7 +228,7 @@ class SepayService
                         ]);
 
                         // Tạo Payment record
-                        \App\Models\Payment::create([
+                        Payment::create([
                             'booking_id' => $order->booking_id,
                             'payment_method' => 'ONLINE',
                             'amount' => $order->amount,
@@ -238,7 +239,7 @@ class SepayService
                     }
 
                     Log::info('SePay payment confirmed', [
-                        'order_code'     => $orderCode,
+                        'order_code' => $orderCode,
                         'transaction_id' => $transactionId,
                         'amount' => $amountIn,
                         'booking_id' => $order->booking_id,
@@ -267,7 +268,7 @@ class SepayService
 
                         // Tạo thông báo trong hệ thống cho user
                         if ($user) {
-                            $user->notify(new \App\Notifications\BookingPaidNotification($order->fresh()));
+                            $user->notify(new BookingPaidNotification($order->fresh()));
                         }
                     } catch (\Exception $mailEx) {
                         // Không throw — email lỗi không ảnh hưởng đến thanh toán
@@ -278,9 +279,9 @@ class SepayService
                     }
 
                     return [
-                        'status'  => 'paid',
+                        'status' => 'paid',
                         'message' => 'Thanh toán thành công',
-                        'order'   => $order->fresh(),
+                        'order' => $order->fresh(),
                     ];
                 }
             }
@@ -331,6 +332,7 @@ class SepayService
                     'order_code' => $order->order_code,
                     'invoice_code' => $invoice->invoice_code,
                 ]);
+
                 return;
             }
 

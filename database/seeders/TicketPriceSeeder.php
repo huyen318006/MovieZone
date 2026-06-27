@@ -16,9 +16,9 @@ class TicketPriceSeeder extends Seeder
         TicketPrice::query()->delete();
 
         // 2. Định nghĩa các tập thuộc tính để chạy vòng lặp sinh ma trận
-        $roomTypes = ['STANDARD', 'VIP']; 
-        $dayTypes = ['WEEKDAY', 'WEEKEND']; 
-        $timeTypes = ['MORNING', 'AFTERNOON', 'EVENING']; 
+        $roomTypes = ['STANDARD', 'VIP'];
+        $dayTypes = ['WEEKDAY', 'WEEKEND'];
+        $timeTypes = ['MORNING', 'AFTERNOON', 'EVENING'];
 
         // 3. Định nghĩa GIÁ GỐC chuẩn theo yêu cầu của cậu
         $basePrices = [
@@ -34,18 +34,18 @@ class TicketPriceSeeder extends Seeder
             foreach ($basePrices as $seatType => $price) {
                 foreach ($dayTypes as $dayType) {
                     foreach ($timeTypes as $timeType) {
-                        
+
                         // Giữ nguyên mức giá cơ sở cậu muốn (80k - 150k - 250k) cho tất cả các khung giờ
                         // (Nếu muốn cuối tuần hay buổi tối tăng giá thì cậu cộng thêm ở đây, còn đồ án muốn chính xác giá đó thì giữ nguyên $price)
-                        $finalPrice = $price; 
+                        $finalPrice = $price;
 
                         $ticketPrices[] = [
-                            'room_type'  => $roomType,
-                            'seat_type'  => $seatType,
-                            'day_type'   => $dayType,
-                            'time_type'  => $timeType,
-                            'price'      => $finalPrice,
-                            'status'     => 'ACTIVE',
+                            'room_type' => $roomType,
+                            'seat_type' => $seatType,
+                            'day_type' => $dayType,
+                            'time_type' => $timeType,
+                            'price' => $finalPrice,
+                            'status' => 'ACTIVE',
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
