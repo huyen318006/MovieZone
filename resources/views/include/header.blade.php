@@ -12,17 +12,15 @@
 
     <nav class="main-nav">
 
-        <a href="#">Trang Chủ</a>
+        <a href="{{ route('home') }}">Trang Chủ</a>
 
         <a href="{{ route('movies') }}">Phim</a>
 
         <a href="{{ route('showtimes') }}">Lịch Chiếu</a>
 
-        <a href="#">Rạp Chiếu</a>
-
         <a href="#">Khuyến Mãi</a>
 
-        <a href="#">Tin Tức</a>
+        <a href="{{ route('news') }}">Tin Tức</a>
 
     </nav>
 

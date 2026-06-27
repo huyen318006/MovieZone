@@ -2,6 +2,9 @@
 
 @section('content')
 
+{{-- COUNTDOWN TIMER CHUNG 5 PHÚT --}}
+@include('booking._countdown_timer', ['secondsLeft' => $secondsLeft])
+
 <section class="payment-page">
 <div class="payment-wrapper">
 
@@ -23,10 +26,6 @@
                 <span class="detail-value">{{ $order->getBookingInfo('movie_title') }}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label"><i class="fa-solid fa-building"></i> Rạp</span>
-                <span class="detail-value">{{ $order->getBookingInfo('cinema') }}</span>
-            </div>
-            <div class="detail-row">
                 <span class="detail-label"><i class="fa-solid fa-door-open"></i> Phòng</span>
                 <span class="detail-value">{{ $order->getBookingInfo('room') }}</span>
             </div>
@@ -41,6 +40,27 @@
             <div class="detail-row">
                 <span class="detail-label"><i class="fa-solid fa-chair"></i> Ghế</span>
                 <span class="detail-value">{{ $order->getSeatCodesFormatted() }}</span>
+            </div>
+        </div>
+
+        {{-- Thông tin khách hàng --}}
+        <div class="customer-info-breakdown" style="background: rgba(59, 130, 246, 0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(59, 130, 246, 0.2);">
+            <h4 style="margin-top: 0; margin-bottom: 12px; color: #60a5fa; font-size: 14px; text-transform: uppercase;">
+                <i class="fa-solid fa-user"></i> Thông tin khách hàng
+            </h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <span style="display: block; color: #9ca3af; font-size: 12px;">Họ và Tên</span>
+                    <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerName() }}</strong>
+                </div>
+                <div>
+                    <span style="display: block; color: #9ca3af; font-size: 12px;">Số điện thoại</span>
+                    <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerPhone() }}</strong>
+                </div>
+                <div style="grid-column: span 2;">
+                    <span style="display: block; color: #9ca3af; font-size: 12px;">Email</span>
+                    <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerEmail() }}</strong>
+                </div>
             </div>
         </div>
 
@@ -60,6 +80,17 @@
                 <span>{{ number_format($seat['price'], 0, ',', '.') }}đ</span>
             </div>
             @endforeach
+
+            @if(!empty($order->metadata['combos']))
+            <h4 style="margin-top: 16px;">Combo</h4>
+            @foreach($order->metadata['combos'] as $combo)
+            <div class="price-row">
+                <span>🍿 {{ $combo['name'] }} x{{ $combo['quantity'] }}</span>
+                <span>{{ number_format($combo['total_price'], 0, ',', '.') }}đ</span>
+            </div>
+            @endforeach
+            @endif
+
             <div class="price-total-row">
                 <span>Tổng cộng</span>
                 <span>{{ number_format($order->amount, 0, ',', '.') }}đ</span>
@@ -70,25 +101,7 @@
     {{-- RIGHT: QR + Thanh toán --}}
     <div class="payment-qr-panel" style="position: relative;">
 
-        {{-- Expired overlay --}}
-        <div class="payment-expired-overlay" id="expiredOverlay">
-            <div class="expired-content">
-                <i class="fa-solid fa-clock-rotate-left expired-icon-big"></i>
-                <h3>Đơn hàng đã hết hạn</h3>
-                <p>Vui lòng quay lại chọn ghế và thử lại</p>
-                <a href="{{ route('booking.seat') }}" class="btn-back-seat">
-                    <i class="fa-solid fa-arrow-left"></i> Chọn ghế lại
-                </a>
-            </div>
-        </div>
-
-        {{-- Timer --}}
-        <div class="payment-timer-wrapper">
-            <div class="payment-timer" id="timer">
-                <i class="fa-solid fa-stopwatch"></i>
-                <span id="timerText">15:00</span>
-            </div>
-        </div>
+        {{-- Timer cũ 15 phút đã được thay bằng countdown chung ở đầu trang --}}
 
         {{-- Số tiền --}}
         <div class="payment-amount-big">
@@ -141,7 +154,7 @@
             <div class="status-sub-mz" id="statusSubtext">Hệ thống tự động kiểm tra mỗi vài giây</div>
         </div>
 
-        <a href="{{ route('booking.seat') }}" class="cancel-link-mz">
+        <a href="{{ route('home') }}" class="cancel-link-mz">
             <i class="fa-solid fa-arrow-left"></i> Huỷ và chọn ghế khác
         </a>
     </div>
@@ -150,39 +163,6 @@
 </section>
 
 <script>
-    // ============================
-    // Countdown Timer
-    // ============================
-    const expiresAt = new Date('{{ $expiresAt }}');
-    const timerEl = document.getElementById('timer');
-    const timerTextEl = document.getElementById('timerText');
-    const expiredOverlay = document.getElementById('expiredOverlay');
-
-    function updateTimer() {
-        const now = new Date();
-        const diff = expiresAt - now;
-
-        if (diff <= 0) {
-            timerTextEl.textContent = 'Hết hạn';
-            timerEl.classList.add('timer-danger');
-            expiredOverlay.classList.add('show');
-            clearInterval(timerInterval);
-            clearInterval(pollingInterval);
-            return;
-        }
-
-        const minutes = Math.floor(diff / 60000);
-        const seconds = Math.floor((diff % 60000) / 1000);
-        timerTextEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-
-        if (diff < 120000) {
-            timerEl.classList.add('timer-danger');
-        }
-    }
-
-    const timerInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-
     // ============================
     // Copy to Clipboard
     // ============================
@@ -199,7 +179,7 @@
     }
 
     // ============================
-    // Payment Polling
+    // Payment Polling (giữ nguyên)
     // ============================
     const checkUrl = '{{ route("booking.check", $order->order_code) }}';
     const billUrl = '{{ route("booking.bill", $order->order_code) }}';
@@ -229,7 +209,6 @@
                     statusText.textContent = '⏰ Đơn hàng đã hết hạn';
                     statusSubtext.textContent = '';
                     clearInterval(pollingInterval);
-                    expiredOverlay.classList.add('show');
                 } else {
                     const dots = '.'.repeat((pollCount % 3) + 1);
                     statusText.textContent = `Đang chờ thanh toán${dots}`;

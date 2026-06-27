@@ -32,7 +32,7 @@ return new class extends Migration
             $table->enum('status', [
                 'ACTIVE',
                 'BROKEN',
-                'LOCKED'
+                'BLOCKED'
             ])->default('ACTIVE');
 
             // THÊM: Cột lưu giá tiền theo yêu cầu mới

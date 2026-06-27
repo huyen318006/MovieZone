@@ -20,7 +20,7 @@ class UserRoleSeeder extends Seeder
             ['user_id' => 1, 'role_id' => 1, 'assigned_at' => now()], // ADMIN
             ['user_id' => 2, 'role_id' => 1, 'assigned_at' => now()], // ADMIN
             ['user_id' => 3, 'role_id' => 2, 'assigned_at' => now()], // STAFF
-            ['user_id' => 4, 'role_id' => 3, 'assigned_at' => now()], // CUSTOMER
+            ['user_id' => 4, 'role_id' => 1, 'assigned_at' => now()], // CUSTOMER
         ];
 
         UserRole::insert($userRoles);

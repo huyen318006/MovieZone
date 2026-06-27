@@ -47,6 +47,8 @@ return new class extends Migration
                 'room_id',
                 'start_time'
             ]);
+            $table->string('cancel_reason')->nullable();
+            $table->timestamp('cancelled_at')->nullable();
         });
     }
 

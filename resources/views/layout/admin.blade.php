@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark" data-bs-theme="dark">
 
 <head>
     <meta charset="UTF-8">
@@ -10,6 +10,9 @@
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/vendors/bootstrap-icons/bootstrap-icons.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
+    <script src="{{ asset('js/bootstrap.bundle.min.js') }}"></script>
+<!-- hoặc CDN -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 
 <body>
@@ -41,7 +44,7 @@
 <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('assets/js/main.js') }}"></script>
 
-<script>
+{{-- <script>
 (() => {
   const html = document.documentElement;
   const toggleBtn = document.getElementById('theme-toggle');
@@ -76,7 +79,7 @@
     });
   }
 })();
-</script>
+</script> --}}
 
 
 @stack('scripts')

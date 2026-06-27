@@ -25,7 +25,6 @@ class DatabaseSeeder extends Seeder
     RoleSeeder::class,
     PermissionSeeder::class,
     GenreSeeder::class,
-    CinemaSeeder::class,
     TicketPriceSeeder::class,
     ProductSeeder::class,
     PromotionSeeder::class,
@@ -44,6 +43,7 @@ class DatabaseSeeder extends Seeder
     MovieGenreSeeder::class,
 
     // Cinema structure
+    CinemaSeeder::class,
     RoomSeeder::class,
     SeatSeeder::class,
 

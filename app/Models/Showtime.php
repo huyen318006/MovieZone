@@ -11,29 +11,44 @@ class Showtime extends Model
     use HasFactory;
 
     protected $fillable = [
-        'movie_id',
         'cinema_id',
+        'movie_id',
         'room_id',
         'start_time',
         'end_time',
         'format',
         'language_type',
         'status',
+        'cancel_reason',
+        'cancelled_at',
+    ];
+    protected $casts = [
+        'start_time' => 'datetime',
+        'end_time' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
 
-    public function movie()
-    {
-        return $this->belongsTo(Movie::class);
-    }
+
 
     public function cinema()
     {
         return $this->belongsTo(Cinema::class);
     }
+    public function movie()
+    {
+        return $this->belongsTo(Movie::class);
+    }
+
+
 
     public function room()
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function bookings()
+    {
+        return $this->hasMany(Booking::class);
     }
 
     public function showtimeSeats()

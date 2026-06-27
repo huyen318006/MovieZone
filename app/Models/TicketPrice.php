@@ -10,7 +10,6 @@ class TicketPrice extends Model
     use HasFactory;
 
     protected $fillable = [
-        'cinema_id',
         'room_type',
         'seat_type',
         'day_type',
@@ -18,9 +17,4 @@ class TicketPrice extends Model
         'price',
         'status',
     ];
-
-    public function cinema()
-    {
-        return $this->belongsTo(Cinema::class);
-    }
 }

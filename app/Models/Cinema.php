@@ -19,8 +19,14 @@ class Cinema extends Model
         'status',
     ];
 
+    public function rooms()
+    {
+        return $this->hasMany(Room::class);
+    }
+
     public function showtimes()
     {
         return $this->hasMany(Showtime::class);
     }
 }
+//banner_film

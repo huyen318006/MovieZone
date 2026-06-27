@@ -201,9 +201,16 @@ class SepayController extends Controller
         $pollingInterval = config('sepay.polling_interval', 5000);
         $expiresAt = $order->getExpiresAt()->toIso8601String();
 
+        // TIMER: Lấy thời gian giữ ghế còn lại từ session (timer chung 5 phút)
+        $holdExpireAt = session('hold_expire_at');
+        $secondsLeft = 0;
+        if ($holdExpireAt) {
+            $secondsLeft = max(0, $holdExpireAt - now()->timestamp);
+        }
+
         return view('booking.payment', compact(
             'order', 'qrUrl', 'bankCode', 'bankAccount',
-            'pollingInterval', 'expiresAt'
+            'pollingInterval', 'expiresAt', 'secondsLeft'
         ));
     }
 

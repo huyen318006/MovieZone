@@ -31,22 +31,17 @@
             Quản lý phim
         </a>
 
-        <a class="nav-link" href="">
-            <i class="bi bi-building"></i>
-            Quản lý rạp
-        </a>
-
-        <a class="nav-link" href="">
+        <a class="nav-link {{ Request::routeIs('admin.rooms.*') ? 'active' : '' }}" href="{{ route('admin.rooms.index') }}">
             <i class="bi bi-door-open"></i>
-            Phòng chiếu
+            Quản lý phòng chiếu
         </a>
 
-        <a class="nav-link" href="">
+        {{-- <a class="nav-link {{ Request::routeIs('admin.seats.*') ? 'active' : '' }}" href="{{ route('admin.seats.index') }}">
             <i class="bi bi-grid-3x3-gap"></i>
-            Ghế ngồi
-        </a>
+             Ghế ngồi
+        </a> --}}
 
-        <a class="nav-link" href="">
+        <a class="nav-link" href="{{ route('admin.showtime') }}">
             <i class="bi bi-calendar-event"></i>
             Suất chiếu
         </a>
@@ -66,7 +61,7 @@
             Voucher
         </a>
 
-        <a class="nav-link" href="">
+        <a class="nav-link" href="{{ route('admin.list_account') }}">
             <i class="bi bi-people"></i>
             Người dùng
         </a>
@@ -85,12 +80,12 @@
             <i class="bi bi-bar-chart"></i>
             Báo cáo
         </a>
-        <button id="theme-toggle" class="btn btn-outline-secondary">
+        {{-- <button id="theme-toggle" class="btn btn-outline-secondary">
 
             <i class="bi bi-moon-stars"></i>
                 Giao diện
 
-        </button>
+        </button> --}}
 
     </nav>
 

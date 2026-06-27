@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Cinema;
 use App\Models\Room;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -13,60 +14,38 @@ class RoomSeeder extends Seeder
      */
     public function run(): void
     {
+        // ==================== SEEDER ROOM - DỄ MỞ RỘNG ====================//
         Room::query()->delete();
+
+        $cinemas = Cinema::all();
+
+        if ($cinemas->isEmpty()) {
+            $this->command->warn('Không có cinema');
+            return;
+        }
+
+        $data = [
+            ['name' => 'Room 1', 'room_type' => '2D', 'total_seats' => 120],
+            ['name' => 'Room 2', 'room_type' => '3D', 'total_seats' => 140],
+            ['name' => 'Room 3', 'room_type' => 'IMAX', 'total_seats' => 160],
+            ['name' => 'Room 4', 'room_type' => 'VIP', 'total_seats' => 80],
+            ['name' => 'Room 5', 'room_type' => '4DX', 'total_seats' => 100],
+        ];
 
         $rooms = [];
 
-        for ($cinema = 1; $cinema <= 3; $cinema++) {
+        foreach ($data as $i => $room) {
+
+            $cinema = $cinemas->random();
 
             $rooms[] = [
-                'cinema_id' => $cinema,
-                'name' => 'Room 1',
-                'room_type' => '2D',
-                'total_seats' => 100,
-                'status' => 'ACTIVE',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-
-            $rooms[] = [
-                'cinema_id' => $cinema,
-                'name' => 'Room 2',
-                'room_type' => '3D',
-                'total_seats' => 120,
-                'status' => 'ACTIVE',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-
-            $rooms[] = [
-                'cinema_id' => $cinema,
-                'name' => 'Room 3',
-                'room_type' => 'IMAX',
-                'total_seats' => 150,
-                'status' => 'ACTIVE',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-
-            $rooms[] = [
-                'cinema_id' => $cinema,
-                'name' => 'Room 4',
-                'room_type' => 'VIP',
-                'total_seats' => 80,
-                'status' => 'ACTIVE',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-
-            $rooms[] = [
-                'cinema_id' => $cinema,
-                'name' => 'Room 5',
-                'room_type' => '4DX',
-                'total_seats' => 90,
-                'status' => 'ACTIVE',
-                'created_at' => now(),
-                'updated_at' => now(),
+                'cinema_id'   => $cinema->id,
+                'name'        => $room['name'],
+                'room_type'   => $room['room_type'],
+                'total_seats' => $room['total_seats'],
+                'status'      => 'ACTIVE',
+                'created_at'  => now(),
+                'updated_at'  => now(),
             ];
         }
 

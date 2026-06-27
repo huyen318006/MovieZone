@@ -13,6 +13,17 @@
                 <p>Giao dịch của bạn đã được xác nhận</p>
             </div>
 
+            {{-- Thông báo email đã gửi --}}
+            @if($order->isEmailSent())
+            <div class="bill-email-notice">
+                <i class="fa-solid fa-envelope-circle-check"></i>
+                <div>
+                    <strong>📧 Hoá đơn đã được gửi tới email</strong>
+                    <span>{{ $order->metadata['email_sent_to'] ?? $order->getCustomerEmail() }}</span>
+                </div>
+            </div>
+            @endif
+
             {{-- Bill Card --}}
             <div class="bill-card-mz">
 
@@ -38,7 +49,7 @@
                     </div>
                     <div class="bill-qr-body">
                         <div class="bill-qr-frame">
-                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($order->order_code) }}&color=0f172a&bgcolor=ffffff&margin=8"
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=280x280&data={{ urlencode($order->generateTicketQrData()) }}&color=0f172a&bgcolor=ffffff&margin=8"
                                 alt="QR Xác nhận vé {{ $order->order_code }}" id="confirmQr">
                         </div>
                         <div class="bill-qr-code-text">{{ $order->order_code }}</div>
@@ -95,6 +106,27 @@
                     </div>
                 </div>
 
+                {{-- Thông tin khách hàng --}}
+                <div class="bill-customer-section" style="padding: 20px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2); margin-bottom: 25px;">
+                    <h4 style="margin: 0 0 15px 0; color: #60a5fa; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-user"></i> Thông tin khách hàng
+                    </h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Họ và Tên</span>
+                            <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerName() }}</strong>
+                        </div>
+                        <div>
+                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Số điện thoại</span>
+                            <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerPhone() }}</strong>
+                        </div>
+                        <div style="grid-column: span 2;">
+                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Email</span>
+                            <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerEmail() }}</strong>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Chi tiết giá --}}
                 <div class="bill-price-section">
                     <h4><i class="fa-solid fa-receipt"></i> Chi tiết thanh toán</h4>
@@ -113,6 +145,17 @@
                             <span>{{ number_format($seat['price'], 0, ',', '.') }}đ</span>
                         </div>
                     @endforeach
+
+                    @if(!empty($order->metadata['combos']))
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                            @foreach($order->metadata['combos'] as $combo)
+                                <div class="bill-price-row">
+                                    <span>🍿 {{ $combo['name'] }} x{{ $combo['quantity'] }}</span>
+                                    <span>{{ number_format($combo['total_price'], 0, ',', '.') }}đ</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
 
                     <div class="bill-price-total">
                         <span>Tổng thanh toán</span>

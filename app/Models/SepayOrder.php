@@ -11,6 +11,7 @@ class SepayOrder extends Model
 
     protected $fillable = [
         'order_code',
+        'booking_id',
         'package_id',
         'package_name',
         'amount',
@@ -19,6 +20,17 @@ class SepayOrder extends Model
         'paid_at',
         'metadata',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
+
+    public function booking()
+    {
+        return $this->belongsTo(Booking::class);
+    }
 
     protected function casts(): array
     {
@@ -156,10 +168,92 @@ class SepayOrder extends Model
     }
 
     /**
-     * Relationship: Hoá đơn liên kết
+     * Kiểm tra email đã gửi chưa
      */
-    public function invoice()
+    public function isEmailSent(): bool
     {
-        return $this->hasOne(Invoice::class);
+        return !empty($this->metadata['email_sent']);
+    }
+
+    /**
+     * Lấy email khách hàng từ metadata hoặc từ booking->user
+     */
+    public function getCustomerEmail(): string
+    {
+        // Ưu tiên email trong metadata
+        if (!empty($this->metadata['customer_email'])) {
+            return $this->metadata['customer_email'];
+        }
+
+        // Fallback: lấy từ booking->user
+        if ($this->booking && $this->booking->user) {
+            return $this->booking->user->email ?? '';
+        }
+
+        return '';
+    }
+
+    /**
+     * Lấy tên khách hàng từ metadata hoặc từ booking->user
+     */
+    public function getCustomerName(): string
+    {
+        if (!empty($this->metadata['customer_name'])) {
+            return $this->metadata['customer_name'];
+        }
+
+        if ($this->booking && $this->booking->user) {
+            return $this->booking->user->name ?? '';
+        }
+
+        return '';
+    }
+
+    /**
+     * Lấy số điện thoại khách hàng từ metadata hoặc từ booking->user
+     */
+    public function getCustomerPhone(): string
+    {
+        if (!empty($this->metadata['customer_phone'])) {
+            return $this->metadata['customer_phone'];
+        }
+
+        if ($this->booking && $this->booking->user) {
+            return $this->booking->user->phone ?? '';
+        }
+
+        return '';
+    }
+
+    /**
+     * Tạo dữ liệu JSON cho QR code quét được
+     * Chứa đầy đủ thông tin vé: mã hoá đơn, tên phim, rạp, phòng, thời gian, ghế, số lượng, combo
+     */
+    public function generateTicketQrData(): string
+    {
+        $combos = $this->metadata['combos'] ?? [];
+        $comboList = [];
+        foreach ($combos as $combo) {
+            $comboList[] = [
+                'ten' => $combo['name'] ?? '',
+                'so_luong' => $combo['quantity'] ?? 0,
+            ];
+        }
+
+        $data = [
+            'ma_hoa_don'         => $this->order_code,
+            'ten_phim'           => $this->getBookingInfo('movie_title'),
+            'rap_chieu'          => $this->getBookingInfo('cinema'),
+            'phong_chieu'        => $this->getBookingInfo('room'),
+            'thoi_gian_chieu'    => $this->getBookingInfo('showtime') . ', ' . $this->getBookingInfo('show_date'),
+            'ghe_ngoi'           => $this->getSeatCodesFormatted(),
+            'so_luong'           => $this->metadata['seat_count'] ?? count($this->getBookingSeats()),
+            'combo'              => $comboList,
+            'tong_tien'          => number_format($this->amount, 0, ',', '.') . 'đ',
+            'trang_thai'         => $this->isPaid() ? 'DA_THANH_TOAN' : 'CHO_THANH_TOAN',
+            'thoi_gian_thanh_toan' => $this->paid_at ? $this->paid_at->format('d/m/Y H:i') : null,
+        ];
+
+        return json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 }
