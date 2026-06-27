@@ -36,74 +36,76 @@
         <div class="login-card">
 
             <h2>Đăng Nhập</h2>
-<form action="{{ route('login') }}" method="POST">
-    @csrf
+            <!-- ==================== ERROR MESSAGE ==================== -->
+            @if ($errors->has('error'))
+                <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2"
+                    role="alert" style="background-color: #5c1e1e; border-color: #b33a3a; color: #ff8a8a;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    {{ $errors->first('error') }}
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"
+                        aria-label="Close"></button>
+                </div>
+            @endif
+            <!-- ==================================================== -->
+            <form action="{{ route('login') }}" method="POST">
+                @csrf
 
-    <div class="input-group mb-3">
-        <input
-            type="email"
-            name="email"
-            value="{{ old('email') }}"
-            placeholder="Email"
-            class="form-control @error('email') is-invalid @enderror"
-        >
+                <div class="input-group mb-3">
+                    <input type="email" name="email" value="{{ old('email') }}" placeholder="Email"
+                        class="form-control @error('email') is-invalid @enderror">
 
-        @error('email')
-            <small class="text-danger d-block" style="color:red !important;">
-                {{ $message }}
-            </small>
-        @enderror
-    </div>
-
-    <div class="input-group mb-3">
-        <input
-            type="password"
-            name="password"
-            placeholder="Mật khẩu"
-            class="form-control @error('password') is-invalid @enderror"
-        >
-
-        @error('password')
-            <small class="text-danger d-block" style="color:red !important;">
-                {{ $message }}
-            </small>
-        @enderror
-    </div>
-
-    <div class="options">
-        <label>
-            <input type="checkbox" name="remember">
-            Ghi nhớ đăng nhập
-        </label>
-
-        <a href="{{ route('password.request') }}">Quên mật khẩu?</a>
-    </div>
-
-    <button type="submit" class="login-btn">
-        Đăng Nhập
-    </button>
-</form>
-
-                    <div class="divider">
-                        <span>Hoặc</span>
-                    </div>
-
-
-                    <a href="{{ route('auth.google') }}" class="google-btn">
-                        {{-- <img src="{{ asset('assets/icons/google.svg') }}" alt="Google Icon"> --}}
-                        Đăng nhập với Google
-                    </a>
-
-
-                    <p class="register-link">
-                        Chưa có tài khoản?
-                        <a href="{{ route('register') }}">Đăng ký ngay</a>
-                    </p>
-
+                    @error('email')
+                        <small class="text-danger d-block" style="color:red !important;">
+                            {{ $message }}
+                        </small>
+                    @enderror
                 </div>
 
+                <div class="input-group mb-3">
+                    <input type="password" name="password" placeholder="Mật khẩu"
+                        class="form-control @error('password') is-invalid @enderror">
+
+                    @error('password')
+                        <small class="text-danger d-block" style="color:red !important;">
+                            {{ $message }}
+                        </small>
+                    @enderror
+                </div>
+
+                <div class="options">
+                    <label>
+                        <input type="checkbox" name="remember">
+                        Ghi nhớ đăng nhập
+                    </label>
+
+                    <a href="{{ route('password.request') }}">Quên mật khẩu?</a>
+                </div>
+
+                <button type="submit" class="login-btn">
+                    Đăng Nhập
+                </button>
+            </form>
+
+            <div class="divider">
+                <span>Hoặc</span>
             </div>
 
-        </body>
 
-        </html>
+            <a href="{{ route('auth.google') }}" class="google-btn">
+                {{-- <img src="{{ asset('assets/icons/google.svg') }}" alt="Google Icon"> --}}
+                Đăng nhập với Google
+            </a>
+
+
+            <p class="register-link">
+                Chưa có tài khoản?
+                <a href="{{ route('register') }}">Đăng ký ngay</a>
+            </p>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

@@ -143,12 +143,11 @@ Route::middleware('auth')->group(function () {
 
 
 /* --------------------- KHU VỰC CỦA ADMIN ------------------ */
-Route::get('/admin', function () {
+Route::middleware(['auth', 'admin'])->get('/admin', function () {
     return view('admin.dashboard');
 })->name('admin.dashboard');
-
 // Quản lý phim - FILM MANAGEMENT
-Route::controller(FilmManageController::class)->group(function () {
+Route::middleware(['auth', 'admin'])->controller(FilmManageController::class)->group(function () {
     Route::get('/admin/film/management', 'listmovie')->name('admin.film');
     Route::get('/admin/film/store','formadd')->name('admin.film.add');
     Route::post('/admin/filmstore','store')->name('admin.store.film');
@@ -275,15 +274,25 @@ Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(
 });
 
 // Quản lý tài khoản - account management
-Route::controller(AccountManageController::class)->group(function(){
-    Route::get('/account/management/admin', 'listaccount')->name('admin.list_account');
-    Route::get('/account_detail/management/{id}', 'detailaccount')->name('admin.detail.account');
-    Route::post('/admin/users/{id}/lock',  'lock')
-        ->name('admin.users.lock');
+Route::middleware(['auth', 'admin'])
+    ->controller(AccountManageController::class)
+    ->group(function () {
 
-    Route::get('/admin/users/{id}/open',  'open')
-        ->name('admin.users.open');
-});
+        Route::get('/account/management/admin', 'listaccount')
+            ->name('admin.list_account');
+
+        Route::get('/account_detail/management/{id}', 'detailaccount')
+            ->name('admin.detail.account');
+
+        Route::post('/admin/users/{id}/lock', 'lock')
+            ->name('admin.users.lock');
+
+        Route::get('/admin/users/{id}/open', 'open')
+            ->name('admin.users.open');
+
+        Route::put('/admin/users/promote', 'promote')
+            ->name('admin.users.promote');
+    });
 
 /* --------------------- UC-STAFF-03: TRA CỨU BOOKING/VÉ ------------------ */
 use App\Http\Controllers\Staff\BookingLookupController;

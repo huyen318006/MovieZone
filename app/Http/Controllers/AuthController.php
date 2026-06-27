@@ -24,23 +24,37 @@ class AuthController extends Controller
             'password.required' => 'Vui lòng nhập mật khẩu.',
         ]);
 
-        if (Auth::attempt($request->only('email', 'password'))) {
+        // Kiểm tra cả status ngay trong attempt
+        if (Auth::attempt([
+            'email'    => $request->email,
+            'password' => $request->password,
+            'status'   => 'ACTIVE'           // ← Thêm dòng này
+        ])) {
+
             $request->session()->regenerate();
+
             $user = Auth::user();
             $userRole = UserRole::where('user_id', $user->id)->first();
 
+            // Redirect theo role
             if ($userRole && $userRole->role_id == 1) {
-                return redirect('/admin')->with('success', 'Chào mừng admin trở lại hệ thống!');
-            } elseif ($userRole && $userRole->role_id == 2) {
-                return redirect('/staff')->with('success', 'Đăng nhập thành công với tư cách nhân viên!');
-            } elseif ($userRole && $userRole->role_id == 3) {
-                return redirect('/')->with('success', 'Đăng nhập thành công!');
+                return redirect('/admin')
+                    ->with('success', 'Chào mừng admin trở lại hệ thống!');
             }
+
+            if ($userRole && $userRole->role_id == 2) {
+                return redirect('/staff')
+                    ->with('success', 'Đăng nhập thành công với tư cách nhân viên!');
+            }
+
+            return redirect('/')
+                ->with('success', 'Đăng nhập thành công!');
         }
 
+        // Nếu login thất bại (sai mật khẩu hoặc tài khoản bị khóa)
         return back()->withErrors([
-            'email' => 'Thông tin đăng nhập không chính xác.',
-        ])->onlyInput('email');
+            'email' => 'Thông tin đăng nhập không chính xác hoặc tài khoản đã bị khóa.',
+        ]);
     }
     public function logout(Request $request)
     {
