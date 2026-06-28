@@ -289,12 +289,31 @@ Route::middleware(['auth', 'admin'])
 
         Route::get('/admin/users/{id}/open', 'open')
             ->name('admin.users.open');
-
+            //phần update account management
+        Route::get('/admin/users/profile/update/{id}', 'profileAccount')
+            ->name('admin.profile.account.admins');
+        Route::post('/admin/users/profile/update/{id}', 'update')
+            ->name('admin.profile.account.admins.update');
+              //đổi mật khẩu account
+        Route::put('/admin/users/password/update/{id}', 'updatepassword')
+            ->name('admin.profile.account.admins.updatepassword');
+//phần nâng hạ quyền account management
         Route::put('/admin/users/promote', 'promote')
             ->name('admin.users.promote');
 
     Route::put('/admin/users/demote', 'demote')
         ->name('admin.users.demote');
+    
+    Route::put('/admin/users/demote-admin', 'demoteAdmin')
+        ->name('admin.users.demote.admin');
+
+        //thêm tài khoản 
+         Route::get('/account/management/create', 'createAccount')
+        ->name('admin.create_account');
+        // Lưu tài khoản mới
+        Route::post('/account/management/create', 'storeAccount')
+            ->name('admin.account.store_account');
+        
     });
 
 /* --------------------- UC-STAFF-03: TRA CỨU BOOKING/VÉ ------------------ */

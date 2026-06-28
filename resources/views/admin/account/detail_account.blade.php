@@ -43,18 +43,20 @@
 
                 <div class="row">
 
-                    <div class="col-md-3 text-center">
-
-                        <img src="https://ui-avatars.com/api/?name={{ $user->name }}" class="rounded-circle border"
-                            width="150">
-
-                        <h5 class="mt-3">
+                    <div class="col-md-4 col-xl-3 text-center mb-4">
+                        <div class="position-relative overflow-hidden rounded-4 shadow-sm mx-auto" style="aspect-ratio: 1/1; max-width: 250px;">
+                            <img src="{{ $user->avatar ? asset('storage/' . $user->avatar) : asset('public/images/avatar.png') }}" 
+                                class="w-100 h-100 object-fit-cover" 
+                                alt="Avatar"
+                                onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&size=250&background=random'">
+                        </div>
+                        <h5 class="mt-4 fw-bold text-dark">
                             {{ $user->name }}
                         </h5>
-
+                        <p class="text-muted mb-0">{{ $user->email }}</p>
                     </div>
 
-                    <div class="col-md-9">
+                    <div class="col-md-8 col-xl-9">
 
                         <table class="table table-bordered">
 
@@ -152,14 +154,20 @@
 
                         <div class="mt-3">
 
-                            @if ($user->status == 'ACTIVE')
-                                <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#lockModal">
-                                   Khóa Tài Khoản
-                                </button>
-                            @else
-                                <a href="{{ route('admin.users.open',$user->id  ) }}" class="btn btn-success" onclick="return confirm('Hãy xác nhận mở lại quyền cho tài khoản chứ?')">
-                                    Mở khóa tài khoản
+                            @if(auth()->user()->id == $user->id)
+                                <a href="{{ route('admin.profile.account.admins', $user->id) }}" class="btn btn-primary">
+                                    Sửa thông tin tài khoản
                                 </a>
+                            @else
+                                @if ($user->status == 'ACTIVE')
+                                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#lockModal">
+                                       Khóa Tài Khoản
+                                    </button>
+                                @else
+                                    <a href="{{ route('admin.users.open',$user->id  ) }}" class="btn btn-success" onclick="return confirm('Hãy xác nhận mở lại quyền cho tài khoản chứ?')">
+                                        Mở khóa tài khoản
+                                    </a>
+                                @endif
                             @endif
 
                         </div>

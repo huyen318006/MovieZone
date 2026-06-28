@@ -17,9 +17,9 @@ class UserSeeder extends Seeder
 
         User::insert([
             [
-                'name'              => 'Super Admin',
+                'name'              => 'Admin',
                 'phone'             => '0123456789',
-                'email'             => 'superadmin@moviezone.com',
+                'email'             => 'admin@moviezone.com',
                 'email_verified_at' => now(),
                 'password'          => Hash::make('password'),
                 'remember_token'    => null,
