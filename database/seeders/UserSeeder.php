@@ -30,7 +30,7 @@ class UserSeeder extends Seeder
             [
                 'name'              => 'Admin',
                 'phone'             => '0987654321',
-                'email'             => 'admin@moviezone.com',
+                'email'             => 'admin1@moviezone.com',
                 'email_verified_at' => now(),
                 'password'          => Hash::make('password'),
                 'remember_token'    => null,

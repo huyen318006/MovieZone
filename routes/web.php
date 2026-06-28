@@ -368,3 +368,18 @@ Route::middleware(['auth', 'staff.permission:ticket.checkin'])
         Route::get('/api/check-in/history', [CheckInController::class, 'history'])
             ->name('api.checkin.history');
     });
+
+/* --------------------- UC-STAFF-04: HỖ TRỢ SỰ CỐ ĐẶT VÉ ------------------ */
+use App\Http\Controllers\Staff\StaffIssueSupportController;
+
+Route::middleware(['auth', 'staff.permission:booking.lookup'])
+    ->prefix('staff')
+    ->name('staff.')
+    ->group(function () {
+        Route::get('/issue-support', [StaffIssueSupportController::class, 'index'])
+            ->name('issue-support');
+
+        Route::post('/api/issue-support/diagnose', [StaffIssueSupportController::class, 'diagnose'])
+            ->name('api.issue-support.diagnose');
+    });
+
