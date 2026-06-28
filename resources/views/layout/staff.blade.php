@@ -136,12 +136,8 @@
                 <i class="bi bi-life-preserver"></i> Hỗ trợ sự cố đặt vé
             </a>
 
-            <a class="nav-link" href="#">
-                <i class="bi bi-bar-chart-line"></i> Báo cáo
-            </a>
-
-
             <div class="nav-label" style="margin-top: 12px;">Quản lý</div>
+
 
             <a class="nav-link" href="{{ route('admin.dashboard') }}">
                 <i class="bi bi-speedometer2"></i> Admin Dashboard
