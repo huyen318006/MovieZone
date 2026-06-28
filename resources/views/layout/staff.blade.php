@@ -131,9 +131,15 @@
                 <i class="bi bi-qr-code-scan"></i> Check-in Vé
             </a>
 
+            <a class="nav-link {{ Request::routeIs('staff.issue-support') ? 'active' : '' }}"
+               href="{{ route('staff.issue-support') }}">
+                <i class="bi bi-life-preserver"></i> Hỗ trợ sự cố đặt vé
+            </a>
+
             <a class="nav-link" href="#">
                 <i class="bi bi-bar-chart-line"></i> Báo cáo
             </a>
+
 
             <div class="nav-label" style="margin-top: 12px;">Quản lý</div>
 
