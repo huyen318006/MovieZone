@@ -278,6 +278,15 @@ Route::middleware(['auth', 'admin'])
     ->controller(AccountManageController::class)
     ->group(function () {
 
+        // Redirect /account/management/ về trang danh sách (tránh 404)
+        Route::get('/account/management', function () {
+            return redirect()->route('admin.list_account');
+        })->name('admin.account.management');
+
+        Route::get('/account/management/', function () {
+            return redirect()->route('admin.list_account');
+        });
+
         Route::get('/account/management/admin', 'listaccount')
             ->name('admin.list_account');
 
