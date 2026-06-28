@@ -4,38 +4,47 @@ namespace App\Http\Controllers\Admin;
 use App\Mail\AccountError;
 use App\Mail\AccountOpenedMail;
 use App\Models\AuditLog;
+use App\Models\Role;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 
 class AccountManageController {
-    public function listaccount (Request $request)
+    public function listaccount(Request $request)
     {
-        $account = DB::table('users')
+        $tab    = $request->input('tab', 'admin');
+        $email  = $request->email;
+        $status = $request->status;
+
+        // Số lượng từng nhóm cho badge trên tab
+        $countAdmin    = DB::table('users')->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')->where('roles.name', 'ADMIN')->count();
+        $countStaff    = DB::table('users')->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')->where('roles.name', 'STAFF')->count();
+        $countCustomer = DB::table('users')->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')->where('roles.name', 'CUSTOMER')->count();
+
+        // Query cho tab đang active
+        $query = DB::table('users')
             ->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')
             ->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')
-            ->select(
-                'users.*',
-                'roles.name as role_name'
-            );
+            ->select('users.*', 'roles.name as role_name')
+            ->where('roles.name', strtoupper($tab));
 
-        if ($request->status) {
-            $account->where('users.status', $request->status);
+        if ($status) {
+            $query->where('users.status', $status);
+        }
+        if ($email) {
+            $query->where('users.email', 'like', '%' . $email . '%');
         }
 
-        if ($request->role) {
-            $account->where('roles.name', $request->role);
-        }
+        $account = $query->paginate(10)->appends($request->query());
 
-        if ($request->email) {
-            $account->where('users.email', 'like', '%' . $request->email . '%');
-        }
-
-        $account = $account->paginate(10);
-        return view('admin.account.account',compact('account'));
+        return view('admin.account.account', compact(
+            'account', 'tab',
+            'countAdmin', 'countStaff', 'countCustomer'
+        ));
     }
     //detail account
 
@@ -78,10 +87,10 @@ class AccountManageController {
             return back()->with('error', 'Bạn không thể tự khóa tài khoản của mình');
         }
 
-        // Không cho khóa Admin
-        if (strtoupper($user->role_name ?? '') === 'ADMIN') {
-            return back()->with('error', 'Không thể khóa tài khoản admin');
-        }
+        // // Không cho khóa Admin
+        // if (strtoupper($user->role_name ?? '') === 'ADMIN') {
+        //     return back()->with('error', 'Không thể khóa tài khoản admin');
+        // }
 
         $oldStatus = $user->status;
 
@@ -246,6 +255,231 @@ class AccountManageController {
 
         return back()->with('success', 'Hạ quyền thành công');
         }
+        
+
+        //hạ quyền admin
+        public function demoteAdmin(Request $request)
+{
+    $userRole = UserRole::where(
+        'user_id',
+        $request->user_id
+    )->first();
+
+    // Không tự hạ chính mình
+    if ($request->user_id == auth()->id()) {
+        return back()->with(
+            'error',
+            'Không thể thay đổi quyền chính mình.'
+        );
+    }
+
+    // Đếm admin
+    $adminCount = UserRole::where(
+        'role_id',
+        '1'
+    )->count();
+
+    // Không hạ admin cuối cùng
+    if ($adminCount <= 1) {
+        return back()->with(
+            'error',
+            'Hệ thống phải còn ít nhất 1 Admin.'
+        );
+    }
+
+    //lấy dữ liệu cũ để log
+    $oldRole = $userRole->role_id;
+    // Hạ xuống Staff
+    $userRole->where('user_id', $request->user_id)->update([
+        'role_id' => 2
+    ]);
+
+    //ghi lại audit
+    DB::table('audit_logs')->insert([
+        'user_id'     => auth()->id(),
+        'action'      => 'demote_admin',
+        'entity_name' => 'user_roles',
+        'entity_id'   => $request->user_id,
+        'old_value'   => json_encode(['role_id' => $oldRole]),
+        'new_value'   => json_encode(['role_id' => 2]),
+        'created_at'  => now(),
+    ]);
+
+    return back()->with(
+        'success',
+        'Hạ quyền Admin thành công.'
+    );
+}
+
+//update account management
+//view update account management
+public function profileAccount($id)
+{
+    $user = User::findOrFail($id);
+    return view('admin.account.updateaccount', compact('user'));
+}
+//
+public function update(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'phone' => 'required|string|max:15',
+    ]);
+    //kiểm tra xem ảnh có được gửi 
+    if($request->hasFile('avatar'))
+    {
+        //kiểm tra xem tệp có tồn tại trong storage không
+        if(!empty($user->avatar))
+        {
+            //delete file cũ
+            Storage::disk('public')->delete($user->avatar);
+        }
+        //còn lại thì upload ảnh mới
+        $avatanew = $request->file('avatar')->store('avata_account', 'public');
+    }else {
+        //avatar cũ nếu không upload ảnh mới
+        $avatanew = $user->avatar;
+    }
+
+    $user->update([
+        'name' => $request->name,
+        'phone' => $request->phone,
+        'avatar' => $avatanew,
+    ]);
+
+    //ghi lại audit
+    DB::table('audit_logs')->insert([
+        'user_id'     => auth()->id(),
+        'action'      => 'update_user',
+        'entity_name' => 'users',
+        'entity_id'   => $id,
+        'old_value'   => json_encode(['name' => $user->name, 'phone' => $user->phone]),
+        'new_value'   => json_encode(['name' => $request->name, 'phone' => $request->phone]),
+        'created_at'  => now(),
+    ]);
+
+    return back()->with('success', 'Cập nhật thông tin thành công');
+}
+
+public function updatepassword(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+    //validate password
+    $request->validate([
+        'password' => 'required|string|min:6',
+    ]);
+    //kiểm tra mật khẩu có giống mật khẩu cũ không
+    if($request->password == $user->password)
+    {
+        return back()->with('error', 'Mật khẩu mới không được giống mật khẩu cũ');
+    }
+    //check pass cũ
+    if(!password_verify($request->old_password, $user->password))
+    {
+        return back()->with('error', 'Mật khẩu cũ không đúng');
+    }
+    
+
+    $user->update([
+        'password' => bcrypt($request->password),
+    ]);
+
+    //ghi lại audit
+    DB::table('audit_logs')->insert([
+        'user_id'     => auth()->id(),
+        'action'      => 'update_password_admin',
+        'entity_name' => 'users',
+        'entity_id'   => $id,
+        'old_value'   => json_encode(['password' => $user->password]),
+        'new_value'   => json_encode(['password' => bcrypt($request->password)]),
+        'created_at'  => now(),
+    ]);
+
+    return back()->with('success', 'Cập nhật mật khẩu thành công');
+}
+
+//thêm tài khoản account
+public function createAccount()
+{
+    $roles = Role::all();
+    return view('admin.account.create_account', compact('roles'));
+}
+
+// lưu tài khoản
+public function storeAccount(Request $request)
+{
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|min:6|confirmed',
+        'role_id' => 'required|exists:roles,id',
+    ],
+    [
+        'name.required' => 'Tên không được để trống',
+        'email.required' => 'Email không được để trống',
+        'email.unique' => 'Email đã tồn tại',
+        'password.required' => 'Mật khẩu không được để trống',
+        'password.min' => 'Mật khẩu phải có ít nhất 8 ký tự',
+        'password.confirmed' => 'Mật khẩu không khớp',
+        'role_id.required' => 'Vai trò không được để trống',
+        'role_id.exists' => 'Vai trò không hợp lệ',
+    ]
+);
+
+    //kiểm tra ảnh có tồn tại không
+    if($request->hasFile('avatar'))
+    {
+        $avatar = $request->file('avatar')->store('avatars', 'public');
+    }
+    else
+    {
+        $avatar = null;
+    }
+    // Kiểm tra giới hạn tối đa 5 Admin
+    if ((int)$request->role_id === 1) {
+        $adminCount = DB::table('user_roles')->where('role_id', 1)->count();
+        if ($adminCount >= 5) {
+            return back()
+                ->withInput()
+                ->with('error', 'Hệ thống đã đạt tối đa 5 tài khoản Admin. Vui lòng chọn vai trò khác.');
+        }
+    }
+
+
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'avatar' => $avatar,
+        'password' => bcrypt($request->password),
+    ]);
+
+    // Lưu quyền vào bảng user_roles
+    UserRole::create([
+        'user_id' => $user->id,
+        'role_id' => $request->role_id,
+        'assigned_at' => now(),
+    ]);
+
+    //ghi lại audit
+    DB::table('audit_logs')->insert([
+        'user_id'     => auth()->id(),
+        'action'      => 'create_user',
+        'entity_name' => 'users',
+        'entity_id'   => $user->id,
+        'old_value'   => null,
+        'new_value'   => json_encode([
+            'name' => $user->name,
+            'email' => $user->email,
+            'avatar' => $user->avatar,
+            'role_id' => $request->role_id,
+        ]),
+        'created_at'  => now(),
+    ]);
+
+    return redirect()->route('admin.list_account')->with('success', 'Tạo tài khoản thành công');
+}
 
 
 
