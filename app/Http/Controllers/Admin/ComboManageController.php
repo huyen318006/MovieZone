@@ -166,8 +166,8 @@ class ComboManageController extends Controller
     // Bước 5: Cập nhật thông tin sửa đổi của Combo vào Cơ sở dữ liệu
     public function update(Request $request, $id)
     {
-        // Tìm combo cần cập nhật
-        $combo = Combo::findOrFail($id);
+        // Tìm combo cần cập nhật (eager load 'products' để lấy oldData pivot chính xác)
+        $combo = Combo::with('products')->findOrFail($id);
         // Lưu trữ lại dữ liệu cũ trước khi thay đổi để phục vụ việc ghi Log Audit sau này
         $oldData = [
             'combo' => $combo->toArray(),

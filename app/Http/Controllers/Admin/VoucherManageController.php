@@ -145,7 +145,7 @@ class VoucherManageController extends Controller
             // --- NHÁNH B: Voucher đã có người dùng → chỉ cho phép sửa trường an toàn ---
             $validated = $request->validate([
                 'status'   => 'required|in:ACTIVE,DISABLED,EXPIRED',
-                'end_date' => 'required|date|after:start_date',
+                'end_date' => ['required', 'date', 'after:' . $voucher->start_date->format('Y-m-d')],
                 // Giới hạn tổng lượt dùng chỉ được TĂNG, không được giảm xuống dưới số lượt đã dùng
                 'usage_limit' => [
                     'required',
