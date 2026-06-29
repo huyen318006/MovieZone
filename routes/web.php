@@ -326,6 +326,42 @@ Route::middleware(['auth', 'admin'])
         
     });
 
+    /* --------------------- ADMIN COMBO, PRODUCTS, VOUCHERS, PROMOTIONS ------------------ */
+    Route::middleware(['auth', 'admin'])->group(function () {
+        Route::resource('admin/products', \App\Http\Controllers\Admin\ProductManageController::class)->names([
+            'index' => 'admin.products.index',
+            'create' => 'admin.products.create',
+            'store' => 'admin.products.store',
+            'edit' => 'admin.products.edit',
+            'update' => 'admin.products.update',
+            'destroy' => 'admin.products.destroy',
+        ]);
+        Route::resource('admin/combos', \App\Http\Controllers\Admin\ComboManageController::class)->names([
+            'index' => 'admin.combos.index',
+            'create' => 'admin.combos.create',
+            'store' => 'admin.combos.store',
+            'edit' => 'admin.combos.edit',
+            'update' => 'admin.combos.update',
+            'destroy' => 'admin.combos.destroy',
+        ]);
+        Route::resource('admin/vouchers', \App\Http\Controllers\Admin\VoucherManageController::class)->names([
+            'index' => 'admin.vouchers.index',
+            'create' => 'admin.vouchers.create',
+            'store' => 'admin.vouchers.store',
+            'edit' => 'admin.vouchers.edit',
+            'update' => 'admin.vouchers.update',
+            'destroy' => 'admin.vouchers.destroy',
+        ]);
+        Route::resource('admin/promotions', \App\Http\Controllers\Admin\PromotionManageController::class)->names([
+            'index' => 'admin.promotions.index',
+            'create' => 'admin.promotions.create',
+            'store' => 'admin.promotions.store',
+            'edit' => 'admin.promotions.edit',
+            'update' => 'admin.promotions.update',
+            'destroy' => 'admin.promotions.destroy',
+        ]);
+    });
+
 /* --------------------- STAFF DASHBOARD ------------------ */
 Route::middleware(['auth', 'staff.permission:staff.dashboard'])
     ->get('/staff', [StaffDashboardController::class, 'index'])
