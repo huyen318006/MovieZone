@@ -41,16 +41,20 @@ class ProductManageController extends Controller
     {
         // 1. Xác thực dữ liệu đầu vào
         $validated = $request->validate([
-            'name' => 'required|string|max:150',
+            // Thêm unique để tránh 2 sản phẩm trùng tên gây nhầm lẫn cho admin khi chọn combo
+            'name'        => 'required|string|max:150|unique:products,name',
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'status' => 'required|in:ACTIVE,INACTIVE,OUT_OF_STOCK',
+            // Giới hạn giá tối đa hợp lý để tránh nhập nhầm
+            'price'       => 'required|numeric|min:0|max:999999.99',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'status'      => 'required|in:ACTIVE,INACTIVE,OUT_OF_STOCK',
         ], [
-            'name.required' => 'Tên sản phẩm không được trống.',
-            'price.required' => 'Giá sản phẩm không được trống.',
-            'price.numeric' => 'Giá sản phẩm phải là số.',
-            'price.min' => 'Giá sản phẩm không được âm.',
+            'name.required'   => 'Tên sản phẩm không được trống.',
+            'name.unique'     => 'Tên sản phẩm này đã tồn tại. Vui lòng chọn tên khác.',
+            'price.required'  => 'Giá sản phẩm không được trống.',
+            'price.numeric'   => 'Giá sản phẩm phải là số.',
+            'price.min'       => 'Giá sản phẩm không được âm.',
+            'price.max'       => 'Giá sản phẩm không được vượt quá 999.999đ. Vui lòng kiểm tra lại.',
             'status.required' => 'Trạng thái không được trống.',
         ]);
         // 2. Xử lý upload ảnh sản phẩm
@@ -78,7 +82,10 @@ class ProductManageController extends Controller
     public function edit($id)
     {
         // Tìm sản phẩm theo ID hoặc tự động trả về lỗi 404 nếu không tồn tại
-        $product = Product::findOrFail($id);
+        $product = Product::withCount(['combos' => function ($q) {
+            // Đếm số combo ACTIVE đang chứa sản phẩm này để cảnh báo admin trên view
+            $q->where('status', 'ACTIVE');
+        }])->findOrFail($id);
         return view('admin.product.edit', compact('product'));
     }
 
@@ -91,18 +98,33 @@ class ProductManageController extends Controller
 
         // 1. Xác thực dữ liệu sửa đổi gửi lên
         $validated = $request->validate([
-            'name' => 'required|string|max:150',
+            // unique bỏ qua ID hiện tại của chính sản phẩm
+            'name'        => "required|string|max:150|unique:products,name,{$id}",
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'status' => 'required|in:ACTIVE,INACTIVE,OUT_OF_STOCK',
+            'price'       => 'required|numeric|min:0|max:999999.99',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'status'      => 'required|in:ACTIVE,INACTIVE,OUT_OF_STOCK',
         ], [
-            'name.required' => 'Tên sản phẩm không được trống.',
+            'name.required'  => 'Tên sản phẩm không được trống.',
+            'name.unique'    => 'Tên sản phẩm này đã tồn tại.',
             'price.required' => 'Giá sản phẩm không được trống.',
-            'price.numeric' => 'Giá sản phẩm phải là số.',
-            'price.min' => 'Giá sản phẩm không được âm.',
+            'price.numeric'  => 'Giá sản phẩm phải là số.',
+            'price.min'      => 'Giá sản phẩm không được âm.',
+            'price.max'      => 'Giá sản phẩm không được vượt quá 999.999đ.',
             'status.required' => 'Trạng thái không được trống.',
         ]);
+
+        // Cảnh báo nếu admin chuyển sản phẩm về INACTIVE/OUT_OF_STOCK
+        // trong khi sản phẩm này đang được dùng trong combo ACTIVE
+        $warningMsg       = null;
+        $activeComboCount = $product->combos()->where('status', 'ACTIVE')->count();
+        $isDeactivating   = in_array($validated['status'], ['INACTIVE', 'OUT_OF_STOCK'])
+                           && $product->status === 'ACTIVE';
+
+        if ($isDeactivating && $activeComboCount > 0) {
+            $warningMsg = "Cảnh báo: Sản phẩm này đang là thành phần của {$activeComboCount} combo đang ACTIVE. "
+                        . 'Thay đổi trạng thái có thể ảnh hưởng đến việc hiển thị combo cho khách hàng.';
+        }
         // 2. Xử lý cập nhật ảnh: Xóa ảnh cũ trên disk nếu admin tải lên ảnh mới thế chỗ
         $imageUrl = $product->image_url;
         if ($request->hasFile('image')) {
@@ -124,7 +146,8 @@ class ProductManageController extends Controller
         AuditLogService::log('PRODUCT_UPDATE', 'Product', $product->id, $oldData, $product->fresh()->toArray());
 
         return redirect()->route('admin.products.index')
-            ->with('success', 'Cập nhật sản phẩm thành công.');
+            ->with('success', 'Cập nhật sản phẩm thành công.')
+            ->with('warning', $warningMsg);
     }
 
     // Bước 6: Xóa sản phẩm lẻ

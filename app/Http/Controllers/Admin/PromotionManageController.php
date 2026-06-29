@@ -40,19 +40,23 @@ class PromotionManageController extends Controller
     {
         // 1. Xác thực thông tin đầu vào
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
+            // Thêm unique để tránh trùng tên chiến dịch gây nhầm lẫn
+            'title'       => 'required|string|max:255|unique:promotions,title',
             'description' => 'nullable|string',
-            'banner' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096', // Banner tối đa 4MB (ảnh chất lượng cao)
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
-            'status' => 'required|in:ACTIVE,INACTIVE,EXPIRED',
+            'banner'      => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096', // Banner tối đa 4MB (ảnh chất lượng cao)
+            // start_date không được là ngày trong quá khứ khi tạo mới
+            'start_date'  => 'required|date|after_or_equal:today',
+            'end_date'    => 'required|date|after:start_date',
+            'status'      => 'required|in:ACTIVE,INACTIVE,EXPIRED',
         ], [
-            'title.required' => 'Tiêu đề chương trình không được trống.',
-            'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
+            'title.required'            => 'Tiêu đề chương trình không được trống.',
+            'title.unique'              => 'Tiêu đề chiến dịch này đã tồn tại. Vui lòng đặt tên khác.',
+            'start_date.required'       => 'Ngày bắt đầu là bắt buộc.',
+            'start_date.after_or_equal' => 'Ngày bắt đầu không được là ngày trong quá khứ.',
             // Ngày kết thúc phải sau mốc ngày bắt đầu
-            'end_date.required' => 'Ngày kết thúc là bắt buộc.',
-            'end_date.after' => 'Ngày kết thúc phải sau ngày bắt đầu.',
-            'status.required' => 'Trạng thái không được trống.',
+            'end_date.required'         => 'Ngày kết thúc là bắt buộc.',
+            'end_date.after'            => 'Ngày kết thúc phải sau ngày bắt đầu.',
+            'status.required'           => 'Trạng thái không được trống.',
         ]);
         // 2. Xử lý tải ảnh banner lên storage
         $bannerUrl = null;
@@ -92,19 +96,29 @@ class PromotionManageController extends Controller
 
         // 1. Xác thực thông tin mới gửi lên
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
+            // unique bỏ qua ID hiện tại
+            'title'       => "required|string|max:255|unique:promotions,title,{$id}",
             'description' => 'nullable|string',
-            'banner' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
-            'status' => 'required|in:ACTIVE,INACTIVE,EXPIRED',
+            'banner'      => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
+            // Khi update không yêu cầu after_or_equal:today để admin có thể điều chỉnh chiến dịch đang chạy
+            'start_date'  => 'required|date',
+            'end_date'    => 'required|date|after:start_date',
+            'status'      => 'required|in:ACTIVE,INACTIVE,EXPIRED',
         ], [
-            'title.required' => 'Tiêu đề chương trình không được trống.',
+            'title.required'  => 'Tiêu đề chương trình không được trống.',
+            'title.unique'    => 'Tiêu đề chiến dịch này đã tồn tại.',
             'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
-            'end_date.required' => 'Ngày kết thúc là bắt buộc.',
-            'end_date.after' => 'Ngày kết thúc phải sau ngày bắt đầu.',
-            'status.required' => 'Trạng thái không được trống.',
+            'end_date.required'   => 'Ngày kết thúc là bắt buộc.',
+            'end_date.after'      => 'Ngày kết thúc phải sau ngày bắt đầu.',
+            'status.required'     => 'Trạng thái không được trống.',
         ]);
+
+        // Cảnh báo mâu thuẫn nếu đổi status về ACTIVE nhưng end_date đã qua
+        $warningMsg = null;
+        $endDate    = \Carbon\Carbon::parse($validated['end_date']);
+        if ($validated['status'] === 'ACTIVE' && $endDate->isPast()) {
+            $warningMsg = 'Cảnh báo: Bạn đặt trạng thái là ACTIVE nhưng ngày kết thúc của chiến dịch đã qua. Vui lòng kiểm tra lại ngày kết thúc.';
+        }
         // 2. Xử lý ảnh banner: Xóa banner cũ nếu được thay thế bằng banner mới
         $bannerUrl = $promotion->banner_url;
         if ($request->hasFile('banner')) {
@@ -123,17 +137,25 @@ class PromotionManageController extends Controller
             'status' => $validated['status'],
         ]);
 
-        // 4. Ghi nhận log chỉnh sửa khuyến mãi
+        // 4. Ghi nhận log chỉnh sửa khúyến mãi
         AuditLogService::log('PROMOTION_UPDATE', 'Promotion', $promotion->id, $oldData, $promotion->fresh()->toArray());
 
         return redirect()->route('admin.promotions.index')
-            ->with('success', 'Cập nhật chương trình khuyến mãi thành công.');
+            ->with('success', 'Cập nhật chương trình khuyến mãi thành công.')
+            ->with('warning', $warningMsg);
     }
 
     // Bước 6: Xóa chương trình khuyến mãi
     public function destroy($id)
     {
         $promotion = Promotion::findOrFail($id);
+
+        // Kiểm tra ràng buộc: không cho phép xóa chiến dịch đang ACTIVE
+        if ($promotion->status === 'ACTIVE') {
+            return redirect()->route('admin.promotions.index')
+                ->with('error', 'Không thể xóa chương trình khuyến mãi đang ACTIVE. Vui lòng chuyển trạng thái về INACTIVE hoặc EXPIRED trước khi xóa.');
+        }
+
         $oldData = $promotion->toArray();
 
         // 1. Xóa ảnh banner vật lý trong storage trước khi xóa bản ghi
