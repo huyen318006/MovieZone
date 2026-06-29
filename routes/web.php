@@ -2,6 +2,10 @@
 
 use App\Http\Controllers\Admin\AccountManageController;
 use App\Http\Controllers\Admin\RoomManageController;
+use App\Http\Controllers\Admin\ProductManageController;
+use App\Http\Controllers\Admin\ComboManageController;
+use App\Http\Controllers\Admin\VoucherManageController;
+use App\Http\Controllers\Admin\PromotionManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Admin\SeatManageController;
@@ -328,7 +332,7 @@ Route::middleware(['auth', 'admin'])
 
     /* --------------------- ADMIN COMBO, PRODUCTS, VOUCHERS, PROMOTIONS ------------------ */
     Route::middleware(['auth', 'admin'])->group(function () {
-        Route::resource('admin/products', \App\Http\Controllers\Admin\ProductManageController::class)->names([
+        Route::resource('admin/products', ProductManageController::class)->names([
             'index' => 'admin.products.index',
             'create' => 'admin.products.create',
             'store' => 'admin.products.store',
@@ -336,7 +340,7 @@ Route::middleware(['auth', 'admin'])
             'update' => 'admin.products.update',
             'destroy' => 'admin.products.destroy',
         ]);
-        Route::resource('admin/combos', \App\Http\Controllers\Admin\ComboManageController::class)->names([
+        Route::resource('admin/combos', ComboManageController::class)->names([
             'index' => 'admin.combos.index',
             'create' => 'admin.combos.create',
             'store' => 'admin.combos.store',
@@ -344,7 +348,7 @@ Route::middleware(['auth', 'admin'])
             'update' => 'admin.combos.update',
             'destroy' => 'admin.combos.destroy',
         ]);
-        Route::resource('admin/vouchers', \App\Http\Controllers\Admin\VoucherManageController::class)->names([
+        Route::resource('admin/vouchers', VoucherManageController::class)->names([
             'index' => 'admin.vouchers.index',
             'create' => 'admin.vouchers.create',
             'store' => 'admin.vouchers.store',
@@ -352,7 +356,7 @@ Route::middleware(['auth', 'admin'])
             'update' => 'admin.vouchers.update',
             'destroy' => 'admin.vouchers.destroy',
         ]);
-        Route::resource('admin/promotions', \App\Http\Controllers\Admin\PromotionManageController::class)->names([
+        Route::resource('admin/promotions', PromotionManageController::class)->names([
             'index' => 'admin.promotions.index',
             'create' => 'admin.promotions.create',
             'store' => 'admin.promotions.store',
