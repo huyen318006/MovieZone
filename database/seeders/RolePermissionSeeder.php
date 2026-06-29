@@ -32,6 +32,7 @@ class RolePermissionSeeder extends Seeder
         $staffRole = Role::where('name', 'STAFF')->first();
         if ($staffRole) {
             $staffPermissions = Permission::whereIn('name', [
+                'staff.dashboard',
                 'booking.lookup',
                 'movie.view',
                 'ticket.checkin',

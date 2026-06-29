@@ -14,6 +14,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SepayController;
 use App\Http\Controllers\ShowtimeController;
+use App\Http\Controllers\Staff\StaffDashboardController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\VoucherController;
 use App\Models\Movie;
@@ -324,6 +325,11 @@ Route::middleware(['auth', 'admin'])
             ->name('admin.account.store_account');
         
     });
+
+/* --------------------- STAFF DASHBOARD ------------------ */
+Route::middleware(['auth', 'staff.permission:staff.dashboard'])
+    ->get('/staff', [StaffDashboardController::class, 'index'])
+    ->name('staff.dashboard');
 
 /* --------------------- UC-STAFF-03: TRA CỨU BOOKING/VÉ ------------------ */
 use App\Http\Controllers\Staff\BookingLookupController;
