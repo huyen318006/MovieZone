@@ -4,9 +4,19 @@
 @section('page-title', 'Staff Dashboard')
 
 @section('topbar-actions')
-<a href="{{ route('staff.dashboard') }}" class="btn btn-sm btn-outline-light">
-    <i class="bi bi-arrow-clockwise me-1"></i> Tải lại
-</a>
+<form method="GET" action="{{ route('staff.dashboard') }}" class="d-flex align-items-center gap-2">
+    <input type="date"
+           name="date"
+           value="{{ request('date', now()->toDateString()) }}"
+           class="form-control form-control-sm"
+           style="width: 150px;">
+    <button type="submit" class="btn btn-sm btn-outline-light">
+        <i class="bi bi-funnel me-1"></i> Lọc
+    </button>
+    <a href="{{ route('staff.dashboard') }}" class="btn btn-sm btn-outline-light">
+        <i class="bi bi-arrow-clockwise"></i>
+    </a>
+</form>
 @endsection
 
 @section('styles')
@@ -308,6 +318,13 @@
     $recentCashPayments = $dashboard['recent_cash_payments'] ?? collect();
     $dashboardDate = $dashboard['date'] ?? now();
 @endphp
+
+@if (!empty($dashboardError))
+    <div class="alert alert-warning border-0 shadow-sm mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ $dashboardError }}
+    </div>
+@endif
 
 <section class="staff-dashboard-hero">
     <span class="staff-dashboard-eyebrow">

@@ -30,6 +30,21 @@ class StaffDashboardService
         ];
     }
 
+    public function emptyOverview(?Carbon $date = null): array
+    {
+        return [
+            'date' => $date ?? today(),
+            'metrics' => [
+                'checked_in_tickets' => 0,
+                'pending_cash_bookings' => 0,
+                'new_bookings' => 0,
+                'support_issues' => 0,
+            ],
+            'recent_checkins' => collect(),
+            'recent_cash_payments' => collect(),
+        ];
+    }
+
     private function checkedInTicketsCount(Carbon $startOfDay, Carbon $endOfDay): int
     {
         return Ticket::query()
