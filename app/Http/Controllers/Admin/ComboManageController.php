@@ -48,22 +48,47 @@ class ComboManageController extends Controller
     {
          // 1. Xác thực dữ liệu đầu vào (Validation)
         $validated = $request->validate([
-            'name' => 'required|string|max:150',
+            // Thêm unique để tránh 2 combo cùng tên gây nhầm lẫn
+            'name'        => 'required|string|max:150|unique:combos,name',
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'status' => 'required|in:ACTIVE,INACTIVE',
-            'product_ids' => 'required|array',
-            'product_ids.*' => 'exists:products,id',
-            'quantities' => 'required|array',
+            'price'       => 'required|numeric|min:0|max:99999999.99',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'status'      => 'required|in:ACTIVE,INACTIVE',
+            // Giới hạn tối đa 10 sản phẩm lẻ trong một combo
+            'product_ids'   => 'required|array|min:1|max:10',
+            // Mỗi product_id phải tồn tại và không trùng nhau
+            'product_ids.*' => 'required|integer|distinct|exists:products,id',
+            // Validate từng phần tử quantity trong mảng
+            'quantities'    => 'required|array',
+            'quantities.*'  => 'required|integer|min:1|max:100',
         ], [
-            'name.required' => 'Tên combo không được trống.',
-            'price.required' => 'Giá combo không được trống.',
-            'price.numeric' => 'Giá combo phải là số.',
-            'price.min' => 'Giá combo không được âm.',
-            'status.required' => 'Trạng thái không được trống.',
-            'product_ids.required' => 'Bạn phải chọn ít nhất một sản phẩm lẻ cho combo.',
+            'name.required'          => 'Tên combo không được trống.',
+            'name.unique'            => 'Tên combo này đã tồn tại. Vui lòng chọn tên khác.',
+            'price.required'         => 'Giá combo không được trống.',
+            'price.numeric'          => 'Giá combo phải là số.',
+            'price.min'              => 'Giá combo không được âm.',
+            'status.required'        => 'Trạng thái không được trống.',
+            'product_ids.required'   => 'Bạn phải chọn ít nhất một sản phẩm lẻ cho combo.',
+            'product_ids.min'        => 'Combo phải có ít nhất 1 sản phẩm lẻ.',
+            'product_ids.max'        => 'Combo chỉ được phép chứa tối đa 10 sản phẩm lẻ.',
+            'product_ids.*.distinct' => 'Bạn đang chọn trùng lặp cùng một sản phẩm lẻ. Vui lòng gộp lại thành một dòng.',
+            'product_ids.*.exists'   => 'Một hoặc nhiều sản phẩm lẻ được chọn không hợp lệ hoặc không tồn tại.',
+            'quantities.*.required'  => 'Số lượng sản phẩm không được để trống.',
+            'quantities.*.integer'   => 'Số lượng sản phẩm phải là số nguyên.',
+            'quantities.*.min'       => 'Số lượng mỗi sản phẩm lẻ trong combo phải tối thiểu là 1.',
+            'quantities.*.max'       => 'Số lượng mỗi sản phẩm lẻ không được vượt quá 100.',
         ]);
+
+        // Kiểm tra không có sản phẩm INACTIVE hoặc OUT_OF_STOCK được thêm vào combo
+        $inactiveProducts = Product::whereIn('id', $validated['product_ids'])
+            ->where('status', '!=', 'ACTIVE')
+            ->pluck('name');
+
+        if ($inactiveProducts->isNotEmpty()) {
+            return back()->withInput()->withErrors([
+                'product_ids' => 'Các sản phẩm sau không thể thêm vào combo vì không còn hoạt động: ' . $inactiveProducts->join(', ') . '.',
+            ]);
+        }
 
          // 2. Xử lý upload file ảnh sản phẩm nếu có
         $imageUrl = null;
@@ -91,6 +116,11 @@ class ComboManageController extends Controller
                     $syncData[$productId] = ['quantity' => $quantity];
                 }
             }
+            // Kiểm tra sau khi lọc vẫn còn ít nhất 1 sản phẩm hợp lệ
+            if (empty($syncData)) {
+                throw new \Exception('Combo phải có ít nhất một sản phẩm với số lượng > 0.');
+            }
+
             // Đồng bộ dữ liệu sang bảng trung gian `combo_items`
             $combo->products()->sync($syncData);
             // 3.3. Nếu mọi câu lệnh thành công, xác nhận lưu vĩnh viễn vào DB
@@ -121,9 +151,12 @@ class ComboManageController extends Controller
     {
         // Tìm combo cần sửa kèm các sản phẩm lẻ đang liên kết hoặc trả về 404 nếu không tìm thấy
         $combo = Combo::with('products')->findOrFail($id);
-        // Tìm danh sách sản phẩm lẻ đang ACTIVE để Admin có thể thêm sản phẩm khác vào combo
-        $products = Product::where('status', 'ACTIVE')->get();
-        
+        // Chỉ lấy sản phẩm ACTIVE, nhưng vẫn thêm các sản phẩm đang liên kết với combo (dù INACTIVE)
+        // để admin thấy được danh sách hiện tại và có thể gỡ ra
+        $products = Product::where('status', 'ACTIVE')
+            ->orWhereIn('id', $combo->products->pluck('id'))
+            ->get();
+
         // Tạo mảng dạng key-value [id_sản_phẩm => số_lượng] từ pivot để fill vào form chỉnh sửa
         $selectedProducts = $combo->products->pluck('pivot.quantity', 'id')->toArray();
 
@@ -143,22 +176,41 @@ class ComboManageController extends Controller
 
         // 1. Xác thực dữ liệu mới gửi lên
         $validated = $request->validate([
-            'name' => 'required|string|max:150',
+            // unique bỏ qua chính ID hiện tại
+            'name'        => "required|string|max:150|unique:combos,name,{$id}",
             'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'status' => 'required|in:ACTIVE,INACTIVE',
-            'product_ids' => 'required|array',
-            'product_ids.*' => 'exists:products,id',
-            'quantities' => 'required|array',
+            'price'       => 'required|numeric|min:0|max:99999999.99',
+            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'status'      => 'required|in:ACTIVE,INACTIVE',
+            'product_ids'   => 'required|array|min:1|max:10',
+            'product_ids.*' => 'required|integer|distinct|exists:products,id',
+            'quantities'    => 'required|array',
+            'quantities.*'  => 'required|integer|min:1|max:100',
         ], [
-            'name.required' => 'Tên combo không được trống.',
-            'price.required' => 'Giá combo không được trống.',
-            'price.numeric' => 'Giá combo phải là số.',
-            'price.min' => 'Giá combo không được âm.',
-            'status.required' => 'Trạng thái không được trống.',
-            'product_ids.required' => 'Bạn phải chọn ít nhất một sản phẩm lẻ cho combo.',
+            'name.required'          => 'Tên combo không được trống.',
+            'name.unique'            => 'Tên combo này đã tồn tại. Vui lòng chọn tên khác.',
+            'price.required'         => 'Giá combo không được trống.',
+            'price.numeric'          => 'Giá combo phải là số.',
+            'price.min'              => 'Giá combo không được âm.',
+            'status.required'        => 'Trạng thái không được trống.',
+            'product_ids.required'   => 'Bạn phải chọn ít nhất một sản phẩm lẻ cho combo.',
+            'product_ids.max'        => 'Combo chỉ được phép chứa tối đa 10 sản phẩm lẻ.',
+            'product_ids.*.distinct' => 'Bạn đang chọn trùng lặp cùng một sản phẩm lẻ.',
+            'product_ids.*.exists'   => 'Một hoặc nhiều sản phẩm lẻ được chọn không hợp lệ.',
+            'quantities.*.min'       => 'Số lượng mỗi sản phẩm lẻ trong combo phải tối thiểu là 1.',
+            'quantities.*.max'       => 'Số lượng mỗi sản phẩm lẻ không được vượt quá 100.',
         ]);
+
+        // Kiểm tra sản phẩm INACTIVE trong danh sách mới chọn
+        $inactiveProducts = Product::whereIn('id', $validated['product_ids'])
+            ->where('status', '!=', 'ACTIVE')
+            ->pluck('name');
+
+        if ($inactiveProducts->isNotEmpty()) {
+            return back()->withInput()->withErrors([
+                'product_ids' => 'Các sản phẩm sau không thể thêm vào combo vì không còn hoạt động: ' . $inactiveProducts->join(', ') . '.',
+            ]);
+        }
 
          // 2. Xử lý ảnh sản phẩm: Nếu tải lên ảnh mới, tiến hành xóa ảnh cũ trong storage
         $imageUrl = $combo->image_url;
@@ -190,6 +242,10 @@ class ComboManageController extends Controller
                 }
             }
             // Đồng bộ lại mảng sản phẩm lẻ mới (các phần tử cũ không thuộc mảng này sẽ tự động bị xóa)
+            if (empty($syncData)) {
+                throw new \Exception('Combo phải có ít nhất một sản phẩm với số lượng > 0.');
+            }
+
             $combo->products()->sync($syncData);
 
             DB::commit();
