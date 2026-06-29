@@ -110,7 +110,7 @@
 <div class="staff-shell">
     <!-- SIDEBAR -->
     <aside class="staff-sidebar" id="staffSidebar">
-        <a class="sidebar-brand" href="{{ route('staff.booking-lookup') }}">
+        <a class="sidebar-brand" href="{{ route('staff.dashboard') }}">
             <div class="brand-icon"><i class="bi bi-film"></i></div>
             <div>
                 <div class="brand-title">MovieZone</div>
@@ -119,6 +119,13 @@
         </a>
 
         <nav class="sidebar-nav">
+            <div class="nav-label">Tổng quan</div>
+
+            <a class="nav-link {{ Request::routeIs('staff.dashboard') ? 'active' : '' }}"
+               href="{{ route('staff.dashboard') }}">
+                <i class="bi bi-speedometer2"></i> Staff Dashboard
+            </a>
+
             <div class="nav-label">Chức năng</div>
 
             <a class="nav-link {{ Request::routeIs('staff.booking-lookup') ? 'active' : '' }}"
