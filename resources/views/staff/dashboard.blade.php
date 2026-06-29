@@ -114,12 +114,47 @@
     background: rgba(15, 23, 42, .42);
 }
 
+.staff-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.staff-metric-card {
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(30, 41, 59, .72);
+    border: 1px solid rgba(148, 163, 184, .14);
+}
+
+.staff-metric-card span {
+    display: block;
+    color: var(--staff-text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.staff-metric-card strong {
+    display: block;
+    margin-top: 8px;
+    color: var(--staff-text);
+    font-size: 30px;
+    line-height: 1;
+}
+
 @media (max-width: 960px) {
-    .staff-quick-grid { grid-template-columns: 1fr; }
+    .staff-quick-grid,
+    .staff-metric-grid { grid-template-columns: 1fr; }
 }
 @endsection
 
 @section('content')
+@php
+    $metrics = $dashboard['metrics'] ?? [];
+@endphp
 <section class="staff-dashboard-hero">
     <span class="staff-dashboard-eyebrow">
         <i class="bi bi-speedometer2"></i>
@@ -131,6 +166,25 @@
         thanh toán tiền mặt và các tác vụ hỗ trợ trong ca làm việc.
     </p>
 </section>
+
+<div class="staff-metric-grid">
+    <div class="staff-metric-card">
+        <span>Vé check-in hôm nay</span>
+        <strong>{{ number_format($metrics['checked_in_tickets'] ?? 0) }}</strong>
+    </div>
+    <div class="staff-metric-card">
+        <span>Booking chờ tiền mặt</span>
+        <strong>{{ number_format($metrics['pending_cash_bookings'] ?? 0) }}</strong>
+    </div>
+    <div class="staff-metric-card">
+        <span>Booking mới hôm nay</span>
+        <strong>{{ number_format($metrics['new_bookings'] ?? 0) }}</strong>
+    </div>
+    <div class="staff-metric-card">
+        <span>Sự cố cần hỗ trợ</span>
+        <strong>{{ number_format($metrics['support_issues'] ?? 0) }}</strong>
+    </div>
+</div>
 
 <div class="staff-quick-grid">
     <a class="staff-quick-card" href="{{ route('staff.check-in') }}">
@@ -160,6 +214,7 @@
 
 <div class="staff-placeholder-panel">
     <i class="bi bi-info-circle me-1"></i>
-    Nền dashboard đã sẵn sàng. Các số liệu tổng quan và danh sách gần đây sẽ được bổ sung ở commit tiếp theo.
+    Dữ liệu tổng quan đã được tải cho ngày {{ ($dashboard['date'] ?? now())->format('d/m/Y') }}.
+    Giao diện bảng chi tiết check-in và thanh toán gần đây sẽ được hoàn thiện ở commit tiếp theo.
 </div>
 @endsection
