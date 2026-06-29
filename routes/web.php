@@ -327,7 +327,7 @@ Route::middleware(['auth', 'admin'])
     });
 
 /* --------------------- STAFF DASHBOARD ------------------ */
-Route::middleware(['auth', 'staff.permission:booking.lookup'])
+Route::middleware(['auth', 'staff.permission:staff.dashboard'])
     ->get('/staff', [StaffDashboardController::class, 'index'])
     ->name('staff.dashboard');
 

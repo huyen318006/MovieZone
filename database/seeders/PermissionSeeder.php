@@ -87,6 +87,15 @@ class PermissionSeeder extends Seeder
                 'updated_at' => now(),
             ],
 
+            // ── UC-STAFF-05: Staff Dashboard ──
+            [
+                'code' => 'STAFF_DASHBOARD',
+                'name' => 'staff.dashboard',
+                'description' => 'Truy cập Staff Dashboard',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
             // ── UC-STAFF-03: Tra cứu Booking/Vé ──
             [
                 'code' => 'BOOKING_LOOKUP',
