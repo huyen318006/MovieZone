@@ -291,15 +291,6 @@
     color: #64748b;
 }
 
-.staff-note-panel {
-    margin-top: 20px;
-    border: 1px dashed rgba(148, 163, 184, .28);
-    border-radius: 18px;
-    padding: 18px 20px;
-    color: var(--staff-text-muted);
-    background: rgba(15, 23, 42, .42);
-}
-
 @media (max-width: 1100px) {
     .staff-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .staff-dashboard-panels { grid-template-columns: 1fr; }
@@ -462,9 +453,5 @@
     </section>
 </div>
 
-<div class="staff-note-panel">
-    <i class="bi bi-info-circle me-1"></i>
-    Dashboard chỉ dùng để theo dõi nhanh. Khi xác nhận thanh toán hoặc check-in,
-    nhân viên vẫn cần kiểm tra chi tiết booking/vé ở chức năng tương ứng.
-</div>
+
 @endsection
