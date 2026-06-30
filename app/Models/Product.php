@@ -24,4 +24,10 @@ class Product extends Model
             'combo_items'
         )->withPivot('quantity');
     }
+    public function bookingProducts()
+    {
+        return $this->hasMany(
+            BookingProduct::class
+        );
+    }
 }

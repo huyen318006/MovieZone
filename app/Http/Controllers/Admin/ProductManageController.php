@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\BookingCombo;
 use App\Models\Product;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ProductManageController extends Controller
 {
@@ -17,8 +20,10 @@ class ProductManageController extends Controller
         $query = Product::query();
         // Kiểm tra lọc theo từ khóa tìm kiếm (tên hoặc mô tả sản phẩm)
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('description', 'like', '%' . $request->search . '%');
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                ->orWhere('description', 'like', '%' . $request->search . '%');
+            });
         }
         // Lọc theo trạng thái sản phẩm (ACTIVE, INACTIVE, OUT_OF_STOCK)
         if ($request->filled('status')) {
@@ -40,23 +45,7 @@ class ProductManageController extends Controller
     public function store(Request $request)
     {
         // 1. Xác thực dữ liệu đầu vào
-        $validated = $request->validate([
-            // Thêm unique để tránh 2 sản phẩm trùng tên gây nhầm lẫn cho admin khi chọn combo
-            'name'        => 'required|string|max:150|unique:products,name',
-            'description' => 'nullable|string',
-            // Giới hạn giá tối đa hợp lý để tránh nhập nhầm
-            'price'       => 'required|numeric|min:0|max:999999.99',
-            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'status'      => 'required|in:ACTIVE,INACTIVE,OUT_OF_STOCK',
-        ], [
-            'name.required'   => 'Tên sản phẩm không được trống.',
-            'name.unique'     => 'Tên sản phẩm này đã tồn tại. Vui lòng chọn tên khác.',
-            'price.required'  => 'Giá sản phẩm không được trống.',
-            'price.numeric'   => 'Giá sản phẩm phải là số.',
-            'price.min'       => 'Giá sản phẩm không được âm.',
-            'price.max'       => 'Giá sản phẩm không được vượt quá 999.999đ. Vui lòng kiểm tra lại.',
-            'status.required' => 'Trạng thái không được trống.',
-        ]);
+        $validated = $this->validateProduct($request);
         // 2. Xử lý upload ảnh sản phẩm
         $imageUrl = null;
         if ($request->hasFile('image')) {
@@ -86,6 +75,7 @@ class ProductManageController extends Controller
             // Đếm số combo ACTIVE đang chứa sản phẩm này để cảnh báo admin trên view
             $q->where('status', 'ACTIVE');
         }])->findOrFail($id);
+        $product->has_been_sold = $this->hasBeenSold($product);
         return view('admin.product.edit', compact('product'));
     }
 
@@ -97,23 +87,14 @@ class ProductManageController extends Controller
         $oldData = $product->toArray();
 
         // 1. Xác thực dữ liệu sửa đổi gửi lên
-        $validated = $request->validate([
-            // unique bỏ qua ID hiện tại của chính sản phẩm
-            'name'        => "required|string|max:150|unique:products,name,{$id}",
-            'description' => 'nullable|string',
-            'price'       => 'required|numeric|min:0|max:999999.99',
-            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
-            'status'      => 'required|in:ACTIVE,INACTIVE,OUT_OF_STOCK',
-        ], [
-            'name.required'  => 'Tên sản phẩm không được trống.',
-            'name.unique'    => 'Tên sản phẩm này đã tồn tại.',
-            'price.required' => 'Giá sản phẩm không được trống.',
-            'price.numeric'  => 'Giá sản phẩm phải là số.',
-            'price.min'      => 'Giá sản phẩm không được âm.',
-            'price.max'      => 'Giá sản phẩm không được vượt quá 999.999đ.',
-            'status.required' => 'Trạng thái không được trống.',
-        ]);
-
+        $validated = $this->validateProduct($request, $id);
+        // Không cho thay đổi giá nếu sản phẩm đã phát sinh giao dịch
+        if ($product->price != $validated['price'] && $this->hasBeenSold($product)) {
+            return back()->withInput()->with(
+                    'error',
+                    'Không thể thay đổi giá vì sản phẩm này đã phát sinh giao dịch.'
+                );
+        }
         // Cảnh báo nếu admin chuyển sản phẩm về INACTIVE/OUT_OF_STOCK
         // trong khi sản phẩm này đang được dùng trong combo ACTIVE
         $warningMsg       = null;
@@ -175,5 +156,88 @@ class ProductManageController extends Controller
 
         return redirect()->route('admin.products.index')
             ->with('success', 'Xóa sản phẩm thành công.');
+    }
+    private function hasBeenSold(Product $product): bool
+    {
+        return BookingCombo::whereHas('combo', function ($query) use ($product) {
+            $query->whereHas('products', function ($q) use ($product) {
+                $q->where('products.id', $product->id);
+            });
+        })->exists();
+    }
+        //Phần validate
+    private function validateProduct(Request $request, $id = null)
+    {
+        $validator = Validator::make($request->all(), [
+
+            'name' => [
+                'required',
+                'string',
+                'min:3',
+                'max:150',
+                'regex:/^[\pL\pN\s\-\&\+\(\)\.\/%]+$/u',
+                Rule::unique('products', 'name')->ignore($id),
+            ],
+
+            'description' => [
+                'nullable',
+                'string',
+                'max:1000',
+            ],
+
+            'price' => [
+                'required',
+                'numeric',
+                'min:1000',
+                'max:1000000',
+            ],
+
+            'image' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,png,jpg,gif,svg,webp',
+                'max:2048',
+            ],
+
+            'status' => [
+                'required',
+                'in:ACTIVE,INACTIVE,OUT_OF_STOCK'
+            ],
+
+        ], [
+
+            // Name
+            'name.required' =>'Tên sản phẩm không được để trống.',
+            'name.min'      =>'Tên sản phẩm phải có ít nhất 3 ký tự.',
+            'name.max'      =>'Tên sản phẩm không được vượt quá 150 ký tự.',
+            'name.unique'   =>'Tên sản phẩm này đã tồn tại.',
+            'name.regex'    => 'Tên sản phẩm chỉ được chứa chữ cái, số, khoảng trắng và các ký tự -, &, +, ().',
+            // Description
+            'description.max' => 'Mô tả không được vượt quá 1000 ký tự.',
+            // Price
+            'price.required' =>'Giá sản phẩm không được để trống.',
+            'price.numeric'  => 'Giá sản phẩm phải là số.',
+            'price.min'      =>'Giá sản phẩm phải tối thiểu là 1.000 đồng.',
+            'price.max'      => 'Giá sản phẩm không được vượt quá 1.000.000 đồng.',
+            // Status
+            'status.required' => 'Vui lòng chọn trạng thái sản phẩm.',
+            'status.in'       => 'Trạng thái sản phẩm không hợp lệ.',
+            // Image
+            'image.image' => 'Tệp tải lên phải là ảnh.',
+            'image.mimes' => 'Ảnh phải có định dạng jpeg, png, jpg, gif, svg hoặc webp.',
+            'image.max'   => 'Dung lượng ảnh tối đa là 2MB.',
+        ]);
+
+        $validator->after(function ($validator) use ($request, $id) {
+
+        $product = $id ? Product::find($id) : null;
+            if ($request->status === 'ACTIVE' && !$request->hasFile('image') && (!$product || !$product->image_url)) {
+                $validator->errors()->add(
+                    'image',
+                    'Sản phẩm đang bán phải có hình ảnh.'
+                );
+            }
+        });
+        return $validator->validate();
     }
 }

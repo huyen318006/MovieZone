@@ -36,10 +36,15 @@
 
                     <div class="col-md-6">
                         <label for="price" class="form-label fw-semibold">Giá combo (VNĐ) <span class="text-danger">*</span></label>
-                        <input type="number" name="price" id="price" class="form-control @error('price') is-invalid @enderror" value="{{ old('price', (int)$combo->price) }}" min="0" placeholder="Ví dụ: 99000">
+                        <input type="number"name="price"id="price" class="form-control @error('price') is-invalid @enderror" value="{{ old('price', (int)$combo->price) }}"min="0"placeholder="Ví dụ: 99000"@if($combo->bookingCombos()->exists()) readonly @endif>
                         @error('price')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        @if($combo->bookingCombos()->exists())
+                            <div class="alert alert-warning mt-2">
+                                Combo này đã phát sinh giao dịch nên không thể thay đổi giá hoặc thành phần.
+                            </div>
+                        @endif
                     </div>
 
                     <div class="col-md-6">
@@ -89,14 +94,14 @@
                                         <div class="card h-100 border-0 shadow-sm p-3">
                                             <div class="form-check d-flex align-items-center justify-content-between">
                                                 <div>
-                                                    <input class="form-check-input product-checkbox" type="checkbox" name="product_ids[]" id="product_{{ $product->id }}" value="{{ $product->id }}" {{ $isChecked ? 'checked' : '' }}>
+                                                    <input class="form-check-input product-checkbox" type="checkbox" name="product_ids[]" id="product_{{ $product->id }}" value="{{ $product->id }}"{{ $isChecked ? 'checked' : '' }}@if($combo->bookingCombos()->exists()) disabled @endif>
                                                     <label class="form-check-label fw-semibold ms-2" for="product_{{ $product->id }}">
                                                         {{ $product->name }}
                                                     </label>
                                                     <div class="text-muted small ms-2">{{ number_format($product->price, 0, ',', '.') }} đ</div>
                                                 </div>
                                                 <div style="width: 80px;">
-                                                    <input type="number" name="quantities[{{ $product->id }}]" class="form-control form-control-sm quantity-input" min="1" value="{{ $quantityValue }}" {{ $isChecked ? '' : 'disabled' }}>
+                                                    <input type="number" name="quantities[{{ $product->id }}]" class="form-control form-control-sm quantity-input" min="1" value="{{ $quantityValue }}" @if($combo->bookingCombos()->exists())readonly @else {{ $isChecked ? '' : 'disabled' }}@endif>
                                                 </div>
                                             </div>
                                         </div>

@@ -36,10 +36,16 @@
 
                     <div class="col-md-6">
                         <label for="price" class="form-label fw-semibold">Giá bán (VNĐ) <span class="text-danger">*</span></label>
-                        <input type="number" name="price" id="price" class="form-control @error('price') is-invalid @enderror" value="{{ old('price', (int)$product->price) }}" min="0" placeholder="Ví dụ: 30000">
+                        <input type="number" name="price" id="price" class="form-control @error('price') is-invalid @enderror" value="{{ old('price', (int)$product->price) }}"min="0" placeholder="Ví dụ: 30000"
+                            @if($product->has_been_sold) readonly @endif>
                         @error('price')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        @if($product->has_been_sold)
+                            <div class="alert alert-warning mt-2 mb-0">
+                                Sản phẩm này đã phát sinh giao dịch nên không thể thay đổi giá bán.
+                            </div>
+                        @endif
                     </div>
 
                     <div class="col-md-6">

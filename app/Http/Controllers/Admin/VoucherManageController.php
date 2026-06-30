@@ -7,6 +7,7 @@ use App\Models\Voucher;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 class VoucherManageController extends Controller
 {
@@ -35,48 +36,7 @@ class VoucherManageController extends Controller
     // Bước 3: Lưu mã giảm giá mới
     public function store(Request $request)
     {
-        // 1. Xác thực thông tin nhập vào (lưu ý: kiểm tra unique mã code trên toàn hệ thống bảng vouchers)
-        $validated = $request->validate([
-            // Chỉ chấp nhận chữ HOA, số, gạch ngang/dưới; duy nhất trong hệ thống
-            'code' => [
-                'required',
-                'string',
-                'max:50',
-                'regex:/^[A-Z0-9_-]+$/',
-                'unique:vouchers,code',
-            ],
-            'discount_type' => 'required|in:PERCENT,FIXED',
-            // Nếu là PERCENT thì giá trị giảm không được vượt quá 100
-            'discount_value' => [
-                'required',
-                'numeric',
-                'min:0',
-                Rule::when($request->discount_type === 'PERCENT', 'max:100'),
-            ],
-            'max_discount'     => 'nullable|numeric|min:0',
-            'min_order_amount' => 'required|numeric|min:0',
-            // Giới hạn hợp lý tối đa 1 triệu lượt
-            'usage_limit'    => 'required|integer|min:0|max:1000000',
-            'usage_per_user' => 'required|integer|min:1',
-            // start_date không được là ngày trong quá khứ khi tạo mới
-            'start_date' => 'required|date|after_or_equal:today',
-            'end_date'   => 'required|date|after:start_date',
-            'status'     => 'required|in:ACTIVE,DISABLED,EXPIRED',
-        ], [
-            'code.required'             => 'Mã giảm giá không được trống.',
-            'code.regex'                => 'Mã giảm giá chỉ được chứa chữ IN HOA, số, dấu gạch ngang hoặc gạch dưới (VD: STUDENT10, VIP-2025).',
-            'code.unique'               => 'Mã giảm giá này đã tồn tại trong hệ thống.',
-            'discount_value.required'   => 'Giá trị giảm không được trống.',
-            'discount_value.min'        => 'Giá trị giảm không được âm.',
-            'discount_value.max'        => 'Giảm theo phần trăm (%) không được vượt quá 100%.',
-            'min_order_amount.required' => 'Giá trị đơn hàng tối thiểu là bắt buộc.',
-            'usage_limit.max'           => 'Giới hạn tổng lượt dùng không được vượt quá 1.000.000.',
-            'start_date.required'       => 'Ngày bắt đầu là bắt buộc.',
-            'start_date.after_or_equal' => 'Ngày bắt đầu không được là ngày trong quá khứ.',
-            'end_date.required'         => 'Ngày kết thúc là bắt buộc.',
-            'end_date.after'            => 'Ngày kết thúc phải sau ngày bắt đầu.',
-        ]);
-
+        $validated = $this->validateVoucher($request);
         // 2. Chuẩn hóa: Tự động chuyển code sang chữ HOA
         $validated['code'] = strtoupper($validated['code']);
 
@@ -108,35 +68,7 @@ class VoucherManageController extends Controller
 
         if (!$hasBeenUsed) {
             // --- NHÁNH A: Voucher chưa ai dùng → cho phép sửa toàn bộ ---
-            $validated = $request->validate([
-                'code' => [
-                    'required',
-                    'string',
-                    'max:50',
-                    'regex:/^[A-Z0-9_-]+$/',
-                    "unique:vouchers,code,{$id}", // Bỏ qua chính ID hiện tại khi kiểm tra unique
-                ],
-                'discount_type'  => 'required|in:PERCENT,FIXED',
-                'discount_value' => [
-                    'required',
-                    'numeric',
-                    'min:0',
-                    Rule::when($request->discount_type === 'PERCENT', 'max:100'),
-                ],
-                'max_discount'     => 'nullable|numeric|min:0',
-                'min_order_amount' => 'required|numeric|min:0',
-                'usage_limit'      => 'required|integer|min:0|max:1000000',
-                'usage_per_user'   => 'required|integer|min:1',
-                'start_date'       => 'required|date',
-                'end_date'         => 'required|date|after:start_date',
-                'status'           => 'required|in:ACTIVE,DISABLED,EXPIRED',
-            ], [
-                'code.regex'          => 'Mã giảm giá chỉ được chứa chữ IN HOA, số, gạch ngang hoặc gạch dưới.',
-                'code.unique'         => 'Mã giảm giá này đã tồn tại.',
-                'discount_value.max'  => 'Giảm theo % không được vượt quá 100%.',
-                'end_date.after'      => 'Ngày kết thúc phải sau ngày bắt đầu.',
-                'usage_limit.max'     => 'Giới hạn tổng lượt dùng không được vượt quá 1.000.000.',
-            ]);
+            $validated = $this->validateVoucher($request, $id);
 
             $validated['code'] = strtoupper($validated['code']);
             $voucher->update($validated);
@@ -176,7 +108,150 @@ class VoucherManageController extends Controller
             ->with('success', 'Cập nhật mã giảm giá thành công.')
             ->with('warning', $warningMsg);
     }
+    private function validateVoucher(Request $request, $id = null)
+    {
+        $validator = Validator::make($request->all(), [
 
+            'code' => [
+                'required',
+                'string',
+                'max:50',
+                'regex:/^[A-Z0-9_-]+$/',
+                Rule::unique('vouchers', 'code')->ignore($id),
+            ],
+
+            'discount_type' => 'required|in:PERCENT,FIXED',
+
+            'discount_value' => 'required|numeric',
+
+            'max_discount' => [
+                Rule::requiredIf($request->discount_type === 'PERCENT'),
+                'nullable',
+                'numeric',
+                'min:1000',
+                'max:1000000',
+            ],
+
+            'min_order_amount' => [
+                'required',
+                'numeric',
+                'min:0',
+                'max:10000000',
+            ],
+
+            'usage_limit' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:10000',
+            ],
+
+            'usage_per_user' => [
+                'required',
+                'integer',
+                'min:1',
+                'max:5',
+            ],
+
+            'start_date' => 'required|date|after_or_equal:today',
+            'end_date'   => 'required|date|after:start_date',
+
+            'status' => 'required|in:ACTIVE,DISABLED,EXPIRED',
+
+        ], [
+
+            // Code
+            'code.required' => 'Mã giảm giá không được để trống.',
+            'code.max' => 'Mã giảm giá tối đa 50 ký tự.',
+            'code.regex' => 'Mã giảm giá chỉ được chứa chữ IN HOA, số, dấu gạch ngang hoặc gạch dưới.',
+            'code.unique' => 'Mã giảm giá này đã tồn tại.',
+
+            // Discount type
+            'discount_type.required' => 'Vui lòng chọn loại giảm giá.',
+
+            // Discount value
+            'discount_value.required' => 'Giá trị giảm không được để trống.',
+            'discount_value.numeric' => 'Giá trị giảm phải là số.',
+
+            // Max discount
+            'max_discount.required' => 'Vui lòng nhập mức giảm tối đa cho voucher phần trăm.',
+            'max_discount.numeric' => 'Mức giảm tối đa phải là số.',
+            'max_discount.min' => 'Mức giảm tối đa phải từ 1.000 đồng.',
+            'max_discount.max' => 'Mức giảm tối đa không được vượt quá 1.000.000 đồng.',
+
+            // Min order
+            'min_order_amount.required' => 'Giá trị đơn hàng tối thiểu là bắt buộc.',
+            'min_order_amount.numeric' => 'Giá trị đơn hàng tối thiểu phải là số.',
+            'min_order_amount.max' => 'Giá trị đơn hàng tối thiểu không được vượt quá 10.000.000 đồng.',
+
+            // Usage
+            'usage_limit.required' => 'Vui lòng nhập tổng lượt sử dụng.',
+            'usage_limit.min' => 'Tổng lượt sử dụng tối thiểu là 1.',
+            'usage_limit.max' => 'Tổng lượt sử dụng không được vượt quá 10.000 lượt.',
+
+            'usage_per_user.required' => 'Vui lòng nhập số lượt sử dụng mỗi người.',
+            'usage_per_user.min' => 'Mỗi người phải được sử dụng ít nhất 1 lần.',
+            'usage_per_user.max' => 'Mỗi người chỉ được sử dụng tối đa 5 lần.',
+
+            // Date
+            'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
+            'start_date.after_or_equal' => 'Ngày bắt đầu không được nằm trong quá khứ.',
+
+            'end_date.required' => 'Ngày kết thúc là bắt buộc.',
+            'end_date.after' => 'Ngày kết thúc phải sau ngày bắt đầu.',
+
+            // Status
+            'status.required' => 'Vui lòng chọn trạng thái voucher.',
+        ]);
+
+        $validator->after(function ($validator) use ($request) {
+
+            // Voucher %
+            if ($request->discount_type === 'PERCENT') {
+
+                if ($request->discount_value < 1) {
+                    $validator->errors()->add(
+                        'discount_value',
+                        'Giá trị giảm theo phần trăm phải từ 1%.'
+                    );
+                }
+
+                if ($request->discount_value > 100) {
+                    $validator->errors()->add(
+                        'discount_value',
+                        'Giảm theo phần trăm không được vượt quá 100%.'
+                    );
+                }
+            }
+
+            // Voucher tiền cố định
+            if ($request->discount_type === 'FIXED') {
+
+                if ($request->discount_value < 1000) {
+                    $validator->errors()->add(
+                        'discount_value',
+                        'Giá trị giảm tối thiểu là 1.000 đồng.'
+                    );
+                }
+
+                if ($request->discount_value > 1000000) {
+                    $validator->errors()->add(
+                        'discount_value',
+                        'Giá trị giảm không được vượt quá 1.000.000 đồng.'
+                    );
+                }
+
+                if ($request->discount_value > $request->min_order_amount) {
+                    $validator->errors()->add(
+                        'discount_value',
+                        'Giá trị giảm không được lớn hơn giá trị đơn hàng tối thiểu.'
+                    );
+                }
+            }
+        });
+
+        return $validator->validate();
+    }
     // Bước 6: Xóa mã giảm giá khỏi hệ thống
     public function destroy($id)
     {

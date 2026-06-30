@@ -60,6 +60,8 @@
                             <th>Tên combo</th>
                             <th>Thành phần sản phẩm</th>
                             <th>Giá bán</th>
+                            <th>Số đơn</th>
+                            <th>Đã bán</th>
                             <th>Mô tả</th>
                             <th>Trạng thái</th>
                             <th style="width: 180px;">Hành động</th>
@@ -87,6 +89,8 @@
                                     </ul>
                                 </td>
                                 <td class="text-danger fw-semibold">{{ number_format($combo->price, 0, ',', '.') }} đ</td>
+                                <td>{{ $combo->booking_combos_count }}</td>
+                                <td>{{ $combo->booking_combos_sum_quantity ?? 0 }}</td>
                                 <td><small class="text-muted">{{ Str::limit($combo->description, 50) }}</small></td>
                                 <td>
                                     @if($combo->status === 'ACTIVE')
