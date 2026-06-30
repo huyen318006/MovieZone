@@ -51,6 +51,14 @@ return new class extends Migration
 
             $table->timestamp('paid_at')->nullable();
 
+            $table->string('canceled_reason')->nullable()->comment('Lý do hủy đơn');
+            $table->foreignId('canceled_by')
+                ->nullable()
+                ->comment('ID của Admin thực hiện hủy')
+                ->constrained('users') // Liên kết đến bảng users vì Admin và Khách hàng dùng chung bảng này
+                ->nullOnDelete(); // Nếu user/admin đó bị xóa thì trường này chuyển về null chứ không xóa mất booking
+                
+
             $table->timestamps();
 
             $table->index(['user_id']);
