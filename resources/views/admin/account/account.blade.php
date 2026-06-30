@@ -219,6 +219,7 @@
                         <th class="py-3 fw-semibold small text-uppercase">Trạng thái</th>
                         <th class="py-3 fw-semibold small text-uppercase">Tham gia</th>
                         <th class="py-3 fw-semibold small text-uppercase">Quyền hiện tại</th>
+                        <th class="py-3 fw-semibold small text-uppercase">Hành động</th>
                         <th class="py-3 pe-4 fw-semibold small text-uppercase text-end">Chi tiết</th>
                     </tr>
                 </thead>
@@ -259,6 +260,37 @@
                                     <span class="text-muted">—</span>
                                 @endif
                             </td>
+                            <td class="text-center">
+                        @if($user->status == 'ACTIVE')
+                            @if($user->role_name == 'CUSTOMER')
+                                <button class="btn btn-sm btn-warning rounded-pill px-3 mb-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#promoteModal"
+                                        data-id="{{ $user->id }}"
+                                        data-name="{{ $user->name }}">
+                                    <i class="fas fa-arrow-up"></i> Nâng Staff
+                                </button>
+                            @elseif($user->role_name == 'STAFF')
+                                <button class="btn btn-sm btn-danger rounded-pill px-3 mb-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#demoteModal"
+                                        data-id="{{ $user->id }}"
+                                        data-name="{{ $user->name }}">
+                                    <i class="fas fa-arrow-down"></i> Hạ Customer
+                                </button>
+                            @elseif($user->role_name == 'ADMIN')
+                                <button class="btn btn-sm btn-dark rounded-pill px-3 mb-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#demoteAdminModal"
+                                        data-id="{{ $user->id }}"
+                                        data-name="{{ $user->name }}">
+                                    <i class="fas fa-user-shield"></i> Hạ Admin
+                                </button>
+                            @endif
+                        @else
+                            <span class="text-muted small">Không thể thay đổi</span>
+                        @endif
+                    </td>
                             <td class="pe-4 text-end">
                                 <a href="{{ route('admin.detail.account', $user->id) }}" class="btn btn-sm rounded-pill px-3 fw-medium detail-btn">
                                     <i class="fas fa-eye me-1"></i>Chi tiết
