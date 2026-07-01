@@ -7,6 +7,9 @@ use App\Models\Promotion;
 use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class PromotionManageController extends Controller
 {
@@ -17,8 +20,10 @@ class PromotionManageController extends Controller
 
         // Tìm kiếm theo tiêu đề hoặc mô tả chiến dịch khuyến mãi
         if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%')
-                  ->orWhere('description', 'like', '%' . $request->search . '%');
+            $query->where(function ($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->search . '%')
+                ->orWhere('description', 'like', '%' . $request->search . '%');
+            });
         }
         // Lọc theo trạng thái khuyến mãi (ACTIVE, INACTIVE, EXPIRED)
         if ($request->filled('status')) {
@@ -39,45 +44,44 @@ class PromotionManageController extends Controller
     public function store(Request $request)
     {
         // 1. Xác thực thông tin đầu vào
-        $validated = $request->validate([
-            // Thêm unique để tránh trùng tên chiến dịch gây nhầm lẫn
-            'title'       => 'required|string|max:255|unique:promotions,title',
-            'description' => 'nullable|string',
-            'banner'      => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096', // Banner tối đa 4MB (ảnh chất lượng cao)
-            // start_date không được là ngày trong quá khứ khi tạo mới
-            'start_date'  => 'required|date|after_or_equal:today',
-            'end_date'    => 'required|date|after:start_date',
-            'status'      => 'required|in:ACTIVE,INACTIVE,EXPIRED',
-        ], [
-            'title.required'            => 'Tiêu đề chương trình không được trống.',
-            'title.unique'              => 'Tiêu đề chiến dịch này đã tồn tại. Vui lòng đặt tên khác.',
-            'start_date.required'       => 'Ngày bắt đầu là bắt buộc.',
-            'start_date.after_or_equal' => 'Ngày bắt đầu không được là ngày trong quá khứ.',
-            // Ngày kết thúc phải sau mốc ngày bắt đầu
-            'end_date.required'         => 'Ngày kết thúc là bắt buộc.',
-            'end_date.after'            => 'Ngày kết thúc phải sau ngày bắt đầu.',
-            'status.required'           => 'Trạng thái không được trống.',
-        ]);
+        $validated = $this->validatePromotion($request);
         // 2. Xử lý tải ảnh banner lên storage
         $bannerUrl = null;
-        if ($request->hasFile('banner')) {
-            $bannerUrl = $request->file('banner')->store('promotions', 'public');
+        DB::beginTransaction();
+        try {
+            $bannerUrl = null;
+            if ($request->hasFile('banner')) {
+                $bannerUrl = $request->file('banner')->store('promotions', 'public');
+            }
+            $promotion = Promotion::create([
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'banner_url' => $bannerUrl,
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'status' => $validated['status'],
+            ]);
+            AuditLogService::log(
+                'PROMOTION_CREATE',
+                'Promotion',
+                $promotion->id,
+                null,
+                $promotion->toArray()
+            );
+            DB::commit();
+            return redirect()
+                ->route('admin.promotions.index')
+                ->with('success','Thêm chương trình khuyến mãi mới thành công.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if ($bannerUrl) {
+                Storage::disk('public')->delete($bannerUrl);
+            }
+            return back()
+                ->withInput()
+                ->with('error',$e->getMessage());
         }
-        // 3. Tạo mới bản ghi khuyến mãi vào cơ sở dữ liệu
-        $promotion = Promotion::create([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'banner_url' => $bannerUrl,
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'status' => $validated['status'],
-        ]);
-
-        // 4. Ghi nhận log tạo mới khuyến mãi
-        AuditLogService::log('PROMOTION_CREATE', 'Promotion', $promotion->id, null, $promotion->toArray());
-
-        return redirect()->route('admin.promotions.index')
-            ->with('success', 'Thêm chương trình khuyến mãi mới thành công.');
     }
 
     // Bước 4: Hiển thị giao diện chỉnh sửa khuyến mãi
@@ -95,80 +99,171 @@ class PromotionManageController extends Controller
         $oldData = $promotion->toArray();
 
         // 1. Xác thực thông tin mới gửi lên
-        $validated = $request->validate([
-            // unique bỏ qua ID hiện tại
-            'title'       => "required|string|max:255|unique:promotions,title,{$id}",
-            'description' => 'nullable|string',
-            'banner'      => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
-            // Khi update không yêu cầu after_or_equal:today để admin có thể điều chỉnh chiến dịch đang chạy
-            'start_date'  => 'required|date',
-            'end_date'    => 'required|date|after:start_date',
-            'status'      => 'required|in:ACTIVE,INACTIVE,EXPIRED',
-        ], [
-            'title.required'  => 'Tiêu đề chương trình không được trống.',
-            'title.unique'    => 'Tiêu đề chiến dịch này đã tồn tại.',
-            'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
-            'end_date.required'   => 'Ngày kết thúc là bắt buộc.',
-            'end_date.after'      => 'Ngày kết thúc phải sau ngày bắt đầu.',
-            'status.required'     => 'Trạng thái không được trống.',
-        ]);
+        $validated = $this->validatePromotion($request,$id,$promotion);
 
-        // Cảnh báo mâu thuẫn nếu đổi status về ACTIVE nhưng end_date đã qua
-        $warningMsg = null;
-        $endDate    = \Carbon\Carbon::parse($validated['end_date']);
-        if ($validated['status'] === 'ACTIVE' && $endDate->isPast()) {
-            $warningMsg = 'Cảnh báo: Bạn đặt trạng thái là ACTIVE nhưng ngày kết thúc của chiến dịch đã qua. Vui lòng kiểm tra lại ngày kết thúc.';
-        }
         // 2. Xử lý ảnh banner: Xóa banner cũ nếu được thay thế bằng banner mới
         $bannerUrl = $promotion->banner_url;
-        if ($request->hasFile('banner')) {
-            if ($bannerUrl) {
+        DB::beginTransaction();
+        $oldBanner = $promotion->banner_url;
+        $bannerUrl = $oldBanner;
+        try {
+            if ($request->hasFile('banner')) { 
+                $bannerUrl = $request->file('banner')->store('promotions', 'public');
+            }
+            $promotion->update([
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'banner_url' => $bannerUrl,
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'status' => $validated['status'],
+            ]);
+
+            if ($request->hasFile('banner') && $oldBanner) {
+                Storage::disk('public')->delete($oldBanner);
+            }
+
+            AuditLogService::log(
+                'PROMOTION_UPDATE',
+                'Promotion',
+                $promotion->id,
+                $oldData,
+                $promotion->fresh()->toArray()
+            );
+            DB::commit();
+            return redirect()
+                ->route('admin.promotions.index')
+                ->with('success','Cập nhật chương trình khuyến mãi thành công.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if ($request->hasFile('banner') && $bannerUrl && $bannerUrl !== $oldBanner) {
                 Storage::disk('public')->delete($bannerUrl);
             }
-            $bannerUrl = $request->file('banner')->store('promotions', 'public');
+            return back()
+                ->withInput()
+                ->with('error','Có lỗi xảy ra: '.$e->getMessage());
         }
-        // 3. Tiến hành cập nhật thông tin vào DB
-        $promotion->update([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'banner_url' => $bannerUrl,
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'status' => $validated['status'],
-        ]);
-
-        // 4. Ghi nhận log chỉnh sửa khúyến mãi
-        AuditLogService::log('PROMOTION_UPDATE', 'Promotion', $promotion->id, $oldData, $promotion->fresh()->toArray());
-
-        return redirect()->route('admin.promotions.index')
-            ->with('success', 'Cập nhật chương trình khuyến mãi thành công.')
-            ->with('warning', $warningMsg);
     }
 
     // Bước 6: Xóa chương trình khuyến mãi
     public function destroy($id)
     {
         $promotion = Promotion::findOrFail($id);
-
         // Kiểm tra ràng buộc: không cho phép xóa chiến dịch đang ACTIVE
-        if ($promotion->status === 'ACTIVE') {
+            if ($promotion->start_date->lte(now())) {
+                return redirect()->route('admin.promotions.index')
+                    ->with('error', 'Không thể xóa chương trình khuyến mãi đã và đang diễn ra.');
+            }
+        DB::beginTransaction();
+        try{
+            $oldData = $promotion->toArray();
+
+            $oldBanner = $promotion->banner_url;
+            $promotion->delete();
+            // 3. Ghi log hành động xóa
+            AuditLogService::log('PROMOTION_DELETE', 'Promotion', $id, $oldData, null);
+            DB::commit();
+            if ($oldBanner) {
+                Storage::disk('public')->delete($oldBanner);
+            }
             return redirect()->route('admin.promotions.index')
-                ->with('error', 'Không thể xóa chương trình khuyến mãi đang ACTIVE. Vui lòng chuyển trạng thái về INACTIVE hoặc EXPIRED trước khi xóa.');
+                  ->with('success', 'Xóa chương trình khuyến mãi thành công.');
+        }catch(\Exception $e){
+            DB::rollBack();
+            return redirect()->route('admin.promotions.index')->with('error',$e->getMessage());
         }
+    }
+    // Phần Validate
+    private function validatePromotion(Request $request, $id = null, Promotion $promotion = null)
+    {
+        $validator = Validator::make($request->all(), [
 
-        $oldData = $promotion->toArray();
+            'title' => [
+                'required',
+                'string',
+                'min:3',
+                'max:255',
+                'regex:/^[\pL\pN\s\-\&\+\(\)\/\,\.]+$/u',
+                Rule::unique('promotions', 'title')->ignore($id),
+            ],
 
-        // 1. Xóa ảnh banner vật lý trong storage trước khi xóa bản ghi
-        if ($promotion->banner_url) {
-            Storage::disk('public')->delete($promotion->banner_url);
-        }
-        // 2. Xóa bản ghi khuyến mãi trong DB
-        $promotion->delete();
+            'description' => 'nullable|string',
 
-        // 3. Ghi log hành động xóa
-        AuditLogService::log('PROMOTION_DELETE', 'Promotion', $id, $oldData, null);
+            'banner' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:4096',
 
-        return redirect()->route('admin.promotions.index')
-            ->with('success', 'Xóa chương trình khuyến mãi thành công.');
+            'start_date' => $id
+                ? 'required|date'
+                : 'required|date|after_or_equal:today',
+
+            'end_date' => 'required|date|after:start_date',
+
+            'status' => 'required|in:ACTIVE,INACTIVE,EXPIRED',
+
+        ], [
+
+            'title.required' => 'Tiêu đề chương trình không được để trống.',
+            'title.unique' => 'Tiêu đề chương trình đã tồn tại.',
+            'title.min' => 'Tiêu đề phải có ít nhất 3 ký tự.',
+            'title.max' => 'Tiêu đề không được vượt quá 255 ký tự.',
+            'title.regex' => 'Tiêu đề chỉ được chứa chữ cái, số, khoảng trắng và các ký tự -, &, +, (), /, dấu phẩy và dấu chấm.',
+
+            'start_date.required' => 'Ngày bắt đầu là bắt buộc.',
+            'start_date.after_or_equal' => 'Ngày bắt đầu không được ở quá khứ.',
+
+            'end_date.required' => 'Ngày kết thúc là bắt buộc.',
+            'end_date.after' => 'Ngày kết thúc phải sau ngày bắt đầu.',
+
+            'status.required' => 'Vui lòng chọn trạng thái.',
+        ]);
+
+        $validator->after(function ($validator) use ($request, $promotion) {
+
+            // Không cho ACTIVE nếu đã hết hạn
+            if (
+                $request->status === 'ACTIVE'
+                && \Carbon\Carbon::parse($request->end_date)->isPast()
+            ) {
+                $validator->errors()->add(
+                    'status',
+                    'Không thể kích hoạt chương trình đã hết hạn.'
+                );
+            }
+            // ko cho EXPIRED nếu chưa hết hạn
+            if (
+                $request->status === 'EXPIRED' &&
+                \Carbon\Carbon::parse($request->end_date)
+                    ->endOfDay()
+                    ->isFuture()
+            ) {
+                $validator->errors()->add(
+                    'status',
+                    'Không thể chuyển sang EXPIRED khi chương trình chưa hết hạn.'
+                );
+            }
+            // Không cho ACTIVE trước ngày bắt đầu
+            if (
+                $request->status === 'ACTIVE' &&
+                \Carbon\Carbon::parse($request->start_date)->isFuture()
+            ) {
+                $validator->errors()->add(
+                    'status',
+                    'Không thể kích hoạt chương trình khi chưa đến ngày bắt đầu.'
+                );
+            }
+            // Không cho sửa ngày bắt đầu nếu đang ACTIVE
+            if (
+                $promotion &&
+                $promotion->status === 'ACTIVE' &&
+                $request->start_date != $promotion->start_date->format('Y-m-d')
+            ) {
+                $validator->errors()->add(
+                    'start_date',
+                    'Không thể thay đổi ngày bắt đầu của chương trình đang hoạt động.'
+                );
+            }
+        });
+
+        return $validator->validate();
     }
 }
