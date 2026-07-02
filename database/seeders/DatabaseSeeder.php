@@ -63,6 +63,7 @@ class DatabaseSeeder extends Seeder
     BookingSeeder::class,
     BookingSeatSeeder::class,
     BookingComboSeeder::class,
+    BookingCancellationSeeder::class,
 
     // Payment
     TicketSeeder::class,

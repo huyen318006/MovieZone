@@ -54,6 +54,12 @@ class Booking extends Model
     {
         return $this->hasMany(VoucherUsage::class);
     }
+
+    // Quan hệ 1-1: Một đơn hàng có thể có một thông tin hủy đơn
+    public function cancellation()
+    {
+        return $this->hasOne(BookingCancellation::class, 'booking_id');
+    }
     public function bookingProducts()
     {
         return $this->hasMany(BookingProduct::class);

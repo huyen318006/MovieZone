@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountManageController;
+use App\Http\Controllers\Admin\BookingManageController;
 use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\Admin\ProductManageController;
 use App\Http\Controllers\Admin\ComboManageController;
@@ -437,4 +438,23 @@ Route::middleware(['auth', 'staff.permission:booking.lookup'])
         Route::post('/api/issue-support/diagnose', [StaffIssueSupportController::class, 'diagnose'])
             ->name('api.issue-support.diagnose');
     });
+
+
+/* --------------------- UC-ADM-06: Quản lý booking (ĐẶT VÉ) ------------------ */
+Route::middleware(['auth', 'admin'])->group(function () {
+    // Trang quản lý booking (view)
+    Route::get('/admin/bookings', [BookingManageController::class, 'index'])->name('admin.bookings.index');
+    
+    // API danh sách booking có phân trang & bộ lọc
+    Route::get('/admin/api/bookings', [BookingManageController::class, 'list'])->name('admin.bookings.list');
+    
+    // Chi tiết 1 đơn đặt vé
+    Route::get('/admin/bookings/{id}', [BookingManageController::class, 'show'])->name('admin.bookings.show');
+    
+    // Thực hiện hủy đơn đặt vé
+    Route::post('/admin/bookings/{id}/cancel', [BookingManageController::class, 'cancel'])->name('admin.bookings.cancel');
+    
+    // Hỗ trợ check-in vé
+    Route::post('/admin/api/bookings/tickets/{ticket_id}/check-in', [BookingManageController::class, 'checkInTicket'])->name('admin.bookings.ticket.checkin');
+});
 
