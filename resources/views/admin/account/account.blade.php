@@ -69,7 +69,6 @@
 </style>
 
 <div class="container-fluid">
-
     {{-- Header --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -83,7 +82,7 @@
 
     {{-- Stats Cards --}}
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="stat-card rounded-4 p-3 d-flex align-items-center gap-3">
                 <div class="stat-icon-admin rounded-3 d-flex align-items-center justify-content-center" style="width:52px;height:52px;flex-shrink:0;">
                     <i class="fas fa-shield-alt text-danger fs-5"></i>
@@ -94,7 +93,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="stat-card rounded-4 p-3 d-flex align-items-center gap-3">
                 <div class="stat-icon-staff rounded-3 d-flex align-items-center justify-content-center" style="width:52px;height:52px;flex-shrink:0;">
                     <i class="fas fa-user-tie text-warning fs-5"></i>
@@ -105,7 +104,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="stat-card rounded-4 p-3 d-flex align-items-center gap-3">
                 <div class="stat-icon-cust rounded-3 d-flex align-items-center justify-content-center" style="width:52px;height:52px;flex-shrink:0;">
                     <i class="fas fa-users text-primary fs-5"></i>
@@ -116,59 +115,90 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="stat-card rounded-4 p-3 d-flex align-items-center gap-3">
+                <div class="stat-icon-locked rounded-3 d-flex align-items-center justify-content-center" style="width:52px;height:52px;flex-shrink:0;">
+                    <i class="fas fa-lock text-secondary fs-5"></i>
+                </div>
+                <div>
+                    <p class="text-muted small mb-0 text-uppercase fw-bold">Đã khóa</p>
+                    <h3 class="mb-0 fw-bold">{{ $countLocked }}</h3>
+                </div>
+            </div>
+        </div>
     </div>
 
     {{-- Main Card --}}
     <div class="account-card rounded-4 overflow-hidden">
-
         {{-- Tabs --}}
-        <div class="card-header px-4 pt-3 pb-0">
-            <ul class="nav dark-tabs gap-1">
-                <li class="nav-item">
-                    <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'admin'])) }}"
-                       class="nav-link px-4 py-2 fw-semibold tab-admin {{ $tab=='admin' ? 'active' : '' }}">
-                        <i class="fas fa-shield-alt me-2"></i>Admin
-                        <span class="badge rounded-pill ms-1 {{ $tab=='admin' ? 'badge-admin' : 'bg-secondary bg-opacity-50' }}">{{ $countAdmin }}</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'staff'])) }}"
-                       class="nav-link px-4 py-2 fw-semibold tab-staff {{ $tab=='staff' ? 'active' : '' }}">
-                        <i class="fas fa-user-tie me-2"></i>Staff
-                        <span class="badge rounded-pill ms-1 {{ $tab=='staff' ? 'badge-staff' : 'bg-secondary bg-opacity-50' }}">{{ $countStaff }}</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'customer'])) }}"
-                       class="nav-link px-4 py-2 fw-semibold tab-customer {{ $tab=='customer' ? 'active' : '' }}">
-                        <i class="fas fa-users me-2"></i>Customer
-                        <span class="badge rounded-pill ms-1 {{ $tab=='customer' ? 'badge-customer' : 'bg-secondary bg-opacity-50' }}">{{ $countCustomer }}</span>
-                    </a>
-                </li>
-            </ul>
-        </div>
+  {{-- Tabs --}}
+<div class="card-header px-4 pt-3 pb-0">
+    <ul class="nav dark-tabs gap-1">
+        <li class="nav-item">
+            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'all'])) }}"
+               class="nav-link px-4 py-2 fw-semibold {{ $tab=='all' ? 'active' : '' }}">
+                <i class="fas fa-list me-2"></i>Tất cả
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'admin'])) }}"
+               class="nav-link px-4 py-2 fw-semibold tab-admin {{ $tab=='admin' ? 'active' : '' }}">
+                <i class="fas fa-shield-alt me-2"></i>Admin
+                <span class="badge rounded-pill ms-1 {{ $tab=='admin' ? 'badge-admin' : 'bg-secondary bg-opacity-50' }}">{{ $countAdmin }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'staff'])) }}"
+               class="nav-link px-4 py-2 fw-semibold tab-staff {{ $tab=='staff' ? 'active' : '' }}">
+                <i class="fas fa-user-tie me-2"></i>Staff
+                <span class="badge rounded-pill ms-1 {{ $tab=='staff' ? 'badge-staff' : 'bg-secondary bg-opacity-50' }}">{{ $countStaff }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'customer'])) }}"
+               class="nav-link px-4 py-2 fw-semibold tab-customer {{ $tab=='customer' ? 'active' : '' }}">
+                <i class="fas fa-users me-2"></i>Customer
+                <span class="badge rounded-pill ms-1 {{ $tab=='customer' ? 'badge-customer' : 'bg-secondary bg-opacity-50' }}">{{ $countCustomer }}</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'locked'])) }}"
+               class="nav-link px-4 py-2 fw-semibold tab-locked {{ $tab=='locked' ? 'active' : '' }}">
+                <i class="fas fa-lock me-2"></i>Đã khóa
+                <span class="badge rounded-pill ms-1 {{ $tab=='locked' ? 'badge-locked' : 'bg-secondary bg-opacity-50' }}">{{ $countLocked }}</span>
+            </a>
+        </li>
+    </ul>
+</div>
 
         {{-- Bộ lọc --}}
         <div class="filter-area px-4 py-3">
             <form action="{{ route('admin.list_account') }}" method="GET">
                 <input type="hidden" name="tab" value="{{ $tab }}">
+
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-5">
-                        <label class="form-label text-muted small fw-bold text-uppercase">Tìm kiếm</label>
+                    <div class="col-md-4">
+                        <label class="form-label text-muted small fw-bold text-uppercase">Tìm kiếm theo email</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-search text-muted"></i></span>
                             <input type="text" name="email" class="form-control" placeholder="Nhập email cần tìm..." value="{{ request('email') }}">
                         </div>
                     </div>
+
+                    @if($tab === 'locked')
                     <div class="col-md-4">
-                        <label class="form-label text-muted small fw-bold text-uppercase">Trạng thái</label>
-                        <select name="status" class="form-select">
-                            <option value="">Tất cả trạng thái</option>
-                            <option value="ACTIVE" {{ request('status')=='ACTIVE'?'selected':'' }}>Hoạt động</option>
-                            <option value="LOCK"   {{ request('status')=='LOCK'  ?'selected':'' }}>Đã khóa</option>
+                        <label class="form-label text-muted small fw-bold text-uppercase">Lọc theo quyền</label>
+                        <select name="locked_role" class="form-select">
+                            <option value="">Tất cả quyền</option>
+                            <option value="admin" {{ request('locked_role')=='admin'?'selected':'' }}>Admin</option>
+                            <option value="staff" {{ request('locked_role')=='staff'?'selected':'' }}>Staff</option>
+                            <option value="customer" {{ request('locked_role')=='customer'?'selected':'' }}>Customer</option>
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex gap-2">
+                   
+                    @endif
+
+                    <div class="col-md-4 d-flex gap-2">
                         <button type="submit" class="btn btn-primary flex-grow-1">
                             <i class="fas fa-filter me-2"></i>Lọc
                         </button>
@@ -180,7 +210,7 @@
             </form>
         </div>
 
-        {{-- Bảng --}}
+        {{-- Bảng dữ liệu --}}
         <div class="table-responsive">
             <table class="table dark-table align-middle text-center mb-0">
                 <thead>
@@ -188,7 +218,8 @@
                         <th class="py-3 px-4 text-start fw-semibold small text-uppercase">Người dùng</th>
                         <th class="py-3 fw-semibold small text-uppercase">Trạng thái</th>
                         <th class="py-3 fw-semibold small text-uppercase">Tham gia</th>
-                        <th class="py-3 fw-semibold small text-uppercase">{{ $tab == 'admin' ? 'Hạ quyền' : 'Phân Quyền' }}</th>
+                        <th class="py-3 fw-semibold small text-uppercase">Quyền hiện tại</th>
+                        <th class="py-3 fw-semibold small text-uppercase">Hành động</th>
                         <th class="py-3 pe-4 fw-semibold small text-uppercase text-end">Chi tiết</th>
                     </tr>
                 </thead>
@@ -206,7 +237,6 @@
                                     </div>
                                 </div>
                             </td>
-
                             <td>
                                 @if($user->status == 'ACTIVE')
                                     <span class="badge badge-active px-3 py-2 rounded-pill fw-medium">
@@ -218,39 +248,49 @@
                                     </span>
                                 @endif
                             </td>
-
                             <td>
                                 <span class="text-muted small">{{ \Carbon\Carbon::parse($user->created_at)->format('d/m/Y') }}</span>
                             </td>
-
                             <td>
-                                @if($tab == 'customer')
-                                    <button class="btn btn-sm rounded-pill px-3 fw-medium btn-outline-warning promote-btn"
-                                        data-id="{{ $user->id }}" data-name="{{ $user->name }}"
-                                        data-bs-toggle="modal" data-bs-target="#promoteModal">
-                                        <i class="fas fa-arrow-up me-1"></i>Lên Staff
-                                    </button>
-                                @elseif($tab == 'staff')
-                                    <button class="btn btn-sm rounded-pill px-3 fw-medium btn-outline-danger demote-btn"
-                                        data-id="{{ $user->id }}" data-name="{{ $user->name }}"
-                                        data-bs-toggle="modal" data-bs-target="#demoteModal">
-                                        <i class="fas fa-arrow-down me-1"></i>Xuống Customer
-                                    </button>
-                                @elseif($tab == 'admin')
-                                    @if($user->id != auth()->id())
-                                        <button class="btn btn-sm rounded-pill px-3 fw-medium btn-outline-secondary demote-admin-btn"
-                                            data-id="{{ $user->id }}" data-name="{{ $user->name }}"
-                                            data-bs-toggle="modal" data-bs-target="#demoteAdminModal">
-                                            <i class="fas fa-user-shield me-1"></i>Hạ Admin
-                                        </button>
-                                    @else
-                                        <span class="badge px-3 py-2 rounded-pill fw-medium" style="background:rgba(255,193,7,.15);color:#fbbf24;">
-                                            <i class="fas fa-crown me-1"></i>Chính bạn
-                                        </span>
-                                    @endif
+                                @if($user->role_name)
+                                    <span class="badge {{ $user->role_name == 'ADMIN' ? 'badge-admin' : ($user->role_name == 'STAFF' ? 'badge-staff' : 'badge-customer') }} px-3 py-2 rounded-pill">
+                                        {{ $user->role_name }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
                                 @endif
                             </td>
-
+                            <td class="text-center">
+                        @if($user->status == 'ACTIVE')
+                            @if($user->role_name == 'CUSTOMER')
+                                <button class="btn btn-sm btn-warning rounded-pill px-3 mb-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#promoteModal"
+                                        data-id="{{ $user->id }}"
+                                        data-name="{{ $user->name }}">
+                                    <i class="fas fa-arrow-up"></i> Nâng Staff
+                                </button>
+                            @elseif($user->role_name == 'STAFF')
+                                <button class="btn btn-sm btn-danger rounded-pill px-3 mb-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#demoteModal"
+                                        data-id="{{ $user->id }}"
+                                        data-name="{{ $user->name }}">
+                                    <i class="fas fa-arrow-down"></i> Hạ Customer
+                                </button>
+                            @elseif($user->role_name == 'ADMIN')
+                                <button class="btn btn-sm btn-dark rounded-pill px-3 mb-1"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#demoteAdminModal"
+                                        data-id="{{ $user->id }}"
+                                        data-name="{{ $user->name }}">
+                                    <i class="fas fa-user-shield"></i> Hạ Admin
+                                </button>
+                            @endif
+                        @else
+                            <span class="text-muted small">Không thể thay đổi</span>
+                        @endif
+                    </td>
                             <td class="pe-4 text-end">
                                 <a href="{{ route('admin.detail.account', $user->id) }}" class="btn btn-sm rounded-pill px-3 fw-medium detail-btn">
                                     <i class="fas fa-eye me-1"></i>Chi tiết
@@ -303,6 +343,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <!-- Modal Hạ Quyền -->

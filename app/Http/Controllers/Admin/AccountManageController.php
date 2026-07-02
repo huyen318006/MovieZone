@@ -16,35 +16,50 @@ use Illuminate\Support\Facades\Storage;
 class AccountManageController {
     public function listaccount(Request $request)
     {
-        $tab    = $request->input('tab', 'admin');
-        $email  = $request->email;
-        $status = $request->status;
+     $tab        = $request->input('tab', 'admin');
+    $email      = $request->email;
+    $lockedRole = $request->input('locked_role');
 
-        // Số lượng từng nhóm cho badge trên tab
-        $countAdmin    = DB::table('users')->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')->where('roles.name', 'ADMIN')->count();
-        $countStaff    = DB::table('users')->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')->where('roles.name', 'STAFF')->count();
-        $countCustomer = DB::table('users')->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')->where('roles.name', 'CUSTOMER')->count();
+    // Đếm badge (giữ nguyên)
+    $countAdmin    = DB::table('users')->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')->where('roles.name', 'ADMIN')->where('users.status', 'ACTIVE')->count();
+    $countStaff    = DB::table('users')->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')->where('roles.name', 'STAFF')->where('users.status', 'ACTIVE')->count();
+    $countCustomer = DB::table('users')->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')->where('roles.name', 'CUSTOMER')->where('users.status', 'ACTIVE')->count();
+    $countLocked   = DB::table('users')->where('status', 'LOCK')->count();
 
-        // Query cho tab đang active
-        $query = DB::table('users')
-            ->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')
-            ->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')
-            ->select('users.*', 'roles.name as role_name')
-            ->where('roles.name', strtoupper($tab));
+    // ==================== QUERY CHÍNH ====================
+    $query = DB::table('users')
+        ->leftJoin('user_roles', 'user_roles.user_id', '=', 'users.id')
+        ->leftJoin('roles', 'roles.id', '=', 'user_roles.role_id')
+        ->select('users.*', 'roles.name as role_name')
+        ->orderBy('users.created_at', 'desc');   // thêm order cho dễ nhìn
 
-        if ($status) {
-            $query->where('users.status', $status);
+    if ($tab === 'all') {
+        // TAB TẤT CẢ: Lấy hết, không filter role và status
+        // (không thêm where nào cả)
+    } 
+    elseif ($tab === 'locked') {
+        $query->where('users.status', 'LOCK');
+        if ($lockedRole) {
+            $query->where('roles.name', strtoupper($lockedRole));
         }
-        if ($email) {
-            $query->where('users.email', 'like', '%' . $email . '%');
-        }
+    } 
+    else {
+        // Tab Admin, Staff, Customer
+        $query->where('roles.name', strtoupper($tab))
+              ->where('users.status', 'ACTIVE');
+    }
 
-        $account = $query->paginate(10)->appends($request->query());
+    // Filter email - áp dụng cho tất cả tab
+    if ($email) {
+        $query->where('users.email', 'like', '%' . $email . '%');
+    }
 
-        return view('admin.account.account', compact(
-            'account', 'tab',
-            'countAdmin', 'countStaff', 'countCustomer'
-        ));
+    $account = $query->paginate(10)->appends($request->query());
+
+    return view('admin.account.account', compact(
+        'account', 'tab',
+        'countAdmin', 'countStaff', 'countCustomer', 'countLocked'
+    ));
     }
     //detail account
 
