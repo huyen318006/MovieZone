@@ -60,4 +60,8 @@ class Booking extends Model
     {
         return $this->hasOne(BookingCancellation::class, 'booking_id');
     }
+    public function bookingProducts()
+    {
+        return $this->hasMany(BookingProduct::class);
+    }
 }

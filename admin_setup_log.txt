@@ -1,0 +1,58 @@
+========================================================================
+NHẬT KÝ VÀ CÁC BƯỚC THỰC HIỆN: CÀI ĐẶT ADMIN BẮP NƯỚC (PRODUCTS/COMBOS) & KHUYẾN MÃI/VOUCHER
+========================================================================
+Ngày thực hiện: 29-06-2026
+
+BƯỚC 1: PHÂN TÍCH VÀ KIỂM TRA ĐỐI CHIẾU DATABASE
+- Đã kiểm tra cấu trúc bảng từ các file migrations có sẵn:
+  + products (id, name, description, image_url, price, status)
+  + combos (id, name, description, price, image_url, status)
+  + combo_items (combo_id, product_id, quantity)
+  + booking_combos (id, booking_id, combo_id, quantity, unit_price, total_price)
+  + promotions (id, title, description, banner_url, start_date, end_date, status)
+  + vouchers (id, code, discount_type, discount_value, max_discount, min_order_amount, usage_limit, usage_per_user, start_date, end_date, status)
+  + voucher_usages (id, voucher_id, user_id, booking_id, used_at)
+
+BƯỚC 2: CẬP NHẬT MODEL
+- Đã thêm thuộc tính $fillable vào model App\Models\Promotion để cho phép lưu trữ dữ liệu thông qua Mass Assignment.
+
+BƯỚC 3: XÂY DỰNG CÁC CONTROLLER CHO ADMIN
+- Đã tạo 4 controller mới dưới thư mục app/Http/Controllers/Admin/:
+  1. ProductManageController: Xử lý CRUD sản phẩm lẻ (bắp, nước, snack), tích hợp tải lên ảnh và ghi Audit Log.
+  2. ComboManageController: Xử lý CRUD combo bắp nước, tự động đồng bộ danh sách sản phẩm lẻ liên kết (ở bảng trung gian combo_items) với số lượng tương ứng, xử lý tải lên ảnh và ghi Audit Log.
+  3. VoucherManageController: Xử lý CRUD mã giảm giá (với các logic kiểm tra ràng buộc duy nhất, ngày bắt đầu/kết thúc), và ghi Audit Log.
+  4. PromotionManageController: Xử lý CRUD sự kiện khuyến mãi, banner quảng cáo, tải ảnh lên và ghi Audit Log.
+
+BƯỚC 4: XÂY DỰNG GIAO DIỆN (VIEW BLADE)
+- Đã tạo các trang giao diện phù hợp với thiết kế của hệ thống Admin hiện tại (sử dụng Bootstrap 5, Bootstrap Icons, hỗ trợ dark theme):
+  - Sản phẩm lẻ: list (index), thêm (create), sửa (edit).
+  - Combo bắp nước: list (index), thêm (create), sửa (edit) tích hợp lựa chọn sản phẩm lẻ kèm ô số lượng tương ứng.
+  - Mã giảm giá (Voucher): list (index), thêm (create), sửa (edit).
+  - Khuyến mãi: list (index), thêm (create), sửa (edit).
+
+BƯỚC 5: CẤU HÌNH KHAI BÁO ROUTE
+- Đã cập nhật file routes/web.php:
+  Thêm các nhóm resource routes cho 4 controller trên nằm trong nhóm Middleware ['auth', 'admin'] để bảo mật:
+  - Route::resource('admin/products', ProductManageController::class);
+  - Route::resource('admin/combos', ComboManageController::class);
+  - Route::resource('admin/vouchers', VoucherManageController::class);
+  - Route::resource('admin/promotions', PromotionManageController::class);
+
+BƯỚC 6: PHÁT TRIỂN THANH DIỀU HƯỚNG SIDEBAR
+- Đã sửa file resources/views/block_admin/sidebar.blade.php:
+  + Thêm link "Sản phẩm lẻ" liên kết đến admin.products.index.
+  + Sửa link "Combo" liên kết đến admin.combos.index.
+  + Sửa link "Voucher" liên kết đến admin.vouchers.index.
+  + Thêm link "Khuyến mãi" liên kết đến admin.promotions.index.
+  + Thiết lập tự động thêm class "active" khi admin đang truy cập vào các trang tương ứng.
+
+BƯỚC 7: TÍCH HỢP HỆ THỐNG GHI LOG HOẠT ĐỘNG (AUDIT LOGS)
+- Mọi thao tác Thêm (Create), Sửa (Update) và Xóa (Delete) của Quản trị viên đối với 4 module trên đều được tự động lưu lại thông qua hệ thống AuditLogService hiện có của MovieZone, ghi lại:
+  - Hành động thực hiện (VD: PRODUCT_CREATE, COMBO_DELETE)
+  - Đối tượng tác động (VD: Product, Combo, Voucher, Promotion)
+  - ID của đối tượng
+  - Dữ liệu cũ trước khi thay đổi (old_value) dưới dạng JSON
+  - Dữ liệu mới/chi tiết thay đổi (new_value) kèm IP và User Agent của Admin.
+
+Hạn chế sửa đổi: Hoàn toàn không can thiệp hoặc thay đổi các tính năng cốt lõi hay các controller khác như đặt vé, tài khoản, phòng chiếu, lịch chiếu... đảm bảo an toàn tuyệt đối cho hệ thống.
+========================================================================

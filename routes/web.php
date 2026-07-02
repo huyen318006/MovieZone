@@ -3,6 +3,10 @@
 use App\Http\Controllers\Admin\AccountManageController;
 use App\Http\Controllers\Admin\BookingManageController;
 use App\Http\Controllers\Admin\RoomManageController;
+use App\Http\Controllers\Admin\ProductManageController;
+use App\Http\Controllers\Admin\ComboManageController;
+use App\Http\Controllers\Admin\VoucherManageController;
+use App\Http\Controllers\Admin\PromotionManageController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Admin\SeatManageController;
@@ -15,6 +19,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SepayController;
 use App\Http\Controllers\ShowtimeController;
+use App\Http\Controllers\Staff\StaffDashboardController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\VoucherController;
 use App\Models\Movie;
@@ -279,6 +284,15 @@ Route::middleware(['auth', 'admin'])
     ->controller(AccountManageController::class)
     ->group(function () {
 
+        // Redirect /account/management/ về trang danh sách (tránh 404)
+        Route::get('/account/management', function () {
+            return redirect()->route('admin.list_account');
+        })->name('admin.account.management');
+
+        Route::get('/account/management/', function () {
+            return redirect()->route('admin.list_account');
+        });
+
         Route::get('/account/management/admin', 'listaccount')
             ->name('admin.list_account');
 
@@ -316,6 +330,47 @@ Route::middleware(['auth', 'admin'])
             ->name('admin.account.store_account');
         
     });
+
+    /* --------------------- ADMIN COMBO, PRODUCTS, VOUCHERS, PROMOTIONS ------------------ */
+    Route::middleware(['auth', 'admin'])->group(function () {
+        Route::resource('admin/products', ProductManageController::class)->names([
+            'index' => 'admin.products.index',
+            'create' => 'admin.products.create',
+            'store' => 'admin.products.store',
+            'edit' => 'admin.products.edit',
+            'update' => 'admin.products.update',
+            'destroy' => 'admin.products.destroy',
+        ]);
+        Route::resource('admin/combos', ComboManageController::class)->names([
+            'index' => 'admin.combos.index',
+            'create' => 'admin.combos.create',
+            'store' => 'admin.combos.store',
+            'edit' => 'admin.combos.edit',
+            'update' => 'admin.combos.update',
+            'destroy' => 'admin.combos.destroy',
+        ]);
+        Route::resource('admin/vouchers', VoucherManageController::class)->names([
+            'index' => 'admin.vouchers.index',
+            'create' => 'admin.vouchers.create',
+            'store' => 'admin.vouchers.store',
+            'edit' => 'admin.vouchers.edit',
+            'update' => 'admin.vouchers.update',
+            'destroy' => 'admin.vouchers.destroy',
+        ]);
+        Route::resource('admin/promotions', PromotionManageController::class)->names([
+            'index' => 'admin.promotions.index',
+            'create' => 'admin.promotions.create',
+            'store' => 'admin.promotions.store',
+            'edit' => 'admin.promotions.edit',
+            'update' => 'admin.promotions.update',
+            'destroy' => 'admin.promotions.destroy',
+        ]);
+    });
+
+/* --------------------- STAFF DASHBOARD ------------------ */
+Route::middleware(['auth', 'staff.permission:staff.dashboard'])
+    ->get('/staff', [StaffDashboardController::class, 'index'])
+    ->name('staff.dashboard');
 
 /* --------------------- UC-STAFF-03: TRA CỨU BOOKING/VÉ ------------------ */
 use App\Http\Controllers\Staff\BookingLookupController;

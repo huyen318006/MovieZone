@@ -55,14 +55,24 @@
             Quản lý đơn đặt vé
         </a>
 
-        <a class="nav-link" href="">
-            <i class="bi bi-cup-straw"></i>
-            Combo
+        <a class="nav-link {{ Request::routeIs('admin.products.*') ? 'active' : '' }}" href="{{ route('admin.products.index') }}">
+            <i class="bi bi-box"></i>
+            Sản phẩm lẻ
         </a>
 
-        <a class="nav-link" href="">
+        <a class="nav-link {{ Request::routeIs('admin.combos.*') ? 'active' : '' }}" href="{{ route('admin.combos.index') }}">
+            <i class="bi bi-cup-straw"></i>
+            Combo bắp nước
+        </a>
+
+        <a class="nav-link {{ Request::routeIs('admin.vouchers.*') ? 'active' : '' }}" href="{{ route('admin.vouchers.index') }}">
             <i class="bi bi-percent"></i>
-            Voucher
+            Mã giảm giá (Voucher)
+        </a>
+
+        <a class="nav-link {{ Request::routeIs('admin.promotions.*') ? 'active' : '' }}" href="{{ route('admin.promotions.index') }}">
+            <i class="bi bi-megaphone"></i>
+            Khuyến mãi
         </a>
 
         <a class="nav-link" href="{{ route('admin.list_account') }}">
