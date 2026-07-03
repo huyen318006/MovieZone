@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateFilmRequest;
 use App\Models\Booking;
+use App\Models\Coin;
 use App\Models\Genre;
 use App\Models\Movie;
 use App\Models\MovieGenre;
@@ -475,6 +476,17 @@ class FilmManageController extends Controller
 
                     if ($b->payment_status === 'PAID') {
                         $b->payment_status = 'REFUNDED';
+
+                        $refundAmount = (int) round((float) ($b->final_amount ?? 0));
+                        if ($refundAmount > 0 && $b->user_id) {
+                            $coin = Coin::firstOrCreate(
+                                ['user_id' => $b->user_id],
+                                ['balance' => 0]
+                            );
+
+                            $coin->balance = (int) $coin->balance + $refundAmount;
+                            $coin->save();
+                        }
                     }
 
                     $b->save();

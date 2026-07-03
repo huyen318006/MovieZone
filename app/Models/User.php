@@ -58,4 +58,8 @@ class User extends Authenticatable
             'role_id'       // khóa ngoại role
         );
     }
+    public function coin()
+    {
+        return $this->hasOne(Coin::class);
+    }
 }
