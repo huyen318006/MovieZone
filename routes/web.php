@@ -11,6 +11,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\Admin\SeatManageController;
 use App\Http\Controllers\Admin\ShowtimeManageController;
+use App\Http\Controllers\CoinController;
 use App\Http\Controllers\FilmManageController;
 use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
@@ -75,6 +76,13 @@ Route::controller(GoogleController::class)->group(function () {
 Route::post('/logout', [AuthController::class, 'logout'])
     ->name('logout');
 /* ---------------------END---------- */
+
+/* --------------------- Coin------------------ */
+Route::middleware('auth')->group(function () {
+    Route::get('/coin/{id}', [CoinController::class, 'coinIndex'])->name('coin.index');
+    Route::post('/coin/{id}/checkin', [CoinController::class, 'checkin'])->name('coin.checkin');
+
+});
 
 // Trang chi tiết phim
 Route::get('/movie-detail', function () {
@@ -279,6 +287,7 @@ Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(
 
 });
 
+
 // Quản lý tài khoản - account management
 Route::middleware(['auth', 'admin'])
     ->controller(AccountManageController::class)
@@ -318,17 +327,17 @@ Route::middleware(['auth', 'admin'])
 
     Route::put('/admin/users/demote', 'demote')
         ->name('admin.users.demote');
-    
+
     Route::put('/admin/users/demote-admin', 'demoteAdmin')
         ->name('admin.users.demote.admin');
 
-        //thêm tài khoản 
+        //thêm tài khoản
          Route::get('/account/management/create', 'createAccount')
         ->name('admin.create_account');
         // Lưu tài khoản mới
         Route::post('/account/management/create', 'storeAccount')
             ->name('admin.account.store_account');
-        
+
     });
 
     /* --------------------- ADMIN COMBO, PRODUCTS, VOUCHERS, PROMOTIONS ------------------ */
@@ -444,16 +453,16 @@ Route::middleware(['auth', 'staff.permission:booking.lookup'])
 Route::middleware(['auth', 'admin'])->group(function () {
     // Trang quản lý booking (view)
     Route::get('/admin/bookings', [BookingManageController::class, 'index'])->name('admin.bookings.index');
-    
+
     // API danh sách booking có phân trang & bộ lọc
     Route::get('/admin/api/bookings', [BookingManageController::class, 'list'])->name('admin.bookings.list');
-    
+
     // Chi tiết 1 đơn đặt vé
     Route::get('/admin/bookings/{id}', [BookingManageController::class, 'show'])->name('admin.bookings.show');
-    
+
     // Thực hiện hủy đơn đặt vé
     Route::post('/admin/bookings/{id}/cancel', [BookingManageController::class, 'cancel'])->name('admin.bookings.cancel');
-    
+
     // Hỗ trợ check-in vé
     Route::post('/admin/api/bookings/tickets/{ticket_id}/check-in', [BookingManageController::class, 'checkInTicket'])->name('admin.bookings.ticket.checkin');
 });
