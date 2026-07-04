@@ -100,6 +100,10 @@ class UpdateFilmRequest extends FormRequest
             'genres'   => 'nullable|array',
             'genres.*' => 'exists:genres,id',
 
+            // ── KIỂU PHÒNG HỖ TRỢ ─────────────────────────────────
+            'room_types'   => 'nullable|array',
+            'room_types.*' => 'integer|exists:rooms,id',
+
             // ── MEDIA ─────────────────────────────────────────────
             'poster'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
             'banner'      => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
