@@ -251,9 +251,15 @@ class FilmManageController extends Controller
             ->pluck('genre_id')
             ->toArray();
 
+        // ID kiểu phòng hỗ trợ hiện tại
+        $currentRoomIds = DB::table('movie_room_tytle')
+            ->where('movie_id', $id)
+            ->pluck('room_id')
+            ->toArray();
+
         $genres = Genre::all();
 
-        return view('admin.film_management.updatefilm', compact('movie_id', 'genres', 'currentGenreIds'));
+        return view('admin.film_management.updatefilm', compact('movie_id', 'genres', 'currentGenreIds', 'currentRoomIds'));
     }
 
     public function apiCheckSlots(Request $request)
@@ -396,13 +402,31 @@ class FilmManageController extends Controller
         $payload['release_date'] = $request->release_date; // giữ nguyên DB nếu NOW_SHOWING/ENDED
         $payload['end_date']     = $request->end_date;     // giữ nguyên DB nếu ENDED
 
+        // ── 1. Chuẩn bị dữ liệu Ghi Log (Lấy trạng thái CŨ trước khi sửa) ──
+        $oldMovie = $movie->toArray();
+        $oldMovie['genres'] = DB::table('movie_genres')->where('movie_id', $movie->id)->pluck('genre_id')->toArray();
+        $oldMovie['room_types'] = DB::table('movie_room_tytle')->where('movie_id', $movie->id)->pluck('room_id')->toArray();
+
         // ── Thực hiện cập nhật ────────────────────────────────────────────
         $movie->update($payload);
 
         // ── Cập nhật thể loại ─────────────────────────────────────────────
         $movie->genres()->sync($request->genres ?? []);
 
-        $oldMovie = $movie->getOriginal();
+        // ── Cập nhật Định dạng / Kiểu phòng hỗ trợ ────────────────────────
+        DB::table('movie_room_tytle')->where('movie_id', $movie->id)->delete();
+        if ($request->filled('room_types')) {
+            foreach ($request->input('room_types', []) as $roomId) {
+                DB::table('movie_room_tytle')->insert([
+                    'movie_id' => $movie->id,
+                    'room_id' => (int) $roomId,
+                ]);
+            }
+        }
+
+        // ── 2. Bổ sung quan hệ vào payload để ghi trạng thái MỚI ──────────
+        $payload['genres'] = $request->genres ?? [];
+        $payload['room_types'] = $request->input('room_types', []);
 
         DB::table('audit_logs')->insert([
             'user_id'     => auth()->id(),
