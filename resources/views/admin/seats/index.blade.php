@@ -177,37 +177,78 @@
                                     <div class="seat-row">
                                         <div class="row-label">{{ $row }}</div>
                                         <div class="row-seats">
-                                            @foreach ($seats as $seat)
+                                            @php $skipNext = false; @endphp
+                                            @foreach ($seats as $index => $seat)
+                                                @if ($skipNext)
+                                                    @php $skipNext = false; @endphp
+                                                    @continue
+                                                @endif
                                                 @php
                                                     $isLocked = in_array($seat->status, ['LOCKED', 'BLOCKED']);
+                                                    $isCouple = ($seat->seat_type === 'COUPLE');
+                                                    $nextSeat = $seats[$index + 1] ?? null;
+                                                    $isPair = $isCouple && $nextSeat && $nextSeat->seat_type === 'COUPLE';
                                                 @endphp
-                                                <div class="seat-wrapper" data-seat-wrapper="{{ $seat->id }}">
-                                                    <input type="checkbox"
-                                                           class="seat-checkbox visually-hidden"
-                                                           name="seat_ids[]"
-                                                           value="{{ $seat->id }}"
-                                                           form="bulkDeleteForm"
-                                                           aria-label="Chọn ghế {{ $seat->seat_code }}">
 
-                                                    <button type="button"
-                                                            class="seat-trigger"
-                                                            data-seat-id="{{ $seat->id }}"
-                                                            data-seat-code="{{ $seat->seat_code }}"
-                                                            data-seat-type="{{ $seat->seat_type }}"
-                                                            data-seat-status="{{ $seat->status }}"
-                                                            data-seat-price="{{ number_format($seat->price) }}đ"
-                                                            data-edit-url="{{ route('admin.seats.edit', $seat->id) }}"
-                                                            data-toggle-url="{{ route('admin.seats.toggle_lock', $seat->id) }}"
-                                                            data-delete-url="{{ route('admin.seats.destroy', $seat->id) }}"
-                                                            data-is-locked="{{ $isLocked ? '1' : '0' }}"
-                                                            data-is-broken="{{ $seat->status === 'BROKEN' ? '1' : '0' }}"
-                                                            title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
-                                                        <span class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}">
-                                                            <strong>{{ $seat->seat_code }}</strong>
-                                                            <small>{{ $seat->seat_type }}</small>
-                                                        </span>
-                                                    </button>
-                                                </div>
+                                                @if ($isPair)
+                                                    @php
+                                                        $skipNext = true;
+                                                        $isLocked2 = in_array($nextSeat->status, ['LOCKED', 'BLOCKED']);
+                                                        $combinedLocked = $isLocked || $isLocked2;
+                                                        $combinedBroken = $seat->status === 'BROKEN' || $nextSeat->status === 'BROKEN';
+                                                        $combinedStatus = $combinedBroken ? 'BROKEN' : ($combinedLocked ? 'BLOCKED' : 'ACTIVE');
+                                                    @endphp
+                                                    <div class="seat-wrapper" data-seat-wrapper="{{ $seat->id }},{{ $nextSeat->id }}">
+                                                        <input type="checkbox" class="seat-checkbox visually-hidden" name="seat_ids[]" value="{{ $seat->id }}" form="bulkDeleteForm" aria-label="Chọn ghế {{ $seat->seat_code }}">
+                                                        <input type="checkbox" class="seat-checkbox visually-hidden" name="seat_ids[]" value="{{ $nextSeat->id }}" form="bulkDeleteForm" aria-label="Chọn ghế {{ $nextSeat->seat_code }}">
+
+                                                        <button type="button"
+                                                                class="seat-trigger"
+                                                                data-seat-id="{{ $seat->id }},{{ $nextSeat->id }}"
+                                                                data-seat-code="{{ $seat->seat_code }}-{{ $nextSeat->seat_code }}"
+                                                                data-seat-type="COUPLE"
+                                                                data-seat-status="{{ $combinedStatus }}"
+                                                                data-seat-price="{{ number_format($seat->price + $nextSeat->price) }}đ"
+                                                                data-edit-url="{{ route('admin.seats.edit', $seat->id) }}"
+                                                                data-toggle-url="{{ route('admin.seats.toggle_lock', $seat->id) }}"
+                                                                data-delete-url="{{ route('admin.seats.destroy', $seat->id) }}"
+                                                                data-is-locked="{{ $combinedLocked ? '1' : '0' }}"
+                                                                data-is-broken="{{ $combinedBroken ? '1' : '0' }}"
+                                                                title="{{ $seat->seat_code }} & {{ $nextSeat->seat_code }} · {{ number_format($seat->price + $nextSeat->price) }}đ · {{ $combinedStatus }}">
+                                                            <span class="seat seat-{{ $combinedStatus === 'ACTIVE' ? 'COUPLE' : $combinedStatus }}" style="width: 88px; padding: 7px 4px;">
+                                                                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                                                    <strong>{{ $seat->seat_code }}</strong>
+                                                                    <i class="bi bi-heart-fill mx-1" style="color: #fbcfe8; font-size: 11px;"></i>
+                                                                    <strong>{{ $nextSeat->seat_code }}</strong>
+                                                                </div>
+                                                                <small>COUPLE</small>
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                @else
+                                                    <div class="seat-wrapper" data-seat-wrapper="{{ $seat->id }}">
+                                                        <input type="checkbox" class="seat-checkbox visually-hidden" name="seat_ids[]" value="{{ $seat->id }}" form="bulkDeleteForm" aria-label="Chọn ghế {{ $seat->seat_code }}">
+
+                                                        <button type="button"
+                                                                class="seat-trigger"
+                                                                data-seat-id="{{ $seat->id }}"
+                                                                data-seat-code="{{ $seat->seat_code }}"
+                                                                data-seat-type="{{ $seat->seat_type }}"
+                                                                data-seat-status="{{ $seat->status }}"
+                                                                data-seat-price="{{ number_format($seat->price) }}đ"
+                                                                data-edit-url="{{ route('admin.seats.edit', $seat->id) }}"
+                                                                data-toggle-url="{{ route('admin.seats.toggle_lock', $seat->id) }}"
+                                                                data-delete-url="{{ route('admin.seats.destroy', $seat->id) }}"
+                                                                data-is-locked="{{ $isLocked ? '1' : '0' }}"
+                                                                data-is-broken="{{ $seat->status === 'BROKEN' ? '1' : '0' }}"
+                                                                title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
+                                                            <span class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}">
+                                                                <strong>{{ $seat->seat_code }}</strong>
+                                                                <small>{{ $seat->seat_type }}</small>
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                @endif
                                             @endforeach
                                         </div>
                                     </div>
@@ -408,22 +449,27 @@
                 }
             }
 
-            function toggleSeatForBulk(wrapper, checkbox) {
-                if (!checkbox) return;
-                checkbox.checked = !checkbox.checked;
-                wrapper.classList.toggle('is-bulk-selected', checkbox.checked);
+            function toggleSeatForBulk(wrapper, forceState = null) {
+                const checkboxes = wrapper.querySelectorAll('.seat-checkbox');
+                if (checkboxes.length === 0) return;
+                
+                const firstCheckbox = checkboxes[0];
+                const newState = forceState !== null ? forceState : !firstCheckbox.checked;
+
+                checkboxes.forEach(cb => cb.checked = newState);
+                wrapper.classList.toggle('is-bulk-selected', newState);
+                
                 updateBulkDeleteState();
             }
 
             document.querySelectorAll('.seat-trigger').forEach(function(trigger) {
                 trigger.addEventListener('click', function() {
                     const wrapper = trigger.closest('.seat-wrapper');
-                    const checkbox = wrapper.querySelector('.seat-checkbox');
                     const isLocked = trigger.dataset.isLocked === '1';
                     const isBroken = trigger.dataset.isBroken === '1';
 
                     if (isBulkMode) {
-                        toggleSeatForBulk(wrapper, checkbox);
+                        toggleSeatForBulk(wrapper);
                         return;
                     }
 

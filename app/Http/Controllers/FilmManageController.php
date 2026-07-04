@@ -104,7 +104,9 @@ class FilmManageController extends Controller
     {
         //đổ thể loại cho view
         $genres = Genre::all();
-        return view('admin.film_management.addfilm', compact('genres'));
+        //thêm thể loại phòng cho film
+        $room_name = Room::all();
+        return view('admin.film_management.addfilm', compact('genres','room_name'));
     }
     public function store(Request $request)
     {
@@ -145,6 +147,10 @@ class FilmManageController extends Controller
             // Thể loại (checkbox array)
             'genres' => 'required|array',
             'genres.*' => 'exists:genres,id',
+
+            // Loại phòng hỗ trợ (chọn từ các loại phòng hiện có)
+            'room_types' => 'nullable|array',
+            'room_types.*' => 'integer|exists:rooms,id',
 
             // Media
             'poster' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -196,6 +202,17 @@ class FilmManageController extends Controller
         ]);
         // dd($movie);
         $movie->genres()->sync($request->input('genres', []));
+
+        if ($request->filled('room_types')) {
+            DB::table('movie_room_tytle')->where('movie_id', $movie->id)->delete();
+            foreach ($request->input('room_types', []) as $roomId) {
+                DB::table('movie_room_tytle')->insert([
+                    'movie_id' => $movie->id,
+                    'room_id' => (int) $roomId,
+                ]);
+            }
+        }
+
         DB::table('audit_logs')->insert([
             'user_id'     => auth()->id(),
             'action'      => 'create_movie',
@@ -429,7 +446,7 @@ class FilmManageController extends Controller
         return view('admin.film.confirm_stop', compact('movie', 'showtimeCount', 'bookingCount'));
     }
 
-    // Thay đổi trạng thái của phim   
+    // Thay đổi trạng thái của phim
     // Thay đổi trạng thái của phim
     public function toggleStatus(Request $request, $id)
     {
