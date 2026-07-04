@@ -76,34 +76,71 @@
                             <div class="seat-row">
                                 <span class="row-label">{{ $rowLabel }}</span>
 
-                                @foreach ($rowSeats as $s)
-                                    @php
-                                        $isDisabled = in_array($s['status'], ['SOLD', 'BLOCKED', 'LOCKED', 'HELD'])
-                                            ? 'disabled'
-                                            : '';
+                                @php $skipNext = false; @endphp
+                                @foreach ($rowSeats as $index => $s)
+                                    @if ($skipNext)
+                                        @php $skipNext = false; @endphp
+                                        @continue
+                                    @endif
 
-                                        if ($s['type'] === 'sweetbox') {
-                                            $btnClass = 'sweet-seat-btn';
-                                            $icon = '<i class="fa-solid fa-heart"></i> ';
-                                        } elseif ($s['type'] === 'vip') {
-                                            $btnClass = 'vip-seat-btn';
-                                            $icon =
-                                                '<i class="fa-solid fa-crown" style="font-size: 11px; margin-right: 2px;"></i>';
-                                        } else {
-                                            $btnClass = 'available-seat-btn';
-                                            $icon = '';
-                                        }
+                                    @php
+                                        $isDisabled = in_array($s['status'], ['SOLD', 'BLOCKED', 'LOCKED', 'HELD']) ? 'disabled' : '';
+                                        $isCouple = ($s['type'] === 'sweetbox');
+                                        $nextS = $rowSeats[$index + 1] ?? null;
+                                        
+                                        // Kiểm tra nếu là ghế COUPLE và ghế tiếp theo cũng là COUPLE (bắt cặp tự động)
+                                        $isPair = $isCouple && $nextS && $nextS['type'] === 'sweetbox';
                                     @endphp
 
-                                    <button type="button" class="seat {{ $btnClass }} {{ $s['status'] }}"
-                                        data-id="{{ $s['id'] }}" data-seat="{{ $s['code'] }}"
-                                        data-type="{{ $s['type'] }}" data-price="{{ $s['price'] }}"
-                                        {{ $isDisabled }}>
-                                        {!! $icon !!}{{ $s['label'] }}
-                                    </button>
+                                    @if ($isPair)
+                                        @php
+                                            $skipNext = true;
+                                            $isDisabled2 = in_array($nextS['status'], ['SOLD', 'BLOCKED', 'LOCKED', 'HELD']) ? 'disabled' : '';
+                                            $isBothDisabled = ($isDisabled === 'disabled' || $isDisabled2 === 'disabled') ? 'disabled' : '';
+                                            $combinedStatus = $s['status'] !== 'AVAILABLE' ? $s['status'] : $nextS['status'];
+                                            if ($combinedStatus === 'AVAILABLE' && $s['status'] === 'AVAILABLE' && $nextS['status'] === 'AVAILABLE') {
+                                                $combinedStatus = 'AVAILABLE';
+                                            }
+                                        @endphp
+                                        <button type="button" class="seat couple-seat-btn {{ $combinedStatus }}"
+                                            data-id="{{ $s['id'] }},{{ $nextS['id'] }}" 
+                                            data-seat="{{ $s['code'] }},{{ $nextS['code'] }}"
+                                            data-type="COUPLE" 
+                                            data-price="{{ $s['price'] + $nextS['price'] }}"
+                                            {{ $isBothDisabled }}
+                                            title="Couple seat (2 tickets) - {{ number_format($s['price'] + $nextS['price']) }}đ">
+                                            <span class="seat-label">{{ $s['label'] }}</span>
+                                            <i class="fa-solid fa-heart couple-icon"></i>
+                                            <span class="seat-label">{{ $nextS['label'] }}</span>
+                                        </button>
 
-                                    @if ($s['is_aisle'])
-                                        <div class="aisle"></div>
+                                        @if ($nextS['is_aisle'])
+                                            <div class="aisle"></div>
+                                        @endif
+                                    @else
+                                        @php
+                                            if ($s['type'] === 'sweetbox') {
+                                                $btnClass = 'sweet-seat-btn';
+                                                $icon = '<i class="fa-solid fa-heart"></i> ';
+                                            } elseif ($s['type'] === 'vip') {
+                                                $btnClass = 'vip-seat-btn';
+                                                $icon = '<i class="fa-solid fa-crown" style="font-size: 11px; margin-right: 2px;"></i>';
+                                            } else {
+                                                $btnClass = 'available-seat-btn';
+                                                $icon = '';
+                                            }
+                                        @endphp
+
+                                        <button type="button" class="seat {{ $btnClass }} {{ $s['status'] }}"
+                                            data-id="{{ $s['id'] }}" data-seat="{{ $s['code'] }}"
+                                            data-type="{{ $s['type'] }}" data-price="{{ $s['price'] }}"
+                                            {{ $isDisabled }}>
+                                            {!! $icon !!}{{ $s['label'] }}
+                                        </button>
+
+                                        @if ($s['is_aisle'])
+                                            <div class="aisle"></div>
+                                        @endif
                                     @endif
                                 @endforeach
 
@@ -172,17 +209,79 @@
             color: #ffc107 !important;
         }
 
+        /* Tách sweetbox lẻ và COUPLE pair (2 ghế) */
         .sweet-seat-btn {
             color: white !important;
-            width: 90px !important;
             font-weight: bold !important;
             border-radius: 8px !important;
             margin: 3px 6px !important;
-            transition: background-color 0.2s;
+            background: linear-gradient(135deg, #db2777, #9d174d) !important;
+            border: 2px solid #f9a8d4 !important;
+            transition: all 0.2s ease;
+        }
+        
+        .sweet-seat-btn:hover:not([disabled]) {
+            background: linear-gradient(135deg, #be185d, #831843) !important;
         }
 
-        .sweet-seat-btn:hover {
-            background-color: #db2777 !important;
+        .couple-seat-btn {
+            color: white !important;
+            width: 80px !important; /* Độ rộng gộp 2 ghế CGV style */
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: bold !important;
+            border-radius: 12px !important;
+            margin: 3px 6px !important;
+            padding: 0 10px !important;
+            background: linear-gradient(135deg, #ec4899, #be185d) !important;
+            border: 2px solid #fbcfe8 !important;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(236, 72, 153, 0.2);
+        }
+
+        .couple-seat-btn:hover:not([disabled]) {
+            background: linear-gradient(135deg, #db2777, #9d174d) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
+        }
+
+        .couple-seat-btn .couple-icon {
+            color: #fbcfe8 !important;
+            font-size: 14px;
+            opacity: 0.9;
+            animation: heartbeat 2s infinite;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* Trạng thái được chọn cho block gộp */
+        .couple-seat-btn.HELD_BY_ME {
+            background: linear-gradient(135deg, #28a745, #1e7e34) !important;
+            border-color: #71e38c !important;
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+        
+        .couple-seat-btn.HELD_BY_ME .couple-icon {
+            color: #ffffff !important;
+            animation: none;
+        }
+
+        /* Trạng thái đã bán / khóa cho block gộp */
+        .couple-seat-btn.SOLD, .couple-seat-btn.HELD, .couple-seat-btn.BLOCKED, .couple-seat-btn.LOCKED {
+            background: #343a40 !important;
+            border-color: #495057 !important;
+            opacity: 0.7;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+        .couple-seat-btn.SOLD .couple-icon, .couple-seat-btn.HELD .couple-icon, 
+        .couple-seat-btn.BLOCKED .couple-icon, .couple-seat-btn.LOCKED .couple-icon {
+            color: #6c757d !important;
+            animation: none;
         }
 
         .sweet-seat-icon {
@@ -497,14 +596,10 @@
                 const seatType = btn.dataset.type;
                 const seatPrice = parseInt(btn.dataset.price);
 
-                if (!seatIdAttr) return;
-
-                const isSelecting = !selectedSeats.has(seatCode);
-                const action = isSelecting ? 'hold' : 'release';
-
-                btn.disabled = true;
-                document.getElementById('ajax-error-box').style.display = 'none';
                 const seatIds = seatIdAttr.split(',');
+
+                const isSelecting = !btn.classList.contains('HELD_BY_ME');
+                const action = isSelecting ? 'hold' : 'release';
 
                 try {
                     let allSuccess = true;
@@ -536,6 +631,7 @@
                     if (allSuccess) {
                         if (isSelecting) {
                             if (selectedSeats.size === 0) startTimer();
+                            
                             selectedSeats.set(seatCode, {
                                 id: seatIdAttr,
                                 code: seatCode,
@@ -544,7 +640,7 @@
                             });
                             btn.classList.add('HELD_BY_ME');
                         } else {
-                            selectedSeats.delete(seatCode); // A2: Bỏ chọn ghế
+                            selectedSeats.delete(seatCode);
                             btn.classList.remove('HELD_BY_ME');
                         }
                         updateUI();
@@ -575,10 +671,12 @@
                     let total = 0;
                     selectedSeats.forEach((seat) => {
                         total += seat.price;
-                        const typeLabel = seat.type === 'vip' ? '👑' : seat.type === 'sweetbox' ? '💕' :
+                        const typeLabel = seat.type === 'vip' ? '👑' : seat.type === 'COUPLE' ? '💕' :
                             '🎬';
+                        // Hiển thị đẹp hơn cho COUPLE (ví dụ J1,J2 -> J1-J2)
+                        const displayCode = seat.code.replace(',', '-');
                         seatTags.push(
-                            `<span class="seat-tag seat-tag-${seat.type}">${typeLabel} ${seat.code}</span>`
+                            `<span class="seat-tag seat-tag-${seat.type}">${typeLabel} ${displayCode}</span>`
                             );
 
                         const ids = seat.id.split(',');
@@ -605,15 +703,7 @@
                     const seatCode = seat.getAttribute('data-seat');
                     if (!seatCode) return;
 
-                    // Tách chữ (Hàng) và số (Số ghế) một cách an toàn nhất
-                    const rowMatch = seatCode.match(/[a-zA-Z]+/);
-                    const numMatch = seatCode.match(/\d+/);
-                    if (!rowMatch || !numMatch) return;
-
-                    const row = rowMatch[0].toUpperCase();
-                    const num = parseInt(numMatch[0]);
-
-                    // Phân loại trạng thái ghế chuẩn theo Class hiện tại trên giao diện công cộng
+                    // Phân loại trạng thái ghế chuẩn theo Class hiện tại trên giao diện
                     let status = 'available';
                     if (seat.classList.contains('HELD_BY_ME')) {
                         status = 'selected'; // Ghế khách này đang chọn
@@ -624,13 +714,24 @@
                         seat.classList.contains('LOCKED') ||
                         seat.disabled
                     ) {
-                        status = 'unavailable'; // Ghế không thể mua (đã bán/khóa)
+                        status = 'unavailable'; // Ghế không thể mua
                     }
 
-                    if (!seatMap[row]) {
-                        seatMap[row] = {};
-                    }
-                    seatMap[row][num] = status;
+                    // Hỗ trợ xử lý data-seat chứa nhiều ghế (COUPLE gộp, ví dụ "J1,J2")
+                    const codes = seatCode.split(',');
+                    codes.forEach(code => {
+                        const rowMatch = code.match(/[a-zA-Z]+/);
+                        const numMatch = code.match(/\d+/);
+                        if (!rowMatch || !numMatch) return;
+
+                        const row = rowMatch[0].toUpperCase();
+                        const num = parseInt(numMatch[0]);
+
+                        if (!seatMap[row]) {
+                            seatMap[row] = {};
+                        }
+                        seatMap[row][num] = status;
+                    });
                 });
 
                 let hasError = false;
