@@ -25,6 +25,8 @@
     --text-soft: #b9c2dc;
 
     --radius: 24px;
+
+    --header-height: 110px;
 }
 
 body {
@@ -36,7 +38,16 @@ body {
     font-family: 'Segoe UI', sans-serif;
 
     overflow-x: hidden;
+
+    padding-top: var(--header-height) !important;
 }
+
+@media (max-width: 768px) {
+    :root {
+        --header-height: 120px;
+    }
+}
+
 
 /* ==========================
    HEADER
@@ -47,7 +58,8 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    height: 85px;
+    min-height: var(--header-height);
+    height: auto;
     display: flex;
     justify-content: space-between;
     align-items: center;

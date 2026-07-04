@@ -38,7 +38,7 @@
 
 
         @auth
-            <a href="#" class="btn btn-warning rounded-pill d-flex align-items-center gap-2 fw-bold px-3">
+            <a href="{{ route('coin.index', Auth::user()->id) }}" class="btn btn-warning rounded-pill d-flex align-items-center gap-2 fw-bold px-3">
                 <i class="bi bi-coin"></i>
                 <span>{{ number_format(Auth::user()->coin?->balance ?? 0) }}</span>
             </a>

@@ -429,7 +429,7 @@ class FilmManageController extends Controller
         return view('admin.film.confirm_stop', compact('movie', 'showtimeCount', 'bookingCount'));
     }
 
-    // Thay đổi trạng thái của phim
+    // Thay đổi trạng thái của phim   
     // Thay đổi trạng thái của phim
     public function toggleStatus(Request $request, $id)
     {
