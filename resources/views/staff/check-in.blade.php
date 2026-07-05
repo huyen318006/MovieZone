@@ -488,10 +488,10 @@
             </h4>
             <div class="manual-form">
                 <select id="manualType">
-                    <option value="booking_code">Mã booking (BK-...)</option>
-                    <option value="ticket_code">Mã vé (TK-...)</option>
+                    <option value="booking_code">Mã booking (BK...)</option>
+                    <option value="ticket_code">Mã vé (TK...)</option>
                 </select>
-                <input type="text" id="manualCode" placeholder="VD: BK-20260627-001 hoặc TK-20260627-001"
+                <input type="text" id="manualCode" placeholder="VD: BKXM7QP9RWBF hoặc TK3QNH65UJP8H8"
                        onkeydown="if(event.key==='Enter') lookupManual()">
                 <button class="btn-scan btn-scan-primary" onclick="lookupManual()" id="btnManualLookup">
                     <i class="bi bi-search"></i> Tra cứu
