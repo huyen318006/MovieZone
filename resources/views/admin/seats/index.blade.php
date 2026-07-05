@@ -145,9 +145,14 @@
                             <button type="button" class="btn btn-outline-secondary btn-sm" id="bulkSelectModeBtn">
                                 <i class="bi bi-ui-checks-grid me-1"></i> Chọn nhiều
                             </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" id="bulkToggleOpenBtn" data-bs-toggle="modal" data-bs-target="#bulkToggleModal" disabled>
+                                <i class="bi bi-lock-fill me-1"></i> Toggle khóa/mở nhiều <span class="badge text-bg-warning ms-1" id="bulkToggleCountBadge">0</span>
+                            </button>
+
                             <button type="button" class="btn btn-outline-danger btn-sm" id="bulkDeleteOpenBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal" disabled>
                                 <i class="bi bi-trash3 me-1"></i> Xóa nhiều <span class="badge text-bg-danger ms-1" id="bulkDeleteCountBadge">0</span>
                             </button>
+
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkCreateModal">
                                 <i class="bi bi-plus-square me-1"></i> Tạo nhiều
                             </button>
@@ -297,11 +302,39 @@
         </div>
 
 
+        <div class="modal fade" id="bulkToggleModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Toggle khóa/mở nhiều ghế</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Bạn đã chọn <strong id="bulkToggleCount">0</strong> ghế.
+                        <div class="text-muted small mt-2">
+                            Ghế đang <b>ACTIVE/BLOCKED</b> sẽ được <b>toggle</b> trạng thái.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <form id="bulkToggleForm" action="{{ route('admin.seats.toggle_lock_many') }}" method="POST" style="margin:0;">
+                            @csrf
+                            <div id="bulkToggleSeatIdsContainer"></div>
+                            <button type="submit" class="btn btn-warning" id="bulkToggleSubmit" disabled>
+                                Xác nhận toggle
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade" id="bulkDeleteModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Xóa nhiều ghế</h5>
+
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -405,8 +438,23 @@
             const bulkDeleteCountBadge = document.getElementById('bulkDeleteCountBadge');
             const bulkDeleteSubmit = document.getElementById('bulkDeleteSubmit');
             const bulkDeleteOpenBtn = document.getElementById('bulkDeleteOpenBtn');
+
+            const bulkToggleCount = document.getElementById('bulkToggleCount');
+            const bulkToggleCountBadge = document.getElementById('bulkToggleCountBadge');
+            const bulkToggleSubmit = document.getElementById('bulkToggleSubmit');
+            const bulkToggleOpenBtn = document.getElementById('bulkToggleOpenBtn');
+            const bulkToggleSeatIdsContainer = document.getElementById('bulkToggleSeatIdsContainer');
+
             const bulkSelectModeBtn = document.getElementById('bulkSelectModeBtn');
             const bulkModeHint = document.getElementById('bulkModeHint');
+
+            // Toggle open modal handlers (update count + payload on open)
+            if (bulkToggleOpenBtn) {
+                bulkToggleOpenBtn.addEventListener('click', function () {
+                    updateBulkToggleState();
+                });
+            }
+
             const selectedSeatEmpty = document.getElementById('selectedSeatEmpty');
             const selectedSeatDetail = document.getElementById('selectedSeatDetail');
             const selectedSeatCode = document.getElementById('selectedSeatCode');
@@ -428,6 +476,28 @@
                 if (bulkDeleteSubmit) bulkDeleteSubmit.disabled = selectedCount === 0;
                 if (bulkDeleteOpenBtn) bulkDeleteOpenBtn.disabled = selectedCount === 0;
             }
+
+            function updateBulkToggleState() {
+                const selectedCount = document.querySelectorAll('.seat-checkbox:checked').length;
+                if (bulkToggleCount) bulkToggleCount.textContent = selectedCount;
+                if (bulkToggleCountBadge) bulkToggleCountBadge.textContent = selectedCount;
+                if (bulkToggleSeatIdsContainer) bulkToggleSeatIdsContainer.innerHTML = '';
+                if (bulkToggleSubmit) bulkToggleSubmit.disabled = selectedCount === 0;
+                if (bulkToggleOpenBtn) bulkToggleOpenBtn.disabled = selectedCount === 0;
+
+                if (!bulkToggleSeatIdsContainer) return;
+                // Build hidden inputs for toggle many
+                const checked = Array.from(document.querySelectorAll('.seat-checkbox:checked'));
+                checked.forEach(function(cb){
+                    const id = cb.value;
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'seat_ids[]';
+                    input.value = id;
+                    bulkToggleSeatIdsContainer.appendChild(input);
+                });
+            }
+
 
             function clearActiveSeat() {
                 document.querySelectorAll('.seat-wrapper.is-selected').forEach(function(wrapper) {
@@ -452,15 +522,17 @@
             function toggleSeatForBulk(wrapper, forceState = null) {
                 const checkboxes = wrapper.querySelectorAll('.seat-checkbox');
                 if (checkboxes.length === 0) return;
-                
+
                 const firstCheckbox = checkboxes[0];
                 const newState = forceState !== null ? forceState : !firstCheckbox.checked;
 
                 checkboxes.forEach(cb => cb.checked = newState);
                 wrapper.classList.toggle('is-bulk-selected', newState);
-                
+
                 updateBulkDeleteState();
+                updateBulkToggleState();
             }
+
 
             document.querySelectorAll('.seat-trigger').forEach(function(trigger) {
                 trigger.addEventListener('click', function() {
