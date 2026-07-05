@@ -20,7 +20,7 @@
             <div class="search-input-wrap">
                 <i class="bi bi-search search-icon"></i>
                 <input type="text" id="searchValue" class="search-input"
-                       placeholder="Nhập mã booking, VD: BK-20260627-001"
+                       placeholder="Nhập mã booking, VD: BKXM7QP9RWBF"
                        autocomplete="off" spellcheck="false">
                 <div id="recentSearchesDropdown" class="recent-searches-dropdown" style="display:none;"></div>
             </div>
@@ -512,16 +512,16 @@ const BookingLookup = (() => {
 
     // ── Placeholders ──
     const PLACEHOLDERS = {
-        booking_code: 'Nhập mã booking, VD: BK-20260627-001',
-        ticket_code:  'Nhập mã vé hoặc quét QR, VD: TK-20260627-001',
+        booking_code: 'Nhập mã booking, VD: BKXM7QP9RWBF',
+        ticket_code:  'Nhập mã vé hoặc quét QR, VD: TK3QNH65UJP8H8',
         phone:        'Nhập số điện thoại, VD: 0912345678',
         email:        'Nhập email khách hàng',
     };
 
     // ── Validation Regex ──
     const VALIDATORS = {
-        booking_code: { regex: /^BK-\d{8}-\d{3,}$/, msg: 'Mã booking phải có dạng BK-XXXXXXXX-XXX' },
-        ticket_code:  { regex: /^TK-\d{8}-\d{3,}$/, msg: 'Mã vé phải có dạng TK-XXXXXXXX-XXX' },
+        booking_code: { regex: /^BK[A-Z2-9]{10}$/, msg: 'Mã booking phải có dạng BK + 10 ký tự [A-Z2-9]' },
+        ticket_code:  { regex: /^TK[A-Z2-9]{12}$/, msg: 'Mã vé phải có dạng TK + 12 ký tự [A-Z2-9]' },
         phone:        { regex: /^(0|\+84)(3|5|7|8|9)\d{8}$/, msg: 'Số điện thoại không hợp lệ (VD: 0912345678)' },
         email:        { regex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, msg: 'Email không đúng định dạng' },
     };

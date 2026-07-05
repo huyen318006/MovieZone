@@ -38,11 +38,11 @@ class BookingSearchRequest extends FormRequest
      */
     public function withValidator($validator): void
     {
-        $validator->sometimes('search_value', ['regex:/^BK-\d{8}-\d{3,}$/'], function ($input) {
+        $validator->sometimes('search_value', ['regex:/^BK[A-Z2-9]{10}$/'], function ($input) {
             return $input->search_type === 'booking_code';
         });
 
-        $validator->sometimes('search_value', ['regex:/^TK-\d{8}-\d{3,}$/'], function ($input) {
+        $validator->sometimes('search_value', ['regex:/^TK[A-Z2-9]{12}$/'], function ($input) {
             return $input->search_type === 'ticket_code';
         });
 

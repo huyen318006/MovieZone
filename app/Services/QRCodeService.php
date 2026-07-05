@@ -23,8 +23,8 @@ class QRCodeService
     /**
      * Tạo QR content cho ticket hoặc booking.
      *
-     * @param string $code VD: TK-20260627-001 hoặc BK...
-     * @return string VD: MZ|TK-20260627-001|a1b2c3d4e5f6
+     * @param string $code VD: TK3QNH65UJP8H8 hoặc BKXM7QP9RWBF
+     * @return string VD: MZ|TK3QNH65UJP8H8|a1b2c3d4e5f6
      */
     public function generateQRContent(string $code): string
     {
