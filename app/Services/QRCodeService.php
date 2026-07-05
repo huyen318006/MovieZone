@@ -68,9 +68,9 @@ class QRCodeService
 
         // Check code format and determine type
         $type = null;
-        if (preg_match('/^TK-\d{8}-\d{3,}$/', $code)) {
+        if (preg_match('/^TK[A-Z2-9]{12}$/', $code)) {
             $type = 'ticket';
-        } elseif (preg_match('/^BK[A-Z0-9]+$/', $code)) {
+        } elseif (preg_match('/^BK[A-Z2-9]{10}$/', $code)) {
             $type = 'booking';
         } else {
             return [

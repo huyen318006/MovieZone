@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Ticket;
 use App\Services\QRCodeService;
+use App\Services\TicketService;
 use Illuminate\Database\Seeder;
 
 class TicketSeeder extends Seeder
@@ -12,13 +13,14 @@ class TicketSeeder extends Seeder
     {
         Ticket::query()->delete();
 
-        $qrService = new QRCodeService();
-        $dateStr = now()->format('Ymd');
+        $qrService = app(QRCodeService::class);
+        $ticketService = app(TicketService::class);
 
         for ($i = 1; $i <= 50; $i++) {
-            $ticketCode = 'TK-' . $dateStr . '-' . str_pad($i, 3, '0', STR_PAD_LEFT);
+            // Format mới: CSPRNG + safe alphabet [A-Z2-9]
+            $ticketCode = $ticketService->generateUniqueTicketCode();
 
-            // QR format mới: MZ|ticket_code|checksum
+            // QR format: MZ|ticket_code|checksum
             $qrContent = $qrService->generateQRContent($ticketCode);
 
             Ticket::create([

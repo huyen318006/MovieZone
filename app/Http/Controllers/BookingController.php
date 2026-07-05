@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\TicketService;
 
 class BookingController extends Controller
 {
@@ -519,8 +520,8 @@ class BookingController extends Controller
                 $finalAmount = 0;
             }
 
-            // BR03: Mã định danh duy nhất
-            $bookingCode = strtoupper('BK'.Str::random(8));
+            // BR03: Mã định danh duy nhất (CSPRNG + safe alphabet + kiểm tra trùng)
+            $bookingCode = app(TicketService::class)->generateUniqueBookingCode();
 
             // BR07: Trạng thái dựa vào phương thức thanh toán
             $paymentMethod = $request->input('payment_method', 'ONLINE');

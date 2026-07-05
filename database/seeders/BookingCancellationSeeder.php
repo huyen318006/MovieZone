@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\TicketService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -18,9 +19,12 @@ class BookingCancellationSeeder extends Seeder
         // Nếu hệ thống đã có User và Suất chiếu từ các seeder trước, tiến hành tạo mới hoàn toàn từ đầu
         if ($userId && $showtimeId) {
             
+            // Format mới: CSPRNG + safe alphabet [A-Z2-9]
+            $bookingCode = app(TicketService::class)->generateUniqueBookingCode();
+
             // Bước 1: Tạo hẳn một bản ghi Booking mới ở trạng thái CANCELLED
             $bookingId = \Illuminate\Support\Facades\DB::table('bookings')->insertGetId([
-                'booking_code' => 'BK' . strtoupper(\Illuminate\Support\Str::random(8)), // Sinh mã vé ngẫu nhiên
+                'booking_code' => $bookingCode,
                 'user_id' => $userId,
                 'showtime_id' => $showtimeId,
                 'total_ticket_amount' => 80000.00, // Giá vé chuẩn của rạp

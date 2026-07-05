@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Booking;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Services\TicketService;
 use Illuminate\Database\Seeder;
 
 class BookingSeeder extends Seeder
@@ -14,6 +14,8 @@ class BookingSeeder extends Seeder
     public function run(): void
     {
         Booking::query()->delete();
+
+        $ticketService = app(TicketService::class);
 
         // Đa dạng trạng thái để test tra cứu
         $statuses = [
@@ -37,10 +39,9 @@ class BookingSeeder extends Seeder
 
             // Ngày tạo random trong 7 ngày qua
             $createdDate = now()->subDays(rand(0, 7));
-            $dateStr = $createdDate->format('Ymd');
 
-            // Format chuẩn: BK-YYYYMMDD-NNN
-            $bookingCode = 'BK-' . $dateStr . '-' . str_pad($i, 3, '0', STR_PAD_LEFT);
+            // Format mới: CSPRNG + safe alphabet [A-Z2-9]
+            $bookingCode = $ticketService->generateUniqueBookingCode();
 
             $statusPair = $statuses[($i - 1) % count($statuses)];
             $isPaid = $statusPair['status'] === 'PAID';
@@ -63,4 +64,3 @@ class BookingSeeder extends Seeder
         }
     }
 }
-
