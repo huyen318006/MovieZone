@@ -150,7 +150,7 @@ class FilmManageController extends Controller
 
             // Loại phòng hỗ trợ (chọn từ các loại phòng hiện có)
             'room_types' => 'nullable|array',
-            'room_types.*' => 'integer|exists:rooms,id',
+            'room_types.*' => 'string',
 
             // Media
             'poster' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -204,11 +204,11 @@ class FilmManageController extends Controller
         $movie->genres()->sync($request->input('genres', []));
 
         if ($request->filled('room_types')) {
-            DB::table('movie_room_tytle')->where('movie_id', $movie->id)->delete();
-            foreach ($request->input('room_types', []) as $roomId) {
-                DB::table('movie_room_tytle')->insert([
+            DB::table('movie_room_types')->where('movie_id', $movie->id)->delete();
+            foreach ($request->input('room_types', []) as $roomType) {
+                DB::table('movie_room_types')->insert([
                     'movie_id' => $movie->id,
-                    'room_id' => (int) $roomId,
+                    'type_name_room' => (string) $roomType,
                 ]);
             }
         }
@@ -252,9 +252,9 @@ class FilmManageController extends Controller
             ->toArray();
 
         // ID kiểu phòng hỗ trợ hiện tại
-        $currentRoomIds = DB::table('movie_room_tytle')
+        $currentRoomIds = DB::table('movie_room_types')
             ->where('movie_id', $id)
-            ->pluck('room_id')
+            ->pluck('type_name_room')
             ->toArray();
 
         $genres = Genre::all();
@@ -405,7 +405,7 @@ class FilmManageController extends Controller
         // ── 1. Chuẩn bị dữ liệu Ghi Log (Lấy trạng thái CŨ trước khi sửa) ──
         $oldMovie = $movie->toArray();
         $oldMovie['genres'] = DB::table('movie_genres')->where('movie_id', $movie->id)->pluck('genre_id')->toArray();
-        $oldMovie['room_types'] = DB::table('movie_room_tytle')->where('movie_id', $movie->id)->pluck('room_id')->toArray();
+        $oldMovie['room_types'] = DB::table('movie_room_types')->where('movie_id', $movie->id)->pluck('type_name_room')->toArray();
 
         // ── Thực hiện cập nhật ────────────────────────────────────────────
         $movie->update($payload);
@@ -414,12 +414,12 @@ class FilmManageController extends Controller
         $movie->genres()->sync($request->genres ?? []);
 
         // ── Cập nhật Định dạng / Kiểu phòng hỗ trợ ────────────────────────
-        DB::table('movie_room_tytle')->where('movie_id', $movie->id)->delete();
+        DB::table('movie_room_types')->where('movie_id', $movie->id)->delete();
         if ($request->filled('room_types')) {
-            foreach ($request->input('room_types', []) as $roomId) {
-                DB::table('movie_room_tytle')->insert([
+            foreach ($request->input('room_types', []) as $roomType) {
+                DB::table('movie_room_types')->insert([
                     'movie_id' => $movie->id,
-                    'room_id' => (int) $roomId,
+                    'type_name_room' => (string) $roomType,
                 ]);
             }
         }
