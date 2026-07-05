@@ -748,17 +748,7 @@ class SeatManageController extends Controller
 
     public function toggleLock($id)
 {
-    $this->ensureAdminAccess();
-
-    $seat = Seat::findOrFail($id);
-
-    // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
-    try {
-        $this->assertSeatNotLockedForRealtime($seat);
-    } catch (\Exception $e) {
-        return back()->withErrors(['error' => $e->getMessage()]);
-    }
-
+        $this->ensureAdminAccess();
 
         $seat = Seat::findOrFail($id);
 
@@ -770,17 +760,20 @@ class SeatManageController extends Controller
         }
 
         // Fix: Nếu ghế đang bị khách khác HOLD
-    $heldBySomeone = $seat->showtimeSeats()
-        ->whereHas('showtime', function ($q) {
-            $q->where('start_time', '>', now());
-        })
-        ->get()
-        ->contains(function ($showtimeSeat) {
-            $heldBy = \Illuminate\Support\Facades\Cache::get(
-                'seat_held_' . $showtimeSeat->showtime_id . '_' . $showtimeSeat->id
-            );
-            return $heldBy && $heldBy != Auth::id();
-        });
+        $heldBySomeone = $seat->showtimeSeats()
+            ->whereHas('showtime', function ($q) {
+                $q->where('start_time', '>', now());
+            })
+            ->get()
+            ->contains(function ($showtimeSeat) {
+                $heldBy = \Illuminate\Support\Facades\Cache::get(
+                    'seat_held_' . $showtimeSeat->showtime_id . '_' . $showtimeSeat->id
+                );
+                return $heldBy && $heldBy != Auth::id();
+            });
+
+
+
 
     if ($heldBySomeone) {
         return back()->withErrors(['error' => "Ghế {$seat->seat_code} đang được khách giữ (hold), không thể khóa/mở khóa lúc này."]);
@@ -839,9 +832,94 @@ class SeatManageController extends Controller
     return back()->with('success', $message);
 }
 
+    public function toggleLockMany(Request $request)
+    {
+        $this->ensureAdminAccess();
+
+        $validated = $request->validate([
+            'seat_ids' => 'required|array|min:1',
+            'seat_ids.*' => 'required|integer|distinct|exists:seats,id',
+        ]);
+
+        $seatIds = array_values($validated['seat_ids']);
+
+        // Load seats with room for realtime lock validation
+        $seats = Seat::with('room')->whereIn('id', $seatIds)->get();
+        if ($seats->count() !== count($seatIds)) {
+            return back()->withErrors(['error' => 'Danh sách ghế không hợp lệ.']);
+        }
+
+        // Validate per room: room cannot have started showtime/open or non-cancelled booking
+        $rooms = $seats->pluck('room')->filter();
+        $roomsUnique = $rooms->unique('id')->values();
+        foreach ($roomsUnique as $room) {
+            try {
+                $this->assertSeatRoomNotLockedForRealtime($room);
+            } catch (\Exception $e) {
+                return back()->withErrors(['error' => $e->getMessage()]);
+            }
+        }
+
+        $updatedCount = 0;
+
+        DB::transaction(function () use ($seats, &$updatedCount) {
+            foreach ($seats as $seat) {
+                if ($seat->status === 'BROKEN') {
+                    // Skip broken seats silently (UI should already avoid, but keep safe)
+                    continue;
+                }
+
+                $newStatus = $seat->status === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED';
+                $oldStatus = $seat->status;
+
+                $seat->update(['status' => $newStatus]);
+
+                // Couple: toggle/update both seats
+                if ($seat->seat_type === 'COUPLE') {
+                    $siblingNum = ($seat->seat_number % 2 === 1) ? $seat->seat_number + 1 : $seat->seat_number - 1;
+                    $siblingSeat = Seat::where('room_id', $seat->room_id)
+                        ->where('row_label', $seat->row_label)
+                        ->where('seat_number', $siblingNum)
+                        ->first();
+
+                    if ($siblingSeat && $siblingSeat->status !== 'BROKEN') {
+                        $siblingSeat->update(['status' => $newStatus]);
+                    }
+                }
+
+                // Sync future showtime seats
+                $this->syncShowtimeSeatState($seat->fresh());
+
+                if ($seat->seat_type === 'COUPLE') {
+                    $siblingNum = ($seat->seat_number % 2 === 1) ? $seat->seat_number + 1 : $seat->seat_number - 1;
+                    $siblingSeat = Seat::where('room_id', $seat->room_id)
+                        ->where('row_label', $seat->row_label)
+                        ->where('seat_number', $siblingNum)
+                        ->first();
+
+                    if ($siblingSeat) {
+                        $this->syncShowtimeSeatState($siblingSeat->fresh());
+                    }
+                }
+
+                $this->writeAuditLog(
+                    $newStatus === 'BLOCKED' ? 'seat.bulk_block' : 'seat.bulk_unblock',
+                    $seat,
+                    ['status' => $oldStatus],
+                    ['status' => $newStatus]
+                );
+
+                $updatedCount++;
+            }
+        });
+
+        return back()->with('success', 'Đã cập nhật trạng thái ' . $updatedCount . ' ghế (toggle).');
+    }
+
     public function destroy($id)
     {
         $this->ensureAdminAccess();
+
 
         $seat = Seat::findOrFail($id);
 

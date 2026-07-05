@@ -281,11 +281,13 @@ Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(
     // Thêm hàng loạt
     Route::post('/store-batch', [SeatManageController::class, 'storeBatch'])->name('store_batch');
 
-
+    // Khóa/Mở khóa nhiều ghế (toggle)
+    Route::post('/toggle-lock-many', [SeatManageController::class, 'toggleLockMany'])->name('toggle_lock_many');
 
 
 
 });
+
 
 
 // Quản lý tài khoản - account management
