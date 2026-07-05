@@ -11,19 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('movie_room_tytle', function (Blueprint $table) {
+        Schema::create('movie_room_types', function (Blueprint $table) {
 
             $table->foreignId('movie_id')
                 ->constrained()
                 ->cascadeOnDelete();
 
-            $table->foreignId('room_id')
-                ->constrained()
-                ->cascadeOnDelete();
+            $table->string('type_name_room');
 
             $table->primary([
                 'movie_id',
-                'room_id'
+                'type_name_room'
             ]);
         });
     }
@@ -33,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('movie_room_type');
+        Schema::dropIfExists('movie_room_types');
     }
 };
