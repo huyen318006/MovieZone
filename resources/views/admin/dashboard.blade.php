@@ -8,6 +8,8 @@
     $metrics = $dashboard['metrics'] ?? [];
     $topMovies = $dashboard['top_movies'] ?? collect();
     $recentBookings = $dashboard['recent_bookings'] ?? collect();
+    $roomPerformance = $dashboard['room_performance'] ?? collect();
+    $leastEffectiveRoom = $dashboard['least_effective_room'] ?? null;
     $filters = $dashboard['filters'] ?? [];
     $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
     $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
@@ -241,6 +243,63 @@
         </section>
     </div>
 
+</div>
+
+<div class="row g-4 mt-1">
+    <div class="col-12">
+        <section class="panel">
+            <div class="panel-header">
+                <div class="section-title">
+                    <i class="bi bi-door-open"></i>
+                    <div>
+                        <h5 class="mb-0">Hiệu suất phòng chiếu</h5>
+                        <p class="text-muted mb-0">Phòng có suất chiếu nhưng tỷ lệ lấp đầy thấp nhất trong bộ lọc</p>
+                    </div>
+                </div>
+
+                @if ($leastEffectiveRoom)
+                    <div class="badge text-bg-warning">
+                        Kém hiệu quả nhất: {{ $leastEffectiveRoom->room_name }} · {{ number_format($leastEffectiveRoom->occupancy_rate, 1) }}%
+                    </div>
+                @endif
+            </div>
+
+            @if ($roomPerformance->isEmpty())
+                <div class="text-muted fw-bold py-3">
+                    <i class="bi bi-inbox me-1"></i> Chưa có suất chiếu để thống kê hiệu suất phòng trong bộ lọc.
+                </div>
+            @else
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th>Phòng</th>
+                                <th class="text-end">Suất chiếu</th>
+                                <th class="text-end">Ghế đã bán</th>
+                                <th class="text-end">Tổng ghế</th>
+                                <th class="text-end">Tỷ lệ lấp đầy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($roomPerformance as $room)
+                                <tr>
+                                    <td class="fw-bold">{{ $room->room_name }}</td>
+                                    <td class="text-end">{{ number_format($room->showtime_count) }}</td>
+                                    <td class="text-end">{{ number_format($room->sold_seats) }}</td>
+                                    <td class="text-end">{{ number_format($room->total_seats) }}</td>
+                                    <td class="text-end">
+                                        <span class="badge {{ $room->occupancy_rate < 30 ? 'text-bg-danger' : ($room->occupancy_rate < 60 ? 'text-bg-warning' : 'text-bg-success') }}">
+                                            {{ number_format($room->occupancy_rate, 1) }}%
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
+    </div>
 </div>
 
 {{-- Table panel --}}

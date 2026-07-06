@@ -60,8 +60,8 @@ class AdminDashboardService
             ],
             'top_movies' => $this->topMovies($filters),
             'recent_bookings' => $this->recentBookings($filters),
-            'room_performance' => collect(),
-            'least_effective_room' => null,
+            'room_performance' => $this->roomPerformance($filters),
+            'least_effective_room' => $this->leastEffectiveRoom($filters),
         ];
     }
 
@@ -191,6 +191,65 @@ class AdminDashboardService
             ->latest('created_at')
             ->limit(8)
             ->get();
+    }
+
+    private function roomPerformance(array $filters): Collection
+    {
+        $totalSeatsSubquery = DB::table('showtime_seats')
+            ->join('showtimes', 'showtime_seats.showtime_id', '=', 'showtimes.id')
+            ->join('rooms', 'showtimes.room_id', '=', 'rooms.id')
+            ->whereNotIn('showtime_seats.status', ['BLOCKED', 'LOCKED', 'BROKEN'])
+            ->whereBetween('showtimes.start_time', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->groupBy('rooms.id', 'rooms.name')
+            ->select([
+                'rooms.id as room_id',
+                'rooms.name as room_name',
+                DB::raw('COUNT(DISTINCT showtimes.id) as showtime_count'),
+                DB::raw('COUNT(showtime_seats.id) as total_seats'),
+            ]);
+
+        $soldSeatsSubquery = DB::table('booking_seats')
+            ->join('bookings', 'booking_seats.booking_id', '=', 'bookings.id')
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->join('rooms', 'showtimes.room_id', '=', 'rooms.id')
+            ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
+            ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
+            ->where(function ($query) {
+                $query->where('bookings.status', 'PAID')
+                    ->orWhere('bookings.payment_status', 'PAID')
+                    ->orWhere('payments.status', 'SUCCESS');
+            })
+            ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->groupBy('rooms.id')
+            ->select([
+                'rooms.id as room_id',
+                DB::raw('COUNT(booking_seats.id) as sold_seats'),
+            ]);
+
+        return DB::query()
+            ->fromSub($totalSeatsSubquery, 'room_totals')
+            ->leftJoinSub($soldSeatsSubquery, 'room_sales', 'room_totals.room_id', '=', 'room_sales.room_id')
+            ->select([
+                'room_totals.room_id',
+                'room_totals.room_name',
+                'room_totals.showtime_count',
+                'room_totals.total_seats',
+                DB::raw('COALESCE(room_sales.sold_seats, 0) as sold_seats'),
+                DB::raw('ROUND((COALESCE(room_sales.sold_seats, 0) / NULLIF(room_totals.total_seats, 0)) * 100, 1) as occupancy_rate'),
+            ])
+            ->orderBy('occupancy_rate')
+            ->orderByDesc('showtime_count')
+            ->limit(5)
+            ->get();
+    }
+
+    private function leastEffectiveRoom(array $filters): ?object
+    {
+        return $this->roomPerformance($filters)->first();
     }
 
     private function filteredBookings(array $filters): Builder
