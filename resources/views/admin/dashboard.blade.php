@@ -3,7 +3,17 @@
 @section('title', 'Dashboard')
 
 @section('content')
+@php
+    $dashboard = $dashboard ?? [];
+    $metrics = $dashboard['metrics'] ?? [];
+@endphp
 
+@if (!empty($dashboardError))
+    <div class="alert alert-warning border-0 shadow-sm mb-4">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ $dashboardError }}
+    </div>
+@endif
 <div class="page-heading">
 
     <div class="page-heading-copy">
