@@ -58,8 +58,8 @@ class AdminDashboardService
                 'occupancy_rate' => $this->occupancyRate($filters),
                 'new_bookings' => $this->newBookings($filters),
             ],
-            'top_movies' => collect(),
-            'recent_bookings' => collect(),
+            'top_movies' => $this->topMovies($filters),
+            'recent_bookings' => $this->recentBookings($filters),
             'room_performance' => collect(),
             'least_effective_room' => null,
         ];
@@ -142,6 +142,55 @@ class AdminDashboardService
         $soldSeats = $this->soldTickets($filters);
 
         return round(($soldSeats / $totalSeats) * 100, 1);
+    }
+
+    private function topMovies(array $filters): Collection
+    {
+        return DB::table('booking_seats')
+            ->join('bookings', 'booking_seats.booking_id', '=', 'bookings.id')
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->join('movies', 'showtimes.movie_id', '=', 'movies.id')
+            ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
+            ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
+            ->where(function ($query) {
+                $query->where('bookings.status', 'PAID')
+                    ->orWhere('bookings.payment_status', 'PAID')
+                    ->orWhere('payments.status', 'SUCCESS');
+            })
+            ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->groupBy('movies.id', 'movies.title')
+            ->select([
+                'movies.id',
+                'movies.title',
+                DB::raw('COUNT(booking_seats.id) as sold_tickets'),
+                DB::raw('COALESCE(SUM(booking_seats.price), 0) as ticket_revenue'),
+            ])
+            ->orderByDesc('sold_tickets')
+            ->limit(5)
+            ->get();
+    }
+
+    private function recentBookings(array $filters): Collection
+    {
+        return Booking::query()
+            ->with([
+                'user:id,name,email',
+                'showtime:id,movie_id,cinema_id,start_time',
+                'showtime.movie:id,title',
+                'showtime.cinema:id,name',
+            ])
+            ->whereHas('showtime', function ($query) use ($filters) {
+                $query
+                    ->when($filters['cinema_id'], fn ($query) => $query->where('cinema_id', $filters['cinema_id']))
+                    ->when($filters['movie_id'], fn ($query) => $query->where('movie_id', $filters['movie_id']));
+            })
+            ->whereNotIn('status', $this->excludedBookingStatuses)
+            ->whereBetween('created_at', [$filters['start_date'], $filters['end_date']])
+            ->latest('created_at')
+            ->limit(8)
+            ->get();
     }
 
     private function filteredBookings(array $filters): Builder

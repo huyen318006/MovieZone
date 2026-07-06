@@ -6,6 +6,8 @@
 @php
     $dashboard = $dashboard ?? [];
     $metrics = $dashboard['metrics'] ?? [];
+    $topMovies = $dashboard['top_movies'] ?? collect();
+    $recentBookings = $dashboard['recent_bookings'] ?? collect();
     $filters = $dashboard['filters'] ?? [];
     $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
     $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
@@ -169,125 +171,73 @@
 
 <div class="row g-4">
 
-    {{-- Chart panel (bar chart demo via CSS) --}}
+    {{-- Top movies --}}
     <div class="col-12 col-xl-7">
         <section class="panel">
             <div class="panel-header">
                 <div class="section-title">
-                    <i class="bi bi-bar-chart"></i>
+                    <i class="bi bi-trophy"></i>
                     <div>
-                        <h5 class="mb-0">Biểu đồ doanh thu (demo)</h5>
-                        <p class="text-muted mb-0">Tạm thời chưa có dữ liệu thật</p>
+                        <h5 class="mb-0">Phim bán chạy</h5>
+                        <p class="text-muted mb-0">Xếp hạng theo số vé bán trong bộ lọc</p>
                     </div>
                 </div>
             </div>
 
-            <div class="chart-bars" aria-label="Revenue chart (demo)">
-                <div class="chart-column">
-                    <span class="bar-42" title="Tháng 1"></span>
-                    <div>Th1</div>
-                </div>
-                <div class="chart-column">
-                    <span class="bar-58" title="Tháng 2"></span>
-                    <div>Th2</div>
-                </div>
-                <div class="chart-column">
-                    <span class="bar-51" title="Tháng 3"></span>
-                    <div>Th3</div>
-                </div>
-                <div class="chart-column">
-                    <span class="bar-72" title="Tháng 4"></span>
-                    <div>Th4</div>
-                </div>
-                <div class="chart-column">
-                    <span class="bar-66" title="Tháng 5"></span>
-                    <div>Th5</div>
-                </div>
-                <div class="chart-column">
-                    <span class="bar-83" title="Tháng 6"></span>
-                    <div>Th6</div>
-                </div>
-            </div>
-
-            <div class="d-flex flex-wrap gap-3 mt-3">
-                <div class="badge text-bg-primary">Demo</div>
-                <div class="text-muted fw-bold">Sẽ thay bằng dữ liệu từ DB sau.</div>
+            <div class="activity-list">
+                @forelse ($topMovies as $index => $movie)
+                    <div class="activity-item">
+                        <div class="activity-dot" style="background:{{ $index === 0 ? '#f59e0b' : '#2563eb' }}"></div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">#{{ $index + 1 }} {{ $movie->title }}</div>
+                            <div class="text-muted">
+                                {{ number_format($movie->sold_tickets) }} vé · {{ number_format($movie->ticket_revenue) }}đ doanh thu vé
+                            </div>
+                        </div>
+                    </div>
+                @empty
+                    <div class="text-muted fw-bold py-3">
+                        <i class="bi bi-inbox me-1"></i> Chưa có dữ liệu phim bán chạy trong bộ lọc.
+                    </div>
+                @endforelse
             </div>
         </section>
     </div>
 
-    {{-- Donut + activity (demo) --}}
+    {{-- Recent bookings --}}
     <div class="col-12 col-xl-5">
         <section class="panel">
             <div class="panel-header">
                 <div class="section-title">
-                    <i class="bi bi-pie-chart"></i>
+                    <i class="bi bi-receipt"></i>
                     <div>
-                        <h5 class="mb-0">Trạng thái hệ thống (demo)</h5>
-                        <p class="text-muted mb-0">Tạm thời chưa có dữ liệu thật</p>
+                        <h5 class="mb-0">Booking mới</h5>
+                        <p class="text-muted mb-0">Các booking mới nhất trong bộ lọc</p>
                     </div>
                 </div>
             </div>
-
-            <div class="row g-4 align-items-center">
-                <div class="col-12 col-sm-6">
-                    <div class="donut-chart" role="img" aria-label="Filling rate (demo)">
-                        <span>—%</span>
-                    </div>
-                </div>
-
-                <div class="col-12 col-sm-6">
-                    <div class="legend-list">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="legend-dot" style="background:#2563eb"></div>
-                            <div class="flex-grow-1">Đang hoạt động</div>
-                            <strong>—</strong>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="legend-dot" style="background:#0f766e"></div>
-                            <div class="flex-grow-1">Ổn định</div>
-                            <strong>—</strong>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="legend-dot" style="background:#d97706"></div>
-                            <div class="flex-grow-1">Cảnh báo</div>
-                            <strong>—</strong>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="legend-dot" style="background:#dc2626"></div>
-                            <div class="flex-grow-1">Sự cố</div>
-                            <strong>—</strong>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <hr class="border-2 my-4">
 
             <div class="activity-list">
-                <div class="activity-item">
-                    <div class="activity-dot" style="background:#2563eb"></div>
-                    <div>
-                        <div class="fw-bold">Cập nhật danh sách suất chiếu</div>
-                        <div class="text-muted">Cách đây vài phút • Demo</div>
+                @forelse ($recentBookings as $booking)
+                    <a class="activity-item text-decoration-none" href="{{ route('admin.bookings.index') }}" title="Mở quản lý booking">
+                        <div class="activity-dot" style="background:#0f766e"></div>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold text-body">{{ $booking->booking_code }}</div>
+                            <div class="text-muted">
+                                {{ $booking->user?->name ?? 'Khách hàng' }} · {{ $booking->showtime?->movie?->title ?? 'Không rõ phim' }}
+                            </div>
+                            <div class="text-muted small">
+                                {{ optional($booking->created_at)->format('d/m/Y H:i') }} · {{ number_format($booking->final_amount) }}đ
+                            </div>
+                        </div>
+                        <span class="badge text-bg-secondary">{{ $booking->status }}</span>
+                    </a>
+                @empty
+                    <div class="text-muted fw-bold py-3">
+                        <i class="bi bi-inbox me-1"></i> Chưa có booking mới trong bộ lọc.
                     </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-dot" style="background:#0f766e"></div>
-                    <div>
-                        <div class="fw-bold">Thanh toán thành công</div>
-                        <div class="text-muted">Cách đây 1 giờ • Demo</div>
-                    </div>
-                </div>
-                <div class="activity-item">
-                    <div class="activity-dot" style="background:#d97706"></div>
-                    <div>
-                        <div class="fw-bold">Booking chờ thanh toán</div>
-                        <div class="text-muted">Cách đây 3 giờ • Demo</div>
-                    </div>
-                </div>
+                @endforelse
             </div>
-
         </section>
     </div>
 
