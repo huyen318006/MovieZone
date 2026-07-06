@@ -6,7 +6,18 @@
 @php
     $dashboard = $dashboard ?? [];
     $metrics = $dashboard['metrics'] ?? [];
+    $filters = $dashboard['filters'] ?? [];
+    $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
+    $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
+    $endDateValue = isset($filters['end_date']) ? $filters['end_date']->format('Y-m-d') : request('end_date');
 @endphp
+
+@if ($errors->any())
+    <div class="alert alert-danger border-0 shadow-sm mb-4">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ $errors->first() }}
+    </div>
+@endif
 
 @if (!empty($dashboardError))
     <div class="alert alert-warning border-0 shadow-sm mb-4">
@@ -39,6 +50,49 @@
     </div>
 
 </div>
+
+<section class="panel mb-4">
+    <form method="GET" action="{{ route('admin.dashboard') }}" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Ngày bắt đầu</label>
+            <input type="date" name="start_date" value="{{ $startDateValue }}" class="form-control">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Ngày kết thúc</label>
+            <input type="date" name="end_date" value="{{ $endDateValue }}" class="form-control">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Rạp</label>
+            <select name="cinema_id" class="form-select">
+                <option value="">Tất cả rạp</option>
+                @foreach ($filterOptions['cinemas'] as $cinema)
+                    <option value="{{ $cinema->id }}" @selected((string) ($filters['cinema_id'] ?? '') === (string) $cinema->id)>
+                        {{ $cinema->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Phim</label>
+            <select name="movie_id" class="form-select">
+                <option value="">Tất cả phim</option>
+                @foreach ($filterOptions['movies'] as $movie)
+                    <option value="{{ $movie->id }}" @selected((string) ($filters['movie_id'] ?? '') === (string) $movie->id)>
+                        {{ $movie->title }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-12 d-flex gap-2 justify-content-end">
+            <a href="{{ route('admin.dashboard') }}" class="btn btn-light">
+                <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-funnel me-1"></i> Lọc thống kê
+            </button>
+        </div>
+    </form>
+</section>
 
 {{-- Metric cards --}}
 <div class="row g-4 mb-4">
