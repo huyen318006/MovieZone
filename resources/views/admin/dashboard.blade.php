@@ -38,7 +38,7 @@
 
         <div>
             <h2 class="mb-1">Admin Dashboard</h2>
-            <p class="mb-0">Tổng quan hệ thống (demo UI) • Bảng dữ liệu & biểu đồ tạm thời</p>
+            <p class="mb-0">Theo dõi doanh thu, vé bán, tỷ lệ lấp đầy, phim bán chạy và hiệu suất phòng chiếu</p>
         </div>
     </div>
 
@@ -302,82 +302,6 @@
     </div>
 </div>
 
-{{-- Table panel --}}
-<div class="row g-4 mt-1">
-    <div class="col-12">
-        <section class="panel">
-            <div class="panel-header">
-                <div class="section-title">
-                    <i class="bi bi-table"></i>
-                    <div>
-                        <h5 class="mb-0">Bảng dữ liệu (demo)</h5>
-                        <p class="text-muted mb-0">Chỉ dùng HTML/CSS/Bootstrap, chưa nối dữ liệu thật</p>
-                    </div>
-                </div>
-
-                <div class="d-flex align-items-center gap-3">
-                    <input class="form-control table-search" type="search" placeholder="Tìm kiếm..." aria-label="Search">
-                    <button class="btn btn-light" type="button"><i class="bi bi-filter"></i> Lọc</button>
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table align-middle">
-                    <thead>
-                        <tr>
-                            <th>STT</th>
-                            <th>Loại</th>
-                            <th>Người thực hiện</th>
-                            <th>Thời gian</th>
-                            <th>Trạng thái</th>
-                            <th class="text-end">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php
-                            $rows = [
-                                ['type' => 'Booking', 'actor' => 'Admin', 'time' => 'Hôm nay 09:12', 'status' => 'Thành công', 'badge' => 'text-bg-success'],
-                                ['type' => 'Payment', 'actor' => 'User #12', 'time' => 'Hôm nay 08:45', 'status' => 'Đã thanh toán', 'badge' => 'text-bg-primary'],
-                                ['type' => 'Showtime', 'actor' => 'Staff', 'time' => 'Hôm qua 19:30', 'status' => 'Đang xử lý', 'badge' => 'text-bg-warning'],
-                                ['type' => 'Voucher', 'actor' => 'System', 'time' => 'Hôm qua 16:05', 'status' => 'Hết hạn', 'badge' => 'text-bg-danger'],
-                                ['type' => 'Review', 'actor' => 'User #7', 'time' => '2 ngày trước', 'status' => 'Chờ duyệt', 'badge' => 'text-bg-secondary'],
-                            ];
-                        @endphp
-
-                        @foreach ($rows as $i => $r)
-                            <tr>
-                                <td>{{ $i + 1 }}</td>
-                                <td class="fw-bold">{{ $r['type'] }}</td>
-                                <td>{{ $r['actor'] }}</td>
-                                <td class="text-muted">{{ $r['time'] }}</td>
-                                <td>
-                                    <span class="badge {{ $r['badge'] }}">{{ $r['status'] }}</span>
-                                </td>
-                                <td class="text-end">
-                                    <button class="btn btn-light btn-sm" type="button">Xem</button>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="d-flex align-items-center justify-content-between mt-3">
-                <div class="text-muted">Hiển thị 5/50 • Demo</div>
-                <nav aria-label="Pagination">
-                    <ul class="pagination mb-0">
-                        <li class="page-item disabled"><a class="page-link" href="#">Trước</a></li>
-                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                        <li class="page-item"><a class="page-link" href="#">2</a></li>
-                        <li class="page-item"><a class="page-link" href="#">3</a></li>
-                        <li class="page-item"><a class="page-link" href="#">Sau</a></li>
-                    </ul>
-                </nav>
-            </div>
-
-        </section>
-    </div>
-</div>
 
 @endsection
 
