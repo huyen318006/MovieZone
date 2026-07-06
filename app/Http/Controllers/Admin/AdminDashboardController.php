@@ -29,7 +29,7 @@ class AdminDashboardController extends Controller
         $filterOptions = $dashboardService->filterOptions();
 
         try {
-            $dashboard = $dashboardService->emptyOverview($filters);
+            $dashboard = $dashboardService->getOverview($filters);
             $dashboardError = null;
         } catch (\Throwable $e) {
             Log::warning('Admin dashboard load failed', [

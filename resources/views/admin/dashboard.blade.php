@@ -101,15 +101,15 @@
         <div class="metric-card metric-primary">
             <div class="d-flex align-items-start justify-content-between gap-3">
                 <div>
-                    <div class="metric-label">Doanh thu hôm nay</div>
-                    <div class="metric-value">—</div>
+                    <div class="metric-label">Tổng doanh thu</div>
+                    <div class="metric-value">{{ number_format($metrics['revenue'] ?? 0) }}đ</div>
                 </div>
                 <div class="metric-icon metric-primary">
                     <i class="bi bi-cash-coin"></i>
                 </div>
             </div>
             <div class="metric-meta">
-                <span>So với hôm qua: <strong class="text-success">+0%</strong></span>
+                <span>Payment SUCCESS trong bộ lọc</span>
             </div>
         </div>
     </div>
@@ -118,15 +118,15 @@
         <div class="metric-card metric-success">
             <div class="d-flex align-items-start justify-content-between gap-3">
                 <div>
-                    <div class="metric-label">Vé bán hôm nay</div>
-                    <div class="metric-value">—</div>
+                    <div class="metric-label">Vé đã bán</div>
+                    <div class="metric-value">{{ number_format($metrics['sold_tickets'] ?? 0) }}</div>
                 </div>
                 <div class="metric-icon metric-success">
                     <i class="bi bi-ticket-perforated"></i>
                 </div>
             </div>
             <div class="metric-meta">
-                <span>Tổng đặt vé: <strong>—</strong></span>
+                <span>Ghế thuộc booking đã thanh toán</span>
             </div>
         </div>
     </div>
@@ -136,14 +136,14 @@
             <div class="d-flex align-items-start justify-content-between gap-3">
                 <div>
                     <div class="metric-label">Tỷ lệ lấp đầy</div>
-                    <div class="metric-value">—</div>
+                    <div class="metric-value">{{ number_format($metrics['occupancy_rate'] ?? 0, 1) }}%</div>
                 </div>
                 <div class="metric-icon metric-warning">
                     <i class="bi bi-graph-up-arrow"></i>
                 </div>
             </div>
             <div class="metric-meta">
-                <span>Ước tính: <strong>—</strong></span>
+                <span>Ghế bán / tổng ghế suất chiếu</span>
             </div>
         </div>
     </div>
@@ -152,15 +152,15 @@
         <div class="metric-card metric-danger">
             <div class="d-flex align-items-start justify-content-between gap-3">
                 <div>
-                    <div class="metric-label">Booking chờ thanh toán</div>
-                    <div class="metric-value">—</div>
+                    <div class="metric-label">Booking mới</div>
+                    <div class="metric-value">{{ number_format($metrics['new_bookings'] ?? 0) }}</div>
                 </div>
                 <div class="metric-icon metric-danger">
                     <i class="bi bi-clock-history"></i>
                 </div>
             </div>
             <div class="metric-meta">
-                <span>Đang chờ: <strong>—</strong></span>
+                <span>Booking tạo trong bộ lọc</span>
             </div>
         </div>
     </div>
