@@ -84,10 +84,12 @@
                                     @endif
 
                                     @php
-                                        $isDisabled = in_array($s['status'], ['SOLD', 'BLOCKED', 'LOCKED', 'HELD']) ? 'disabled' : '';
-                                        $isCouple = ($s['type'] === 'sweetbox');
+                                        $isDisabled = in_array($s['status'], ['SOLD', 'BLOCKED', 'LOCKED', 'HELD'])
+                                            ? 'disabled'
+                                            : '';
+                                        $isCouple = $s['type'] === 'sweetbox';
                                         $nextS = $rowSeats[$index + 1] ?? null;
-                                        
+
                                         // Kiểm tra nếu là ghế COUPLE và ghế tiếp theo cũng là COUPLE (bắt cặp tự động)
                                         $isPair = $isCouple && $nextS && $nextS['type'] === 'sweetbox';
                                     @endphp
@@ -95,19 +97,32 @@
                                     @if ($isPair)
                                         @php
                                             $skipNext = true;
-                                            $isDisabled2 = in_array($nextS['status'], ['SOLD', 'BLOCKED', 'LOCKED', 'HELD']) ? 'disabled' : '';
-                                            $isBothDisabled = ($isDisabled === 'disabled' || $isDisabled2 === 'disabled') ? 'disabled' : '';
-                                            $combinedStatus = $s['status'] !== 'AVAILABLE' ? $s['status'] : $nextS['status'];
-                                            if ($combinedStatus === 'AVAILABLE' && $s['status'] === 'AVAILABLE' && $nextS['status'] === 'AVAILABLE') {
+                                            $isDisabled2 = in_array($nextS['status'], [
+                                                'SOLD',
+                                                'BLOCKED',
+                                                'LOCKED',
+                                                'HELD',
+                                            ])
+                                                ? 'disabled'
+                                                : '';
+                                            $isBothDisabled =
+                                                $isDisabled === 'disabled' || $isDisabled2 === 'disabled'
+                                                    ? 'disabled'
+                                                    : '';
+                                            $combinedStatus =
+                                                $s['status'] !== 'AVAILABLE' ? $s['status'] : $nextS['status'];
+                                            if (
+                                                $combinedStatus === 'AVAILABLE' &&
+                                                $s['status'] === 'AVAILABLE' &&
+                                                $nextS['status'] === 'AVAILABLE'
+                                            ) {
                                                 $combinedStatus = 'AVAILABLE';
                                             }
                                         @endphp
                                         <button type="button" class="seat couple-seat-btn {{ $combinedStatus }}"
-                                            data-id="{{ $s['id'] }},{{ $nextS['id'] }}" 
-                                            data-seat="{{ $s['code'] }},{{ $nextS['code'] }}"
-                                            data-type="COUPLE" 
-                                            data-price="{{ $s['price'] + $nextS['price'] }}"
-                                            {{ $isBothDisabled }}
+                                            data-id="{{ $s['id'] }},{{ $nextS['id'] }}"
+                                            data-seat="{{ $s['code'] }},{{ $nextS['code'] }}" data-type="COUPLE"
+                                            data-price="{{ $s['price'] + $nextS['price'] }}" {{ $isBothDisabled }}
                                             title="Couple seat (2 tickets) - {{ number_format($s['price'] + $nextS['price']) }}đ">
                                             <span class="seat-label">{{ $s['label'] }}</span>
                                             <i class="fa-solid fa-heart couple-icon"></i>
@@ -124,7 +139,8 @@
                                                 $icon = '<i class="fa-solid fa-heart"></i> ';
                                             } elseif ($s['type'] === 'vip') {
                                                 $btnClass = 'vip-seat-btn';
-                                                $icon = '<i class="fa-solid fa-crown" style="font-size: 11px; margin-right: 2px;"></i>';
+                                                $icon =
+                                                    '<i class="fa-solid fa-crown" style="font-size: 11px; margin-right: 2px;"></i>';
                                             } else {
                                                 $btnClass = 'available-seat-btn';
                                                 $icon = '';
@@ -219,14 +235,15 @@
             border: 2px solid #f9a8d4 !important;
             transition: all 0.2s ease;
         }
-        
+
         .sweet-seat-btn:hover:not([disabled]) {
             background: linear-gradient(135deg, #be185d, #831843) !important;
         }
 
         .couple-seat-btn {
             color: white !important;
-            width: 80px !important; /* Độ rộng gộp 2 ghế CGV style */
+            width: 80px !important;
+            /* Độ rộng gộp 2 ghế CGV style */
             display: inline-flex !important;
             align-items: center;
             justify-content: space-between;
@@ -254,8 +271,15 @@
         }
 
         @keyframes heartbeat {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.15); }
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.15);
+            }
         }
 
         /* Trạng thái được chọn cho block gộp */
@@ -264,22 +288,28 @@
             border-color: #71e38c !important;
             box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
         }
-        
+
         .couple-seat-btn.HELD_BY_ME .couple-icon {
             color: #ffffff !important;
             animation: none;
         }
 
         /* Trạng thái đã bán / khóa cho block gộp */
-        .couple-seat-btn.SOLD, .couple-seat-btn.HELD, .couple-seat-btn.BLOCKED, .couple-seat-btn.LOCKED {
+        .couple-seat-btn.SOLD,
+        .couple-seat-btn.HELD,
+        .couple-seat-btn.BLOCKED,
+        .couple-seat-btn.LOCKED {
             background: #343a40 !important;
             border-color: #495057 !important;
             opacity: 0.7;
             transform: none !important;
             box-shadow: none !important;
         }
-        .couple-seat-btn.SOLD .couple-icon, .couple-seat-btn.HELD .couple-icon, 
-        .couple-seat-btn.BLOCKED .couple-icon, .couple-seat-btn.LOCKED .couple-icon {
+
+        .couple-seat-btn.SOLD .couple-icon,
+        .couple-seat-btn.HELD .couple-icon,
+        .couple-seat-btn.BLOCKED .couple-icon,
+        .couple-seat-btn.LOCKED .couple-icon {
             color: #6c757d !important;
             animation: none;
         }
@@ -631,7 +661,7 @@
                     if (allSuccess) {
                         if (isSelecting) {
                             if (selectedSeats.size === 0) startTimer();
-                            
+
                             selectedSeats.set(seatCode, {
                                 id: seatIdAttr,
                                 code: seatCode,
@@ -652,7 +682,7 @@
                     }
                 } catch (error) {
                     document.getElementById('ajax-error-box').innerText =
-                    'Lỗi kết nối hệ thống.'; // E5: Lỗi kết nối
+                        'Lỗi kết nối hệ thống.'; // E5: Lỗi kết nối
                     document.getElementById('ajax-error-box').style.display = 'block';
                 } finally {
                     btn.disabled = false;
@@ -677,7 +707,7 @@
                         const displayCode = seat.code.replace(',', '-');
                         seatTags.push(
                             `<span class="seat-tag seat-tag-${seat.type}">${typeLabel} ${displayCode}</span>`
-                            );
+                        );
 
                         const ids = seat.id.split(',');
                         ids.forEach(id => {
@@ -782,7 +812,8 @@
                     } else {
                         // Phòng hờ nếu lỗi giao diện không tìm thấy thẻ div thì xài tạm alert mặc định
                         alert(
-                            "Vị trí chọn ghế không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống bên cạnh ghế bạn chọn.");
+                            "Vị trí chọn ghế không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống bên cạnh ghế bạn chọn."
+                            );
                     }
                 }
             });
