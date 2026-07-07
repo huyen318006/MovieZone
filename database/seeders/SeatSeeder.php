@@ -44,47 +44,25 @@ class SeatSeeder extends Seeder
 
             ];
 
-            // Giá gốc theo loại ghế (đồng bộ với TicketPriceSeeder)
-            $basePrices = [
-                'STANDARD' => 80000,
-                'VIP'      => 150000,
-                'COUPLE'   => 250000,
-            ];
-
             foreach ($rowConfig as $rowLabel => $config) {
                 $seatType = $config['type'];
                 $numSeats = $config['seats'];
 
                 for ($number = 1; $number <= $numSeats; $number++) {
-                    $code = $rowLabel . str_pad($number, 2, '0', STR_PAD_LEFT);
+                    $code = $rowLabel.str_pad($number, 2, '0', STR_PAD_LEFT);
 
                     $seats[] = [
-                        'room_id'      => $room->id,
-                        'row_label'    => $rowLabel,
-                        'seat_number'  => $number,
-                        'seat_code'    => $code,
-                        'seat_type'    => $seatType,
-                        'status'       => 'ACTIVE',
-                        'price'        => $basePrices[$seatType] ?? 80000,
-                        'created_at'   => now(),
-                        'updated_at'   => now(),
+                        'room_id' => $room->id,
+                        'row_label' => $rowLabel,
+                        'seat_number' => $number,
+                        'seat_code' => $code,
+                        'seat_type' => $seatType,
+                        'status' => 'ACTIVE',
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ];
                 }
             }
-
-            // ==================== GHẾ DEMO (Z99, 10.000 VND) ====================
-            // Ghế demo dùng để test booking với giá rẻ, mỗi phòng 1 ghế
-            $seats[] = [
-                'room_id' => $room->id,
-                'row_label' => 'Z',
-                'seat_number' => 99,
-                'seat_code' => 'Z99',
-                'seat_type' => 'DEMO',
-                'status' => 'ACTIVE',
-                'price' => 10000,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
         }
 
         // Insert một lần duy nhất (rất nhanh)
@@ -92,6 +70,5 @@ class SeatSeeder extends Seeder
 
         $this->command->info('✅ Đã seed ghế thành công cho '.$rooms->count().' phòng!');
         $this->command->info('   - Tổng số ghế: '.count($seats));
-        $this->command->info('   - Bao gồm ghế demo Z99 (10.000 VND) cho mỗi phòng');
     }
 }
