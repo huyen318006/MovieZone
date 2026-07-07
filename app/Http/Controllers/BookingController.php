@@ -92,7 +92,7 @@ class BookingController extends Controller
             $allSeatsMatrix[$row][$num] = (object) [
                 'id' => $showtimeSeat->id,
                 'seat' => $seat,
-                'price' => $showtimeSeat->price ?? $seat->base_price ?? 90000,
+                'price' => $showtimeSeat->price ?? $seat->price ?? 90000,
                 'display_status' => $displayStatus,
             ];
         }
@@ -153,7 +153,7 @@ class BookingController extends Controller
                     'seat_id' => $seat->id,
                 ],
                 [
-                    'price' => $seat->base_price ?? 90000,
+                    'price' => $seat->price ?? 90000,
                     'status' => 'AVAILABLE',
                 ]
             );
