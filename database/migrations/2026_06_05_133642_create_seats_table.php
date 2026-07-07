@@ -26,7 +26,8 @@ return new class extends Migration
             $table->enum('seat_type', [
                 'STANDARD', // Đổi từ NORMAL thành STANDARD cho đồng bộ với bảng giá
                 'VIP',
-                'COUPLE'
+                'COUPLE',
+                'DEMO'
             ]);
 
             $table->enum('status', [
