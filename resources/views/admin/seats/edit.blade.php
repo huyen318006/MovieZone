@@ -80,6 +80,7 @@
                             <option value="STANDARD" {{ old('seat_type', $seat->seat_type) == 'STANDARD' ? 'selected' : '' }}>STANDARD</option>
                             <option value="VIP" {{ old('seat_type', $seat->seat_type) == 'VIP' ? 'selected' : '' }}>VIP</option>
                             <option value="COUPLE" {{ old('seat_type', $seat->seat_type) == 'COUPLE' ? 'selected' : '' }}>COUPLE</option>
+                            <option value="DEMO" {{ old('seat_type', $seat->seat_type) == 'DEMO' ? 'selected' : '' }}>DEMO (10.000đ)</option>
                         </select>
                         <div class="form-text">Giá sẽ tự cập nhật theo database.</div>
                     </div>

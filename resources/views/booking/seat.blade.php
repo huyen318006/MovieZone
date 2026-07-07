@@ -672,7 +672,7 @@
                     selectedSeats.forEach((seat) => {
                         total += seat.price;
                         const typeLabel = seat.type === 'vip' ? '👑' : seat.type === 'COUPLE' ? '💕' :
-                            '🎬';
+                            seat.type === 'demo' ? '🧪' : '🎬';
                         // Hiển thị đẹp hơn cho COUPLE (ví dụ J1,J2 -> J1-J2)
                         const displayCode = seat.code.replace(',', '-');
                         seatTags.push(

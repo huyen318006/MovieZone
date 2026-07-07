@@ -113,6 +113,8 @@ class BookingController extends Controller
                     $mappedType = 'vip';
                 } elseif ($seatType === 'COUPLE' || $row === 'J') {
                     $mappedType = 'sweetbox';
+                } elseif ($seatType === 'DEMO') {
+                    $mappedType = 'demo';
                 }
 
                 $seatMap[$row][] = [
@@ -547,6 +549,8 @@ class BookingController extends Controller
                 $seatType = $seat->seat->seat_type ?? 'STANDARD';
                 if ($row === 'J' || $seatType === 'COUPLE') {
                     $seatType = 'COUPLE';
+                } elseif ($seatType === 'DEMO') {
+                    $seatType = 'DEMO';
                 }
 
                 DB::table('booking_seats')->insert([
@@ -584,6 +588,8 @@ class BookingController extends Controller
                     $seatType = 'sweetbox';
                 } elseif ($seatKind === 'VIP') {
                     $seatType = 'vip';
+                } elseif ($seatKind === 'DEMO') {
+                    $seatType = 'demo';
                 }
 
                 $seatDetails[] = [

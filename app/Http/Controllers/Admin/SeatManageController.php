@@ -249,15 +249,22 @@ class SeatManageController extends Controller
 
     $validated = $request->validate([
         'room_id' => 'required|exists:rooms,id',
-        'row_label' => 'required|string|max:10',
-        'seat_number' => 'required|integer|min:1',
-        'seat_type' => 'required|in:STANDARD,VIP,COUPLE',
+        'row_label' => 'required_unless:seat_type,DEMO|string|max:10',
+        'seat_number' => 'required_unless:seat_type,DEMO|integer|min:1',
+        'seat_type' => 'required|in:STANDARD,VIP,COUPLE,DEMO',
         'status' => 'required|in:' . implode(',', $this->allowedStatuses),
     ]);
 
+    $isDemo = $validated['seat_type'] === 'DEMO';
 
-    // ... (Giữ nguyên các đoạn validate row_label, VIP, BLOCKED, exists ở trên) ...
-    $rowLabel = strtoupper($validated['row_label']);
+    // Ghế DEMO: tự động gán hàng Z, số 99, giá 10.000 VND
+    if ($isDemo) {
+        $rowLabel = 'Z';
+        $validated['row_label'] = 'Z';
+        $validated['seat_number'] = 99;
+    } else {
+        $rowLabel = strtoupper($validated['row_label']);
+    }
 
     // Lấy thông tin phòng để tính vùng ghế động
     $storeRoom = Room::find($validated['room_id']);
@@ -265,30 +272,34 @@ class SeatManageController extends Controller
         return back()->withErrors(['error' => 'Phòng không tồn tại.'])->withInput();
     }
 
-    $zones = $this->computeZones($storeRoom);
+    // Bỏ qua validate vùng ghế cho DEMO
+    if (!$isDemo) {
+        $zones = $this->computeZones($storeRoom);
 
-    if ($validated['seat_type'] === 'VIP' && !in_array($rowLabel, $zones['vipRows'])) {
-        $vipRange = implode(', ', $zones['vipRows']);
-        return back()
-            ->withErrors(['error' => "VIP chỉ được đặt ở hàng: {$vipRange}"])
-            ->withInput();
+        if ($validated['seat_type'] === 'VIP' && !in_array($rowLabel, $zones['vipRows'])) {
+            $vipRange = implode(', ', $zones['vipRows']);
+            return back()
+                ->withErrors(['error' => "VIP chỉ được đặt ở hàng: {$vipRange}"])
+                ->withInput();
+        }
+
+        if ($validated['seat_type'] === 'COUPLE' && !in_array($rowLabel, $zones['coupleRows'])) {
+            $coupleRange = implode(', ', $zones['coupleRows']);
+            return back()
+                ->withErrors(['error' => "COUPLE chỉ được đặt ở hàng: {$coupleRange}"])
+                ->withInput();
+        }
+
+        if (
+            $validated['seat_type'] === 'STANDARD' &&
+            (in_array($rowLabel, $zones['vipRows']) || in_array($rowLabel, $zones['coupleRows']))
+        ) {
+            return back()
+                ->withErrors(['error' => "Hàng {$rowLabel} không hợp lệ cho STANDARD (đây là vùng VIP hoặc COUPLE)"])
+                ->withInput();
+        }
     }
 
-    if ($validated['seat_type'] === 'COUPLE' && !in_array($rowLabel, $zones['coupleRows'])) {
-        $coupleRange = implode(', ', $zones['coupleRows']);
-        return back()
-            ->withErrors(['error' => "COUPLE chỉ được đặt ở hàng: {$coupleRange}"])
-            ->withInput();
-    }
-
-    if (
-        $validated['seat_type'] === 'STANDARD' &&
-        (in_array($rowLabel, $zones['vipRows']) || in_array($rowLabel, $zones['coupleRows']))
-    ) {
-        return back()
-            ->withErrors(['error' => "Hàng {$rowLabel} không hợp lệ cho STANDARD (đây là vùng VIP hoặc COUPLE)"])
-            ->withInput();
-    }
     $seatsToCreate = [];
     if ($validated['seat_type'] === 'COUPLE') {
         $num = (int)$validated['seat_number'];
@@ -306,24 +317,41 @@ class SeatManageController extends Controller
             ->where('room_id', $validated['room_id'])
             ->where('row_label', $rowLabel)
             ->where('seat_number', $stc['number'])
-            ->exists();
-        
+            ->first();
+
         if ($exists) {
+            // Ghế demo bị xóa mềm → phục hồi
+            if ($isDemo && $exists->trashed()) {
+                $exists->restore();
+                $exists->update([
+                    'seat_type' => 'DEMO',
+                    'price'     => 10000,
+                    'status'    => 'ACTIVE',
+                ]);
+                $this->ensureShowtimeSeatsForRoom($validated['room_id']);
+                return redirect()->route('admin.seats.index', [
+                    'room_id' => $validated['room_id']
+                ])->with('success', "Đã phục hồi ghế demo Z99 (10.000 VND).");
+            }
+
             return back()
                 ->withErrors(['error' => "Ghế {$stc['code']} đã tồn tại. Không thể tạo."])
                 ->withInput();
         }
     }
 
+    // Giá ghế: DEMO = 10.000 VND cố định, còn lại tra bảng ticket_prices
+    $seatPrice = $isDemo ? 10000 : $this->getSeatPriceFromTicketPrices($validated['seat_type'], $validated['room_id']);
+
     try {
-        DB::transaction(function () use ($validated, $rowLabel, $seatsToCreate) {
+        DB::transaction(function () use ($validated, $rowLabel, $seatsToCreate, $seatPrice) {
             $lastSeat = null;
             foreach ($seatsToCreate as $stc) {
                 $lastSeat = Seat::create(array_merge($validated, [
                     'row_label' => $rowLabel,
                     'seat_number' => $stc['number'],
                     'seat_code' => $stc['code'],
-                    'price' => $this->getSeatPriceFromTicketPrices($validated['seat_type'], $validated['room_id']),
+                    'price' => $seatPrice,
                 ]));
             }
 
@@ -338,9 +366,12 @@ class SeatManageController extends Controller
     }
 
     $createdCodes = implode(', ', array_column($seatsToCreate, 'code'));
+    $successMsg = $isDemo
+        ? "✅ Đã tạo ghế demo {$createdCodes} (10.000 VND) thành công."
+        : "Thêm ghế {$createdCodes} thành công.";
     return redirect()->route('admin.seats.index', [
         'room_id' => $validated['room_id']
-    ])->with('success', "Thêm ghế {$createdCodes} thành công.");
+    ])->with('success', $successMsg);
 }
     public function update(Request $request, $id)
     {
@@ -350,7 +381,7 @@ class SeatManageController extends Controller
         $validated = $request->validate([
             'row_label' => 'required|string|max:10',
             'seat_number' => 'required|integer|min:1',
-            'seat_type' => 'required|in:STANDARD,VIP,COUPLE',
+            'seat_type' => 'required|in:STANDARD,VIP,COUPLE,DEMO',
             // Allow LOCKED on form input; controller sẽ normalize về BLOCKED
             'status' => 'required|in:ACTIVE,LOCKED,BLOCKED,BROKEN',
         ]);
@@ -436,7 +467,7 @@ class SeatManageController extends Controller
                 ],
                 'start'     => 'required|integer|min:1',
                 'end'       => 'required|integer|min:1|gte:start',
-                'seat_type' => 'required|in:STANDARD,VIP,COUPLE',
+                'seat_type' => 'required|in:STANDARD,VIP,COUPLE,DEMO',
             ],
             [
                 'row_label.required' => 'Vui lòng nhập hàng ghế.',
@@ -472,35 +503,38 @@ class SeatManageController extends Controller
         |-------------------------------------------------------------------
         */
 
-        // ── Bước 4: Validate hàng ghế không vượt quá phòng ──────────────────
-        if (ord($rowLabel) > ord($zones['maxRow'])) {
-            $vipRange    = implode(', ', $zones['vipRows']);
-            $coupleRange = implode(', ', $zones['coupleRows']);
-            return back()
-                ->withErrors([
-                    'error' => "Phòng {$room->name} ({$room->room_type}) chỉ có {$room->total_seats} ghế, "
-                             . "tối đa đến hàng {$zones['maxRow']}. "
-                             . "Phân vùng: VIP [{$vipRange}], COUPLE [{$coupleRange}], còn lại là STANDARD."
-                ])
-                ->withInput();
-        }
+        // ── Bước 4 & 5: Validate vùng ghế (bỏ qua cho DEMO) ──────────────────
+        if ($validated['seat_type'] !== 'DEMO') {
+            // Bước 4: Validate hàng ghế không vượt quá phòng
+            if (ord($rowLabel) > ord($zones['maxRow'])) {
+                $vipRange    = implode(', ', $zones['vipRows']);
+                $coupleRange = implode(', ', $zones['coupleRows']);
+                return back()
+                    ->withErrors([
+                        'error' => "Phòng {$room->name} ({$room->room_type}) chỉ có {$room->total_seats} ghế, "
+                                 . "tối đa đến hàng {$zones['maxRow']}. "
+                                 . "Phân vùng: VIP [{$vipRange}], COUPLE [{$coupleRange}], còn lại là STANDARD."
+                    ])
+                    ->withInput();
+            }
 
-        // ── Bước 5: Validate chéo row_label ↔ seat_type ──────────────────────
-        if (in_array($rowLabel, $zones['vipRows'])) {
-            $expectedType = 'VIP';
-        } elseif (in_array($rowLabel, $zones['coupleRows'])) {
-            $expectedType = 'COUPLE';
-        } else {
-            $expectedType = 'STANDARD';
-        }
+            // Bước 5: Validate chéo row_label ↔ seat_type
+            if (in_array($rowLabel, $zones['vipRows'])) {
+                $expectedType = 'VIP';
+            } elseif (in_array($rowLabel, $zones['coupleRows'])) {
+                $expectedType = 'COUPLE';
+            } else {
+                $expectedType = 'STANDARD';
+            }
 
-        if ($validated['seat_type'] !== $expectedType) {
-            $vipRange    = implode(', ', $zones['vipRows']);
-            $coupleRange = implode(', ', $zones['coupleRows']);
-            return back()->withErrors([
-                'error' => "Hàng {$rowLabel} chỉ được phép tạo ghế loại '{$expectedType}'. "
-                         . "(VIP: [{$vipRange}] | COUPLE: [{$coupleRange}] | còn lại: STANDARD)"
-            ])->withInput();
+            if ($validated['seat_type'] !== $expectedType) {
+                $vipRange    = implode(', ', $zones['vipRows']);
+                $coupleRange = implode(', ', $zones['coupleRows']);
+                return back()->withErrors([
+                    'error' => "Hàng {$rowLabel} chỉ được phép tạo ghế loại '{$expectedType}'. "
+                             . "(VIP: [{$vipRange}] | COUPLE: [{$coupleRange}] | còn lại: STANDARD)"
+                ])->withInput();
+            }
         }
 
         // ── Bước 6: Validate số ghế không vượt quá seatsPerRow ───────────────
@@ -545,12 +579,13 @@ class SeatManageController extends Controller
                         // Phục hồi nếu bị soft-delete
                         if ($seat->trashed()) {
                             $seat->restore();
+                            $demoPrice = $validated['seat_type'] === 'DEMO' ? 10000 : $this->getSeatPriceFromTicketPrices(
+                                                $validated['seat_type'],
+                                                $validated['room_id']
+                                           );
                             $seat->update([
                                 'seat_type' => $validated['seat_type'],
-                                'price'     => $this->getSeatPriceFromTicketPrices(
-                                                    $validated['seat_type'],
-                                                    $validated['room_id']
-                                               ),
+                                'price'     => $demoPrice,
                                 'status'    => 'ACTIVE',
                             ]);
                             $created[] = $seat->seat_code;
@@ -559,16 +594,17 @@ class SeatManageController extends Controller
                         continue;
                     }
 
+                    $batchPrice = $validated['seat_type'] === 'DEMO' ? 10000 : $this->getSeatPriceFromTicketPrices(
+                                         $validated['seat_type'],
+                                         $validated['room_id']
+                                     );
                     $seat = Seat::create([
                         'room_id'     => $validated['room_id'],
                         'row_label'   => $rowLabel,
                         'seat_number' => $i,
                         'seat_code'   => $seatCode,
                         'seat_type'   => $validated['seat_type'],
-                        'price'       => $this->getSeatPriceFromTicketPrices(
-                                             $validated['seat_type'],
-                                             $validated['room_id']
-                                         ),
+                        'price'       => $batchPrice,
                         'status'      => 'ACTIVE',
                     ]);
 
@@ -791,6 +827,7 @@ class SeatManageController extends Controller
 
         return back()->with('success', "Đã xóa mềm ghế {$seat->seat_code}" . ($siblingSeat ? " và {$siblingSeat->seat_code}" : "") . ".");
     }
+
 
     private function writeAuditLog(string $action, Seat $seat, array $oldValue, array $newValue): void
     {
