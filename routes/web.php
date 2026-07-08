@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountManageController;
+use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\BookingManageController;
 use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\Admin\ProductManageController;
@@ -157,9 +158,9 @@ Route::middleware('auth')->group(function () {
 
 
 /* --------------------- KHU VỰC CỦA ADMIN ------------------ */
-Route::middleware(['auth', 'admin'])->get('/admin', function () {
-    return view('admin.dashboard');
-})->name('admin.dashboard');
+Route::middleware(['auth', 'admin'])
+    ->get('/admin', [AdminDashboardController::class, 'index'])
+    ->name('admin.dashboard');
 // Quản lý phim - FILM MANAGEMENT
 Route::middleware(['auth', 'admin'])->controller(FilmManageController::class)->group(function () {
     Route::get('/admin/film/management', 'listmovie')->name('admin.film');
@@ -281,11 +282,13 @@ Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(
     // Thêm hàng loạt
     Route::post('/store-batch', [SeatManageController::class, 'storeBatch'])->name('store_batch');
 
-
+    // Khóa/Mở khóa nhiều ghế (toggle)
+    Route::post('/toggle-lock-many', [SeatManageController::class, 'toggleLockMany'])->name('toggle_lock_many');
 
 
 
 });
+
 
 
 // Quản lý tài khoản - account management
