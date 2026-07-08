@@ -19,61 +19,128 @@
     </div>
 
     <div class="history-card">
+        <div class="card-header-title">
+            <span>Danh sách giao dịch</span>
+            <span class="total-count">Tổng số: {{ $bookings->count() }}</span>
+        </div>
 
         <table class="history-table">
             <thead>
                 <tr>
+                    <th>STT</th>
                     <th>Mã booking</th>
+                    <th>Tên phim</th>
+                    <th>Ngôn ngữ</th>
+                    <th>Ngày chiếu</th>
+                    <th>Suất chiếu</th>
+                    <th>Phòng</th>
+                    <th>Số vé</th>
+                    <th>Số ghế</th>
                     <th>Ngày đặt</th>
                     <th>Tổng tiền</th>
-                    <th>Booking</th>
+                    <th>Trạng thái đặt</th>
                     <th>Thanh toán</th>
-                    <th>Số vé</th>
                 </tr>
             </thead>
 
             <tbody>
 
-            @forelse($bookings as $booking)
+            @forelse($bookings as $key=>$booking)
 
                 <tr>
+                    <td>{{  $key +1 }}</td>
 
+                    {{-- mã booking --}}
                     <td>
-                        <strong>{{ $booking->booking_code }}</strong>
+                        <strong class="booking-code">{{ $booking->booking_code }}</strong>
                     </td>
 
+                    {{-- tên phim --}}
                     <td>
+                        <strong style="color: #ffffff;">
+                            {{ $booking->showtime->movie->title ?? 'N/A' }}
+                        </strong>
+                    </td>
+
+                    {{-- ngôn ngữ --}}
+                    <td>
+                        @if($booking->showtime)
+                            <span class="badge-status badge-count">
+                                {{ $booking->showtime->format }} - {{ $booking->showtime->language_type }}
+                            </span>
+                        @else
+                            <span class="text-soft">N/A</span>
+                        @endif
+                    </td>
+
+                    {{-- ngày chiếu --}}
+                    <td class="text-soft">
+                        {{ $booking->showtime ? $booking->showtime->start_time->format('d/m/Y') : 'N/A' }}
+                    </td>
+
+                    {{-- suất chiếu --}}
+                    <td class="text-highlight">
+                        @if($booking->showtime)
+                            <strong>{{ $booking->showtime->start_time->format('H:i') }}</strong> 
+                            <span style="color: #64748b;">-</span> 
+                            <strong>{{ $booking->showtime->end_time->format('H:i') }}</strong>
+                        @else
+                            <span class="text-soft">N/A</span>
+                        @endif
+                    </td>
+
+                    {{-- phòng chiếu --}}
+                    <td>
+                        <span class="badge-status badge-count">
+                            {{ $booking->showtime->room->name ?? 'N/A' }}
+                        </span>
+                    </td>
+
+                    {{-- slg vé --}}
+                    <td>
+                        <span class="badge-status badge-count">
+                            {{ $booking->bookingSeats ? $booking->bookingSeats->count() : 0 }} vé
+                        </span>
+                    </td>
+
+                    {{--Số ghế --}}
+                    <td style="color: #ffffff; font-weight: 600;">
+                        @if($booking->bookingSeats && $booking->bookingSeats->isNotEmpty())
+                            {{ $booking->bookingSeats->pluck('seat_code')->implode(', ') }}
+                        @else
+                            <span style="color: #64748b;">N/A</span>
+                        @endif
+                    </td>
+                    
+                    {{--  ngày đặt --}}
+                    <td class="text-soft">
                         {{ $booking->created_at->format('d/m/Y H:i') }}
                     </td>
 
+                    {{--  tổng tiền --}}
                     <td class="price">
                         {{ number_format($booking->final_amount) }} VNĐ
                     </td>
 
+                    {{--trạng thái đặt --}}
                     <td>
                         <span class="badge-status badge-booking">
                             {{ $booking->status }}
                         </span>
                     </td>
 
+                    {{--  trạng thái thanh toán --}}
                     <td>
                         <span class="badge-status badge-payment">
                             {{ $booking->payment_status }}
                         </span>
                     </td>
-
-                    <td>
-                        <span class="badge-status badge-count">
-                            {{ $booking->tickets->count() }} vé
-                        </span>
-                    </td>
-
                 </tr>
 
             @empty
 
                 <tr>
-                    <td colspan="6" class="empty-row">
+                    <td colspan="13" class="empty-row">
                         Chưa có giao dịch nào
                     </td>
                 </tr>
@@ -188,7 +255,7 @@ body {
 }
 
 .ticket-history-container {
-    max-width: 1200px;
+    max-width: 1500px;
     margin: 100px auto 50px auto;
     padding: 0 20px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;

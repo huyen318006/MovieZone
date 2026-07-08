@@ -11,7 +11,10 @@ class TicketController extends Controller
     {
         $bookings = Booking::with([
             'payment',
-            'tickets'
+            'tickets',
+            'showtime.movie',
+            'showtime.room',
+            'bookingSeats'
         ])
         ->where('user_id', Auth::id())
         ->latest()
