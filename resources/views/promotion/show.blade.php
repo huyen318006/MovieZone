@@ -8,25 +8,37 @@
 
 <style>
 .promo-detail-shell { padding-block: 48px; }
-.promo-detail-card { border-radius: 30px; overflow: hidden; }
+.promo-detail-card {
+    border-radius: 30px;
+    overflow: hidden;
+    color: #f8fafc;
+    background: linear-gradient(180deg, #172033 0%, #111827 100%);
+    border: 1px solid rgba(148, 163, 184, .18) !important;
+}
 .promo-detail-banner {
     min-height: 380px;
-    background: linear-gradient(135deg, #111827, #4f46e5 55%, #be123c);
+    background:
+        radial-gradient(circle at 20% 20%, rgba(251,191,36,.32), transparent 28%),
+        linear-gradient(135deg, #1e1b4b, #4f46e5 55%, #111827);
     position: relative;
 }
 .promo-detail-banner img { width: 100%; height: 100%; max-height: 480px; object-fit: cover; display: block; }
 .promo-detail-placeholder { min-height: 380px; color: white; display: grid; place-items: center; text-align: center; }
-.promo-info-box { border-radius: 18px; background: #f8fafc; }
+.promo-detail-placeholder i { color: #facc15; }
+.promo-info-box { border-radius: 18px; background: rgba(15, 23, 42, .72); border: 1px solid rgba(148, 163, 184, .16); }
+.promo-detail-card .text-muted { color: #cbd5e1 !important; }
+.promo-detail-card h1,
+.promo-detail-card h2 { color: #fff; }
 </style>
 
 <section class="container promo-detail-shell">
-    <a href="{{ route('promotions') }}" class="btn btn-outline-secondary mb-4">
+    <a href="{{ route('promotions') }}" class="btn btn-outline-light mb-4">
         <i class="fa-solid fa-arrow-left me-1"></i> Quay lại khuyến mãi
     </a>
 
     <article class="card promo-detail-card border-0 shadow-sm">
         <div class="promo-detail-banner">
-            @if ($promotion->banner_url)
+            @if ($promotion->banner_url && \Illuminate\Support\Facades\Storage::disk('public')->exists($promotion->banner_url))
                 <img src="{{ asset('storage/' . $promotion->banner_url) }}" alt="{{ $promotion->title }}">
             @else
                 <div class="promo-detail-placeholder">

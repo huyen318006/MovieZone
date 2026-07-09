@@ -16,19 +16,32 @@
     box-shadow: 0 22px 70px rgba(15, 23, 42, .24);
 }
 .promo-hero h1 { font-size: clamp(2.3rem, 5vw, 4.5rem); letter-spacing: -.05em; }
-.promo-filter-card { border-radius: 22px; }
+.promo-filter-card { border-radius: 22px; background: #111827; color: #f8fafc; }
+.promo-filter-card .form-label { color: #e5e7eb; }
 .promo-card {
     border-radius: 24px;
     overflow: hidden;
-    transition: transform .22s ease, box-shadow .22s ease;
+    color: #f8fafc;
+    background: linear-gradient(180deg, #172033 0%, #111827 100%);
+    border: 1px solid rgba(148, 163, 184, .18) !important;
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
 }
-.promo-card:hover { transform: translateY(-6px); box-shadow: 0 20px 48px rgba(15, 23, 42, .18) !important; }
+.promo-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(96, 165, 250, .45) !important;
+    box-shadow: 0 20px 48px rgba(15, 23, 42, .36) !important;
+}
+.promo-card h2 { color: #fff; }
+.promo-card .text-muted { color: #cbd5e1 !important; }
 .promo-image-wrap {
     height: 220px;
-    background: linear-gradient(135deg, #111827, #4f46e5);
+    background:
+        radial-gradient(circle at 20% 20%, rgba(251,191,36,.32), transparent 28%),
+        linear-gradient(135deg, #1e1b4b, #4f46e5 55%, #111827);
 }
-.promo-image-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.promo-image-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .promo-placeholder { height: 100%; color: white; display: grid; place-items: center; text-align: center; }
+.promo-placeholder i { color: #facc15; }
 </style>
 
 <section class="container py-5">
@@ -74,7 +87,7 @@
                 <a href="{{ route('promotion.show', $promotion) }}" class="text-decoration-none text-body">
                     <article class="card promo-card h-100 shadow-sm border-0">
                         <div class="promo-image-wrap">
-                            @if ($promotion->banner_url)
+                            @if ($promotion->banner_url && \Illuminate\Support\Facades\Storage::disk('public')->exists($promotion->banner_url))
                                 <img src="{{ asset('storage/' . $promotion->banner_url) }}" alt="{{ $promotion->title }}">
                             @else
                                 <div class="promo-placeholder">
