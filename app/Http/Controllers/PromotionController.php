@@ -44,7 +44,7 @@ class PromotionController extends Controller
      */
     public function show(Promotion $promotion)
     {
-        if ($promotion->status !== 'ACTIVE') {
+        if ($promotion->status !== 'ACTIVE' || $promotion->end_date->isPast()) {
             abort(404, 'Chương trình khuyến mãi không tồn tại hoặc đã kết thúc.');
         }
 
