@@ -18,7 +18,7 @@
 
         <a href="{{ route('showtimes') }}">Lịch Chiếu</a>
 
-        <a href="#">Khuyến Mãi</a>
+        <a href="{{ route('promotions') }}">Khuyến Mãi</a>
 
         <a href="{{ route('news') }}">Tin Tức</a>
 
