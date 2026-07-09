@@ -113,7 +113,7 @@ class ShowtimeManageController extends Controller
         //truy vấn danh sách suất chiếu 
         $showtimes = Showtime::query()
             //  Eager Loading tránh N+1 Query
-            ->with(['movie', 'room'])
+            ->with(['movie', 'room','bookings','showtimeSeats'])
             ->where('cinema_id', $cinema->id)
             // Lọc theo phim
             ->when($filters['movie'] ?? null, function ($query, $movieId) {
