@@ -18,6 +18,7 @@ use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SepayController;
 use App\Http\Controllers\ShowtimeController;
@@ -131,9 +132,8 @@ Route::prefix('sepay')->name('sepay.')->group(function () {
 });
 
 // Khuyến mãi
-Route::get('/promotions', function () {
-    return view('promotion.index');
-})->name('promotions');
+Route::get('/promotions', [PromotionController::class, 'index'])->name('promotions');
+Route::get('/promotions/{promotion}', [PromotionController::class, 'show'])->name('promotion.show');
 
 // Tin tức
 
