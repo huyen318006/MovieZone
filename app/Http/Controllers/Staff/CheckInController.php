@@ -148,4 +148,31 @@ class CheckInController extends Controller
             'data' => $history,
         ]);
     }
+
+    /**
+     * Download PDF vé cho 1 booking (sau khi check-in).
+     */
+    public function downloadPDF($bookingId): \Symfony\Component\HttpFoundation\Response
+    {
+        $booking = \App\Models\Booking::with('tickets')->find($bookingId);
+
+        if (!$booking) {
+            return response()->json(['message' => 'Không tìm thấy booking.'], 404);
+        }
+
+        if ($booking->tickets->isEmpty()) {
+            return response()->json(['message' => 'Booking chưa có vé nào.'], 404);
+        }
+
+        $pdfService = app(\App\Services\TicketPDFService::class);
+        $pdfPath = $pdfService->generateBookingTicketsPDF($booking);
+
+        if (!$pdfPath || !file_exists($pdfPath)) {
+            return response()->json(['message' => 'Không thể tạo file PDF.'], 500);
+        }
+
+        return response()->download($pdfPath, "tickets_{$booking->booking_code}.pdf", [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
 }

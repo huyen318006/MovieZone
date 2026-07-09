@@ -529,11 +529,19 @@ class BookingController extends Controller
             $paymentMethod = $request->input('payment_method', 'ONLINE');
             $status = ($paymentMethod == 'CASH') ? 'PENDING_CASH_PAYMENT' : 'PENDING_PAYMENT';
 
+            // Lưu thông tin khách hàng từ form xác nhận
+            $customerName = $request->input('customer_name');
+            $customerPhone = $request->input('customer_phone');
+            $customerEmail = $request->input('customer_email');
+
             // Luồng chính: Tạo booking mới
             $booking = Booking::create([
                 'booking_code' => $bookingCode,
                 'user_id' => Auth::id(),
                 'showtime_id' => $showtimeId,
+                'customer_name' => $customerName,
+                'customer_email' => $customerEmail,
+                'customer_phone' => $customerPhone,
                 'total_ticket_amount' => $totalTicketAmount,
                 'total_combo_amount' => $totalComboAmount,
                 'discount_amount' => $discountAmount,
@@ -608,11 +616,6 @@ class BookingController extends Controller
                     'total_price' => $comboItem['total_price'],
                 ];
             }
-
-            // Lưu thông tin khách hàng vào metadata
-            $customerName = $request->input('customer_name');
-            $customerPhone = $request->input('customer_phone');
-            $customerEmail = $request->input('customer_email');
 
             $sepayOrder = SepayOrder::create([
                 'order_code' => $bookingCode,

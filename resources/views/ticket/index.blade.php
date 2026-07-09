@@ -1,103 +1,10 @@
 @extends('layout.app')
 
 @section('content')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
 <div class="ticket-history-container">
 
-    <div class="profile-actions">
-        <a href="{{ route('home') }}" class="action-btn">
-            <i class="bi bi-house-door-fill"></i>
-            <span>Trang chủ</span>
-        </a>
-        <a href="{{ route('profile') }}" class="action-btn">
-            <i class="bi bi-house-door-fill"></i>
-            <span>Hồ sơ cá nhân</span>
-        </a>
-    </div>
-    <div class="history-header">
-        <h2>Lịch sử giao dịch</h2>
-        <p>Danh sách các vé và giao dịch đã thực hiện</p>
-    </div>
-
-    <div class="history-card">
-
-        <table class="history-table">
-            <thead>
-                <tr>
-                    <th>Mã booking</th>
-                    <th>Ngày đặt</th>
-                    <th>Tổng tiền</th>
-                    <th>Booking</th>
-                    <th>Thanh toán</th>
-                    <th>Số vé</th>
-                </tr>
-            </thead>
-
-            <tbody>
-
-            @forelse($bookings as $booking)
-
-                <tr>
-
-                    <td>
-                        <strong>{{ $booking->booking_code }}</strong>
-                    </td>
-
-                    <td>
-                        {{ $booking->created_at->format('d/m/Y H:i') }}
-                    </td>
-
-                    <td class="price">
-                        {{ number_format($booking->final_amount) }} VNĐ
-                    </td>
-
-                    <td>
-                        <span class="badge-status badge-booking">
-                            {{ $booking->status }}
-                        </span>
-                    </td>
-
-                    <td>
-                        <span class="badge-status badge-payment">
-                            {{ $booking->payment_status }}
-                        </span>
-                    </td>
-
-                    <td>
-                        <span class="badge-status badge-count">
-                            {{ $booking->tickets->count() }} vé
-                        </span>
-                    </td>
-
-                </tr>
-
-            @empty
-
-                <tr>
-                    <td colspan="6" class="empty-row">
-                        Chưa có giao dịch nào
-                    </td>
-                </tr>
-
-            @endforelse
-
-            </tbody>
-        </table>
-
-    </div>
-
-</div>
-<style>
-
-Dưới đây là toàn bộ mã nguồn view Blade và CSS đã được tinh chỉnh lại toàn diện theo đúng thiết kế, layout và màu sắc như hình bạn đã cung cấp:
-
-1. File Blade Template (ticket-history.blade.php)
-HTML
-@extends('layout.app')
-
-@section('content')
-<div class="ticket-history-container">
-
-    {{-- Nhóm nút hành động phía trên góc phải giống nút "Thêm phim" --}}
     <div class="profile-actions-wrapper">
         <div class="profile-actions">
             <a href="{{ route('home') }}" class="action-btn">
@@ -111,13 +18,11 @@ HTML
         </div>
     </div>
 
-    {{-- Tiêu đề trang đồng bộ với "Quản lý phim" --}}
     <div class="history-header">
         <h2>Lịch sử giao dịch</h2>
         <p>Danh sách các vé và giao dịch đã thực hiện trên hệ thống</p>
     </div>
 
-    {{-- Khối danh sách dạng bảng tối màu giống trong ảnh --}}
     <div class="history-card">
         <div class="card-header-title">
             <span>Danh sách giao dịch</span>
@@ -133,6 +38,7 @@ HTML
                     <th>Trạng thái đặt</th>
                     <th>Thanh toán</th>
                     <th>Số vé</th>
+                    <th>Thao tác</th>
                 </tr>
             </thead>
 
@@ -152,25 +58,48 @@ HTML
                     </td>
 
                     <td>
-                        {{-- Trạng thái linh hoạt dựa trên dữ liệu (Ví dụ mẫu: Đã đặt / Thành công) --}}
-                        <span class="status booking-status status-active">
+                        @php
+                            $statusClass = match($booking->status) {
+                                'PAID' => 'status-paid',
+                                'PENDING' => 'status-pending',
+                                'CANCELLED' => 'status-cancelled',
+                                'EXPIRED' => 'status-expired',
+                                default => 'status-default',
+                            };
+                        @endphp
+                        <span class="status {{ $statusClass }}">
                             {{ $booking->status }}
                         </span>
                     </td>
 
                     <td>
-                        <span class="status payment-status status-paid">
+                        @php
+                            $payClass = match($booking->payment_status) {
+                                'PAID' => 'status-paid',
+                                'UNPAID' => 'status-pending',
+                                'FAILED' => 'status-cancelled',
+                                'REFUNDED' => 'status-refunded',
+                                default => 'status-default',
+                            };
+                        @endphp
+                        <span class="status {{ $payClass }}">
                             {{ $booking->payment_status }}
                         </span>
                     </td>
 
                     <td class="text-soft font-bold">
-                        {{ $booking->tickets->count() }} phút
+                        {{ $booking->tickets->count() }} vé
+                    </td>
+
+                    <td>
+                        <button class="btn-detail" onclick="showBookingDetail({{ $booking->id }})">
+                            <i class="bi bi-eye"></i> Chi tiết
+                        </button>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="empty-row">
+                    <td colspan="7" class="empty-row">
                         <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
                         Chưa có giao dịch nào được thực hiện
                     </td>
@@ -181,10 +110,26 @@ HTML
     </div>
 </div>
 
+{{-- MODAL CHI TIẾT VÉ --}}
+<div class="modal-overlay" id="detailModalOverlay" onclick="closeDetailModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header-custom">
+            <h3><i class="bi bi-ticket-detailed"></i> Chi tiết giao dịch</h3>
+            <button class="modal-close" onclick="closeDetailModal()"><i class="bi bi-x-lg"></i></button>
+        </div>
+
+        <div class="modal-body-custom" id="detailModalBody">
+            <div class="loading-spinner">
+                <i class="bi bi-arrow-repeat spin"></i> Đang tải...
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 /* --- ĐỊNH DẠNG LAYOUT TỔNG THỂ (DARK MODE) --- */
 body {
-    background-color: #0b0f19 !important; /* Màu nền đen tối của hệ thống */
+    background-color: #0b0f19 !important;
 }
 
 .ticket-history-container {
@@ -207,9 +152,9 @@ body {
 }
 
 .action-btn {
-    text-decoration: none !important; 
+    text-decoration: none !important;
     color: #ffffff !important;
-    background: #3b82f6; /* Xanh biển tươi như nút "Thêm phim" */
+    background: #3b82f6;
     padding: 8px 16px;
     border-radius: 6px;
     font-size: 14px;
@@ -243,9 +188,9 @@ body {
     margin: 0;
 }
 
-/* --- THIẾT KẾ KHỐI CARD & BẢNG (ĐỒNG BỘ 100% ẢNH MẪU) --- */
+/* --- THIẾT KẾ KHỐI CARD & BẢNG --- */
 .history-card {
-    background: #111827; /* Màu nền xám đen của khung danh sách */
+    background: #111827;
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -274,9 +219,8 @@ body {
     border-collapse: collapse;
 }
 
-/* Tiêu đề cột */
 .history-table thead th {
-    color: #94a3b8; /* Chữ xám nhạt như ảnh */
+    color: #94a3b8;
     text-align: left;
     padding: 14px 20px;
     font-size: 12px;
@@ -286,31 +230,29 @@ body {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Các hàng trong bảng */
 .history-table tbody tr {
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     transition: background 0.2s ease;
 }
 
 .history-table tbody tr:hover {
-    background: rgba(255, 255, 255, 0.02); /* Hiệu ứng hover tối tinh tế */
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .history-table tbody td {
-    color: #ffffff;
+    color: #94a3b8;
     padding: 16px 20px;
     font-size: 14px;
     vertical-align: middle;
 }
 
-/* --- CÁC ĐỊNH DẠNG PHẦN TỬ CON TRONG TABLE --- */
 .booking-code {
     color: #ffffff;
     font-weight: 600;
 }
 
 .text-soft {
-    color: #94a3b8; /* Sử dụng cho ngày tháng và số lượng nhẹ nhàng */
+    color: #94a3b8;
 }
 
 .font-bold {
@@ -318,11 +260,11 @@ body {
 }
 
 .price {
-    color: #38bdf8; /* Màu xanh nước biển sáng làm điểm nhấn cho tiền tệ */
+    color: #38bdf8;
     font-weight: 700;
 }
 
-/* Badge trạng thái giống ô "Đang chiếu" */
+/* Badge trạng thái */
 .status {
     display: inline-flex;
     align-items: center;
@@ -332,13 +274,59 @@ body {
     font-weight: 600;
 }
 
-/* Trạng thái xanh lá nhẹ dịu như nhãn "Đang chiếu" */
-.status-active, .status-paid {
+.status-paid {
     background: rgba(16, 185, 129, 0.15);
     color: #10b981;
 }
 
-/* Hàng trống khi không có dữ liệu */
+.status-pending {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+.status-cancelled {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.status-expired {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+
+.status-refunded {
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+}
+
+.status-default {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+/* Nút Chi tiết */
+.btn-detail {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-detail:hover {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+/* Hàng trống */
 .empty-row {
     text-align: center;
     padding: 40px !important;
@@ -346,13 +334,243 @@ body {
     font-size: 14px;
 }
 
-/* Responsive cho thiết bị di động */
+/* --- MODAL OVERLAY --- */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 80px;
+    overflow-y: auto;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 680px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideIn 0.3s ease;
+    margin-bottom: 40px;
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header-custom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.modal-header-custom h3 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-close {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #94a3b8;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.modal-body-custom {
+    padding: 24px;
+    color: #e2e8f0;
+}
+
+/* Loading */
+.loading-spinner {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+    font-size: 15px;
+}
+
+.spin {
+    display: inline-block;
+    animation: spinAnim 1s linear infinite;
+}
+
+@keyframes spinAnim {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Detail sections */
+.detail-section {
+    margin-bottom: 20px;
+}
+
+.detail-section-title {
+    font-size: 13px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.detail-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.detail-item .label {
+    font-size: 11px;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.detail-item .value {
+    font-size: 14px;
+    color: #f1f5f9;
+    font-weight: 500;
+}
+
+.detail-item .value.price-highlight {
+    color: #38bdf8;
+    font-weight: 700;
+}
+
+/* Seat list */
+.seat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.seat-badge {
+    background: linear-gradient(135deg, #312e81, #4c1d95);
+    color: #c4b5fd;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.seat-badge .seat-code {
+    color: #ffffff;
+    font-size: 15px;
+}
+
+.seat-badge .seat-price {
+    font-size: 11px;
+    color: #a78bfa;
+}
+
+/* Combo list */
+.combo-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.combo-item .combo-name {
+    color: #e2e8f0;
+    font-weight: 500;
+}
+
+.combo-item .combo-qty {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+/* Ticket list */
+.ticket-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ticket-item .ticket-code {
+    font-family: monospace;
+    color: #fbbf24;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.ticket-item .ticket-seat {
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+.ticket-item .ticket-status {
+    font-size: 11px;
+}
+
+/* Divider */
+.detail-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    margin: 16px 0;
+}
+
+/* Responsive */
 @media(max-width: 768px) {
     .ticket-history-container {
         margin-top: 40px;
     }
     .profile-actions-wrapper {
-        justify-content: -webkit-flex;
         justify-content: center;
     }
     .profile-actions {
@@ -364,44 +582,140 @@ body {
     }
     .history-table {
         display: block;
-        overflow-x: auto; /* Cuộn ngang nếu màn hình quá bé để tránh vỡ chữ */
+        overflow-x: auto;
+    }
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    .modal-content {
+        margin: 0 10px 40px 10px;
     }
 }
-/* --- ĐỊNH DẠNG CHUNG CHO NHÃN TRẠNG THÁI (Giống ô Đang Chiếu) --- */
-.badge-status {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 4px 10px;        /* Độ rộng vừa vặn, ôm sát text */
-    border-radius: 4px;       /* Bo góc vuông nhẹ như trong ảnh */
-    font-size: 12px;          /* Cỡ chữ nhỏ gọn tinh tế */
-    font-weight: 600;         /* Nét chữ dày rõ ràng */
-    white-space: nowrap;
-}
-
-/* 1. Cột Booking (Trạng thái đặt): Tông xanh biển mờ quyến rũ */
-.badge-booking {
-    background-color: rgba(56, 189, 248, 0.16) !important; /* Nền xanh mờ */
-    color: #38bdf8 !important;                             /* Chữ xanh sáng */
-}
-
-/* 2. Cột Thanh toán: Tông xanh lá mờ (Y hệt màu của ô "Đang chiếu" trong ảnh) */
-.badge-payment {
-    background-color: rgba(16, 185, 129, 0.16) !important; /* Nền xanh lá mờ */
-    color: #10b981 !important;                             /* Chữ xanh lá sáng */
-}
-
-/* 3. Cột Số vé: Tông xám đen mờ, chữ trắng tinh rực rỡ */
-.badge-count {
-    background-color: rgba(255, 255, 255, 0.08) !important; /* Nền xám mờ nhẹ */
-    color: #ffffff !important;                              /* Chữ trắng nổi bật */
-}
-
-/* Thiết lập màu chữ mặc định cho các ô td thông thường (như ngày tháng) */
-.history-table tbody td {
-    color: #94a3b8; /* Màu xám dịu để tôn lên các nhãn trạng thái phía trên */
-    padding: 16px 20px;
-    vertical-align: middle;
-}
 </style>
+
+<script>
+function showBookingDetail(id) {
+    const overlay = document.getElementById('detailModalOverlay');
+    const body = document.getElementById('detailModalBody');
+    overlay.classList.add('active');
+    body.innerHTML = '<div class="loading-spinner"><i class="bi bi-arrow-repeat spin"></i> Đang tải...</div>';
+
+    fetch(`/my-tickets/${id}`)
+        .then(res => res.json())
+        .then(res => {
+            if (!res.success) {
+                body.innerHTML = '<p style="color: #f87171;">Không thể tải dữ liệu.</p>';
+                return;
+            }
+            const b = res.booking;
+            const showtime = b.showtime;
+            const movie = showtime?.movie;
+            const room = showtime?.room;
+            const cinema = showtime?.cinema;
+            const payment = b.payment;
+            const seats = b.booking_seats || [];
+            const combos = b.booking_combos || [];
+            const tickets = b.tickets || [];
+
+            let html = '';
+
+            // Thông tin phim & suất chiếu
+            html += `<div class="detail-section">
+                <div class="detail-section-title"><i class="bi bi-film"></i> Thông tin suất chiếu</div>
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="label">Phim</div><div class="value">${movie?.title || 'N/A'}</div></div>
+                    <div class="detail-item"><div class="label">Rạp</div><div class="value">${cinema?.name || 'N/A'}</div></div>
+                    <div class="detail-item"><div class="label">Phòng</div><div class="value">${room?.name || 'N/A'}</div></div>
+                    <div class="detail-item"><div class="label">Suất chiếu</div><div class="value">${showtime?.start_time ? formatDT(showtime.start_time) : 'N/A'}</div></div>
+                </div>
+            </div>`;
+
+            // Ghế đã đặt
+            if (seats.length > 0) {
+                html += `<div class="detail-divider"></div>
+                <div class="detail-section">
+                    <div class="detail-section-title"><i class="bi bi-grid-3x3-gap"></i> Ghế đã đặt (${seats.length})</div>
+                    <div class="seat-list">`;
+                seats.forEach(s => {
+                    const typeLabel = s.seat_type === 'VIP' ? '👑 VIP' : (s.seat_type === 'COUPLE' ? '💕 Couple' : '🎬 Thường');
+                    html += `<div class="seat-badge">
+                        <span class="seat-code">${s.seat_code}</span>
+                        <span class="seat-price">${typeLabel} — ${formatPrice(s.price)}</span>
+                    </div>`;
+                });
+                html += `</div></div>`;
+            }
+
+            // Combo
+            if (combos.length > 0) {
+                html += `<div class="detail-divider"></div>
+                <div class="detail-section">
+                    <div class="detail-section-title"><i class="bi bi-basket3"></i> Combo</div>`;
+                combos.forEach(c => {
+                    html += `<div class="combo-item">
+                        <span class="combo-name">${c.combo?.name || 'Combo'}</span>
+                        <span class="combo-qty">x${c.quantity} — ${formatPrice(c.total_price)}</span>
+                    </div>`;
+                });
+                html += `</div>`;
+            }
+
+            // Thanh toán
+            html += `<div class="detail-divider"></div>
+            <div class="detail-section">
+                <div class="detail-section-title"><i class="bi bi-credit-card"></i> Thanh toán</div>
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="label">Tiền vé</div><div class="value">${formatPrice(b.total_ticket_amount)}</div></div>
+                    <div class="detail-item"><div class="label">Combo</div><div class="value">${formatPrice(b.total_combo_amount)}</div></div>
+                    <div class="detail-item"><div class="label">Giảm giá</div><div class="value" style="color:#10b981;">-${formatPrice(b.discount_amount)}</div></div>
+                    <div class="detail-item"><div class="label">Tổng cộng</div><div class="value price-highlight">${formatPrice(b.final_amount)}</div></div>
+                </div>
+            </div>`;
+
+            // Danh sách mã vé
+            if (tickets.length > 0) {
+                html += `<div class="detail-divider"></div>
+                <div class="detail-section">
+                    <div class="detail-section-title"><i class="bi bi-qr-code"></i> Mã vé (${tickets.length})</div>`;
+                tickets.forEach(t => {
+                    const statusCls = t.status === 'USED' ? 'status-paid' : (t.status === 'CANCELLED' ? 'status-cancelled' : 'status-pending');
+                    const seatCode = t.booking_seat?.seat_code || '';
+                    html += `<div class="ticket-item">
+                        <span class="ticket-code">${t.ticket_code}</span>
+                        <span class="ticket-seat">${seatCode}</span>
+                        <span class="ticket-status status ${statusCls}">${t.status}</span>
+                    </div>`;
+                });
+                html += `</div>`;
+            }
+
+            body.innerHTML = html;
+        })
+        .catch(err => {
+            body.innerHTML = '<p style="color: #f87171;">Lỗi kết nối. Vui lòng thử lại.</p>';
+        });
+}
+
+function closeDetailModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('detailModalOverlay').classList.remove('active');
+}
+
+function formatDT(dt) {
+    if (!dt) return 'N/A';
+    const d = new Date(dt);
+    const pad = n => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function formatPrice(val) {
+    if (!val && val !== 0) return '0 VNĐ';
+    return Number(val).toLocaleString('vi-VN') + ' VNĐ';
+}
+
+// Close with ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeDetailModal();
+});
+</script>
 @endsection

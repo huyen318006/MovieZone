@@ -197,10 +197,42 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <style>
 .panel-sm {
-    background: #f8f9fa;
-    border: 1px solid #e5e7eb;
+    background: #1e293b;
+    border: 1px solid #334155;
     border-radius: 12px;
     padding: 16px;
+    color: #f1f5f9;
+}
+
+.panel-sm small.text-muted {
+    color: #94a3b8 !important;
+}
+
+.panel-sm .fw-semibold {
+    color: #f1f5f9;
+}
+
+/* Fix: input hàng ghế & số thứ tự ghế bị trắng do Bootstrap dark mode conflict */
+#rowLabelInput,
+#seatNumberInput {
+    background-color: var(--bs-body-bg, #212529) !important;
+    color: var(--bs-body-color, #dee2e6) !important;
+    border-color: #495057 !important;
+}
+
+#rowLabelInput:focus,
+#seatNumberInput:focus {
+    background-color: var(--bs-body-bg, #212529) !important;
+    color: var(--bs-body-color, #dee2e6) !important;
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Override bg-light trong dark mode (dùng khi DEMO) */
+#rowLabelInput.bg-light,
+#seatNumberInput.bg-light {
+    background-color: #374151 !important;
+    color: #9ca3af !important;
+    border-color: #4b5563 !important;
 }
 </style>
-

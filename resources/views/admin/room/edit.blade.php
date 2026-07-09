@@ -149,7 +149,13 @@
 
                     <div class="col-12 col-md-6">
                         <label for="room_type" class="form-label">Loại phòng <span class="text-danger">*</span></label>
-                        <input type="text" id="room_type" name="room_type" class="form-control @error('room_type') is-invalid @enderror" value="{{ old('room_type', $room->room_type) }}" required {{ $isFormDisabled ? 'disabled' : '' }}>
+                        <select id="room_type" name="room_type" class="form-select @error('room_type') is-invalid @enderror" required {{ $isFormDisabled ? 'disabled' : '' }}>
+                            <option value="2D" {{ old('room_type', $room->room_type) == '2D' ? 'selected' : '' }}>2D</option>
+                            <option value="3D" {{ old('room_type', $room->room_type) == '3D' ? 'selected' : '' }}>3D</option>
+                            <option value="IMAX" {{ old('room_type', $room->room_type) == 'IMAX' ? 'selected' : '' }}>IMAX</option>
+                            <option value="4DX" {{ old('room_type', $room->room_type) == '4DX' ? 'selected' : '' }}>4DX</option>
+                            <option value="Goldclass" {{ old('room_type', $room->room_type) == 'Goldclass' ? 'selected' : '' }}>Goldclass</option>
+                        </select>
                         @error('room_type')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

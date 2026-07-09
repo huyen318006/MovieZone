@@ -530,9 +530,14 @@
         <div class="success-detail" id="successTicketCode"></div>
         <div class="success-detail" id="successSeat"></div>
         <div class="success-detail" id="successTime"></div>
-        <button class="btn-scan btn-scan-primary" style="margin-top:20px; width:100%;" onclick="closeSuccess()">
-            <i class="bi bi-qr-code-scan"></i> Quét vé tiếp theo
-        </button>
+        <div style="display:flex; gap:10px; margin-top:20px; width:100%;">
+            <button class="btn-scan btn-scan-primary" style="flex:1;" onclick="closeSuccess()">
+                <i class="bi bi-qr-code-scan"></i> Quét vé tiếp theo
+            </button>
+            <button class="btn-scan btn-scan-secondary" style="flex:1;" id="btnPrintPDF" onclick="downloadPDF()">
+                <i class="bi bi-file-earmark-pdf"></i> In PDF
+            </button>
+        </div>
     </div>
 </div>
 @endsection
@@ -549,6 +554,7 @@ let html5QrCode = null;
 let isScanning = false;
 let scanCooldown = false;
 const recentHistory = [];
+let lastCheckedBookingId = null;
 
 // ══════ QR SCANNER ══════
 
@@ -642,9 +648,15 @@ async function onQRSuccess(decodedText) {
 
 function toggleManualInput() {
     const panel = document.getElementById('manualPanel');
+    const scannerPanel = document.querySelector('.scanner-panel');
     panel.classList.toggle('show');
     if (panel.classList.contains('show')) {
+        // Ẩn mục quét QR khi hiện panel nhập mã
+        scannerPanel.style.display = 'none';
         document.getElementById('manualCode').focus();
+    } else {
+        // Hiện lại mục quét QR khi ẩn panel nhập mã
+        scannerPanel.style.display = 'block';
     }
 }
 
@@ -926,9 +938,48 @@ function showSuccess(data) {
     document.getElementById('successTicketCode').textContent = `Vé: ${data.ticket_code}`;
     document.getElementById('successSeat').textContent = `Ghế: ${data.seat_code} | ${data.room_name || ''}`;
     document.getElementById('successTime').textContent = `Thời gian: ${data.checked_in_at}`;
+    // Lưu booking_id để in PDF
+    if (data.booking_id) {
+        lastCheckedBookingId = data.booking_id;
+        document.getElementById('btnPrintPDF').style.display = 'inline-flex';
+    } else {
+        document.getElementById('btnPrintPDF').style.display = 'none';
+    }
     document.getElementById('successOverlay').classList.add('show');
     cancelConfirm();
     playBeepSuccess();
+}
+
+async function downloadPDF() {
+    if (!lastCheckedBookingId) {
+        alert('Không tìm thấy thông tin booking để in PDF.');
+        return;
+    }
+    const btn = document.getElementById('btnPrintPDF');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Đang tạo PDF...';
+    try {
+        const res = await fetch(`${API_BASE}/${lastCheckedBookingId}/download-pdf`);
+        if (!res.ok) {
+            const errData = await res.json().catch(() => null);
+            alert(errData?.message || 'Không thể tạo PDF. Vui lòng thử lại.');
+            return;
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ticket_${lastCheckedBookingId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Lỗi kết nối khi tải PDF.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> In PDF';
+    }
 }
 
 function closeSuccess() {

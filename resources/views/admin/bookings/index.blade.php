@@ -609,9 +609,9 @@
                             const b = res.booking;
                             
                             document.getElementById('detail-booking-code').textContent = b.booking_code;
-                            document.getElementById('detail-customer-name').textContent = b.user ? b.user.name : 'Khách vãng lai';
-                            document.getElementById('detail-customer-phone').textContent = b.user ? b.user.phone : 'N/A';
-                            document.getElementById('detail-customer-email').textContent = b.user ? b.user.email : 'N/A';
+                            document.getElementById('detail-customer-name').textContent = b.customer_name || (b.user ? b.user.name : 'Khách vãng lai');
+                            document.getElementById('detail-customer-phone').textContent = b.customer_phone || (b.user ? b.user.phone : 'N/A');
+                            document.getElementById('detail-customer-email').textContent = b.customer_email || (b.user ? b.user.email : 'N/A');
 
                             document.getElementById('detail-movie-title').textContent = b.showtime && b.showtime.movie ? b.showtime.movie.title : 'N/A';
                             document.getElementById('detail-cinema-name').textContent = b.showtime && b.showtime.cinema ? b.showtime.cinema.name : 'N/A';

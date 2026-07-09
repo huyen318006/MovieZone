@@ -25,6 +25,10 @@ return new class extends Migration
                 ->constrained()
                 ->cascadeOnDelete();
 
+            $table->string('customer_name', 255)->nullable();
+            $table->string('customer_email', 255)->nullable();
+            $table->string('customer_phone', 20)->nullable();
+
             $table->decimal('total_ticket_amount', 12, 2)->default(0);
 
             $table->decimal('total_combo_amount', 12, 2)->default(0);
