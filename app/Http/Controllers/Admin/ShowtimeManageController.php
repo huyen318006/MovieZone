@@ -663,4 +663,239 @@ class ShowtimeManageController extends Controller
             'message' => $conflict ? 'Phòng chiếu đã có suất chiếu trong khung giờ này.' : 'OK',
         ]);
     }
+
+    /* ============================================================
+     * API: Lấy thông tin phim + số suất chiếu trong ngày
+     * - Được gọi bằng AJAX từ wizard tạo suất chiếu (Bước 1)
+     * - Trả về: thông tin phim, thể loại, số suất đã xếp trong ngày
+     * ============================================================ */
+    public function apiGetMovieInfo(Request $request)
+    {
+        $request->validate([
+            'movie_id' => ['required', 'exists:movies,id'],
+            'date'     => ['nullable', 'date'],
+        ]);
+
+        // Lấy phim (không lấy phim ẩn)
+        $movie = Movie::query()
+            ->where('status', '!=', 'HIDDEN')
+            ->with('genres')
+            ->findOrFail($request->movie_id);
+
+        $cinema = $this->currentCinema();
+
+        // Đếm số suất chiếu của phim trong ngày được chọn (nếu có)
+        $showtimeCountToday = 0;
+        $totalShowtimesInDay = 0;
+        if ($request->date) {
+            $date = Carbon::parse($request->date);
+            // Số suất chiếu của phim này trong ngày
+            $showtimeCountToday = Showtime::query()
+                ->where('cinema_id', $cinema->id)
+                ->where('movie_id', $movie->id)
+                ->where('status', '!=', 'CANCELLED')
+                ->whereDate('start_time', $date)
+                ->count();
+            // Tổng số suất chiếu tất cả phim trong ngày
+            $totalShowtimesInDay = Showtime::query()
+                ->where('cinema_id', $cinema->id)
+                ->where('status', '!=', 'CANCELLED')
+                ->whereDate('start_time', $date)
+                ->count();
+        }
+
+        return response()->json([
+            'movie' => [
+                'id'               => $movie->id,
+                'title'            => $movie->title,
+                'original_title'   => $movie->original_title,
+                'poster_url'       => $movie->poster_url,
+                'duration_minutes' => (int) $movie->duration_minutes,
+                'age_rating'       => $movie->age_rating,
+                'release_date'     => $movie->release_date,
+                'end_date'         => $movie->end_date,
+                'status'           => $movie->status,
+                'language'         => $movie->language,
+                'director'         => $movie->director,
+                'genres'           => $movie->genres->pluck('name')->toArray(),
+            ],
+            'showtime_count_today'   => $showtimeCountToday,
+            'total_showtimes_in_day' => $totalShowtimesInDay,
+        ]);
+    }
+
+    /* ============================================================
+     * API: Lấy danh sách phòng + lịch chiếu trong ngày
+     * - Được gọi bằng AJAX từ wizard tạo suất chiếu (Bước 3)
+     * - Trả về: danh sách phòng active kèm trạng thái & lịch chiếu
+     * ============================================================ */
+    public function apiGetRoomSchedule(Request $request)
+    {
+        $request->validate([
+            'date' => ['required', 'date'],
+        ]);
+
+        $cinema = $this->currentCinema();
+        $date = Carbon::parse($request->date);
+        $now = now();
+
+        // Lấy tất cả phòng active của rạp
+        $rooms = Room::query()
+            ->where('cinema_id', $cinema->id)
+            ->where('status', 'ACTIVE')
+            ->orderBy('name')
+            ->get();
+
+        // Lấy tất cả suất chiếu trong ngày (không bị hủy) cho tất cả phòng
+        $showtimesInDay = Showtime::query()
+            ->where('cinema_id', $cinema->id)
+            ->where('status', '!=', 'CANCELLED')
+            ->whereDate('start_time', $date)
+            ->with('movie:id,title,duration_minutes,poster_url')
+            ->orderBy('start_time')
+            ->get();
+
+        // Gom suất chiếu theo room_id
+        $showtimesByRoom = $showtimesInDay->groupBy('room_id');
+
+        $result = [];
+        foreach ($rooms as $room) {
+            $roomShowtimes = $showtimesByRoom->get($room->id, collect());
+
+            // Xác định trạng thái phòng tại thời điểm hiện tại
+            $currentlyShowing = $roomShowtimes->first(function ($st) use ($now) {
+                return $st->start_time->lte($now) && $st->end_time->gte($now);
+            });
+            $aboutToStart = $roomShowtimes->first(function ($st) use ($now) {
+                return $st->start_time->gt($now) && $st->start_time->lte($now->copy()->addMinutes(30));
+            });
+
+            if ($currentlyShowing) {
+                $roomStatus = 'SHOWING';
+                $roomStatusLabel = 'Đang chiếu';
+            } elseif ($aboutToStart) {
+                $roomStatus = 'UPCOMING';
+                $roomStatusLabel = 'Sắp chiếu';
+            } else {
+                $roomStatus = 'FREE';
+                $roomStatusLabel = 'Trống';
+            }
+
+            $result[] = [
+                'id'           => $room->id,
+                'name'         => $room->name,
+                'room_type'    => $room->room_type,
+                'total_seats'  => (int) $room->total_seats,
+                'status'       => $roomStatus,
+                'status_label' => $roomStatusLabel,
+                'showtime_count' => $roomShowtimes->count(),
+                'showtimes'    => $roomShowtimes->map(function ($st) {
+                    return [
+                        'id'         => $st->id,
+                        'movie_title'=> $st->movie->title ?? 'N/A',
+                        'start_time' => $st->start_time->format('H:i'),
+                        'end_time'   => $st->end_time->format('H:i'),
+                        'start_hour' => (float) $st->start_time->format('G') + $st->start_time->format('i') / 60,
+                        'end_hour'   => (float) $st->end_time->format('G') + $st->end_time->format('i') / 60,
+                        'status'     => $st->status,
+                    ];
+                })->values()->toArray(),
+            ];
+        }
+
+        return response()->json([
+            'rooms' => $result,
+            'total_showtimes' => $showtimesInDay->count(),
+        ]);
+    }
+
+    /* ============================================================
+     * API: Lấy chi tiết timeline của 1 phòng trong ngày
+     * - Được gọi bằng AJAX từ wizard tạo suất chiếu (Bước 3 - khi click phòng)
+     * - Trả về: danh sách suất chiếu chi tiết + khoảng trống
+     * ============================================================ */
+    public function apiGetRoomTimeline(Request $request)
+    {
+        $request->validate([
+            'room_id' => ['required', 'exists:rooms,id'],
+            'date'    => ['required', 'date'],
+        ]);
+
+        $cinema = $this->currentCinema();
+        $date = Carbon::parse($request->date);
+
+        // Kiểm tra phòng thuộc đúng rạp
+        $room = Room::query()
+            ->where('cinema_id', $cinema->id)
+            ->where('status', 'ACTIVE')
+            ->findOrFail($request->room_id);
+
+        // Lấy tất cả suất chiếu của phòng trong ngày (không bị hủy)
+        $showtimes = Showtime::query()
+            ->where('room_id', $room->id)
+            ->where('status', '!=', 'CANCELLED')
+            ->whereDate('start_time', $date)
+            ->with('movie:id,title,duration_minutes,poster_url')
+            ->orderBy('start_time')
+            ->get();
+
+        // Tính các khoảng trống (gap) giữa các suất chiếu
+        // Timeline từ 6:00 đến 24:00
+        $gaps = [];
+        $timelineStart = $date->copy()->setTime(6, 0);
+        $timelineEnd = $date->copy()->setTime(23, 59);
+
+        $previousEnd = $timelineStart->copy();
+        foreach ($showtimes as $st) {
+            // Cộng thêm MIN_GAP_MINUTES (15 phút) vệ sinh vào end_time
+            $slotStart = $st->start_time->copy()->subMinutes(self::MIN_GAP_MINUTES);
+            $slotEnd = $st->end_time->copy()->addMinutes(self::MIN_GAP_MINUTES);
+
+            if ($slotStart->gt($previousEnd)) {
+                $gapMinutes = $previousEnd->diffInMinutes($slotStart);
+                $gaps[] = [
+                    'start'   => $previousEnd->format('H:i'),
+                    'end'     => $slotStart->format('H:i'),
+                    'minutes' => $gapMinutes,
+                ];
+            }
+            $previousEnd = $slotEnd->copy();
+        }
+        // Khoảng trống cuối cùng (từ suất cuối đến 24:00)
+        if ($previousEnd->lt($timelineEnd)) {
+            $gaps[] = [
+                'start'   => $previousEnd->format('H:i'),
+                'end'     => $timelineEnd->format('H:i'),
+                'minutes' => $previousEnd->diffInMinutes($timelineEnd),
+            ];
+        }
+
+        // Đếm số ghế đã cấu hình cho phòng
+        $seatCount = Seat::where('room_id', $room->id)->where('status', 'ACTIVE')->count();
+
+        return response()->json([
+            'room' => [
+                'id'          => $room->id,
+                'name'        => $room->name,
+                'room_type'   => $room->room_type,
+                'total_seats' => (int) $room->total_seats,
+                'seat_count'  => $seatCount,
+            ],
+            'showtimes' => $showtimes->map(function ($st) {
+                return [
+                    'id'              => $st->id,
+                    'movie_title'     => $st->movie->title ?? 'N/A',
+                    'movie_poster'    => $st->movie->poster_url ?? null,
+                    'start_time'      => $st->start_time->format('H:i'),
+                    'end_time'        => $st->end_time->format('H:i'),
+                    'start_hour'      => (float) $st->start_time->format('G') + $st->start_time->format('i') / 60,
+                    'end_hour'        => (float) $st->end_time->format('G') + $st->end_time->format('i') / 60,
+                    'duration_minutes'=> $st->movie->duration_minutes ?? 0,
+                    'status'          => $st->status,
+                ];
+            })->values()->toArray(),
+            'gaps' => $gaps,
+            'date' => $date->format('Y-m-d'),
+        ]);
+    }
 }

@@ -223,6 +223,12 @@ Route::controller(ShowtimeManageController::class)->group(function () {
     Route::post('/admin/showtime/{id}/cancel', 'cancel')->name('admin.showtime.cancel');
     // API kiểm tra trùng lịch
     Route::post('/showtimes/check-conflict', 'checkConflict')->name('admin.showtimes.check-conflict');
+    // API lấy thông tin phim (wizard tạo suất chiếu - Bước 1)
+    Route::post('/admin/showtime/api/movie-info', 'apiGetMovieInfo')->name('admin.showtime.api.movie_info');
+    // API lấy danh sách phòng + lịch chiếu trong ngày (wizard - Bước 3)
+    Route::post('/admin/showtime/api/room-schedule', 'apiGetRoomSchedule')->name('admin.showtime.api.room_schedule');
+    // API lấy timeline chi tiết của 1 phòng (wizard - Bước 3 khi click phòng)
+    Route::post('/admin/showtime/api/room-timeline', 'apiGetRoomTimeline')->name('admin.showtime.api.room_timeline');
 });
 // =====================================================================//
 
