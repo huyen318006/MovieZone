@@ -595,8 +595,6 @@
 }
 </style>
 
-@endsection
-
 @push('scripts')
 <script>
 /**
