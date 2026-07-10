@@ -171,7 +171,6 @@
                             <th>Phòng</th>
                             <th>Rạp</th>
                             <th>Thời gian</th>
-                            <th>Định dạng</th>
                             <th>Ngôn ngữ</th>
                             <th>Trạng thái</th>
                             <th style="width: 280px;">Hành động</th>
@@ -196,9 +195,6 @@
                                 <td>
                                     <div class="fw-semibold">{{ optional($showtime->start_time)->format('d/m/Y H:i') }}</div>
                                     <small class="text-muted">Đến {{ optional($showtime->end_time)->format('H:i') }}</small>
-                                </td>
-                                <td>
-                                    <span class="badge text-bg-primary">{{ $showtime->format }}</span>
                                 </td>
                                 <td>{{ $showtime->language_type }}</td>
                                 <td>

@@ -230,6 +230,10 @@ Route::controller(ShowtimeManageController::class)->group(function () {
     Route::post('/admin/showtime/api/room-schedule', 'apiGetRoomSchedule')->name('admin.showtime.api.room_schedule');
     // API lấy timeline chi tiết của 1 phòng (wizard - Bước 3 khi click phòng)
     Route::post('/admin/showtime/api/room-timeline', 'apiGetRoomTimeline')->name('admin.showtime.api.room_timeline');
+    // API kiểm tra phòng trống khả dụng & trùng lịch chi tiết (màn hình update)
+    Route::post('/admin/showtime/api/check-rooms-availability', 'apiCheckRoomsAvailability')->name('admin.showtime.api.check_rooms_availability');
+    // API quét phòng & lấy danh sách khung giờ trống khả dụng (màn hình tạo mới 3 bước)
+    Route::post('/admin/showtime/api/available-slots', 'apiGetAvailableSlots')->name('admin.showtime.api.available_slots');
 });
 // =====================================================================//
 
