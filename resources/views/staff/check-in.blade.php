@@ -483,9 +483,14 @@
 
         <!-- Manual Input -->
         <div class="manual-input-panel" id="manualPanel">
-            <h4 style="font-size:15px; font-weight:600; margin:0 0 12px; display:flex; align-items:center; gap:8px;">
-                <i class="bi bi-keyboard"></i> Nhập mã thủ công
-            </h4>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h4 style="font-size:15px; font-weight:600; margin:0; display:flex; align-items:center; gap:8px;">
+                    <i class="bi bi-keyboard"></i> Nhập mã thủ công
+                </h4>
+                <button onclick="toggleManualInput()" style="background:transparent; border:none; color:var(--staff-primary); font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    <i class="bi bi-qr-code-scan"></i> Quét QR
+                </button>
+            </div>
             <div class="manual-form">
                 <select id="manualType">
                     <option value="booking_code">Mã booking (BK...)</option>
@@ -769,12 +774,18 @@ function showConfirmCard(data) {
                 <button class="btn-confirm btn-confirm-success" onclick="confirmCheckIn(${ticket.id})">
                     <i class="bi bi-check-circle"></i> Xác nhận Check-in
                 </button>
+                <button class="btn-confirm btn-scan-secondary" style="flex: 0.5;" onclick="printBill('${ticket.booking?.booking_code}')">
+                    <i class="bi bi-printer"></i> In
+                </button>
                 <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()">
                     <i class="bi bi-x-lg"></i> Hủy
                 </button>
             </div>
         ` : `
             <div class="confirm-card-actions">
+                <button class="btn-confirm btn-scan-secondary" onclick="printBill('${ticket.booking?.booking_code}')">
+                    <i class="bi bi-printer"></i> In Hoá Đơn
+                </button>
                 <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()" style="flex:1;">
                     <i class="bi bi-qr-code-scan"></i> Quét vé khác
                 </button>
@@ -836,12 +847,18 @@ function showBatchPanel(data) {
                 <button class="btn-confirm btn-confirm-success" onclick="confirmBatch(${booking?.id})">
                     <i class="bi bi-check-all"></i> Check-in đã chọn
                 </button>
+                <button class="btn-confirm btn-scan-secondary" style="flex: 0.5;" onclick="printBill('${booking?.booking_code}')">
+                    <i class="bi bi-printer"></i> In
+                </button>
                 <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()">
                     <i class="bi bi-x-lg"></i> Đóng
                 </button>
             </div>
         ` : `
             <div class="confirm-card-actions">
+                <button class="btn-confirm btn-scan-secondary" onclick="printBill('${booking?.booking_code}')">
+                    <i class="bi bi-printer"></i> In Hoá Đơn
+                </button>
                 <button class="btn-confirm btn-confirm-cancel" style="flex:1;" onclick="cancelConfirm()">
                     <i class="bi bi-x-lg"></i> Đóng
                 </button>
@@ -1040,6 +1057,23 @@ function formatDateTime(dt) {
     const d = new Date(dt);
     if (isNaN(d)) return dt;
     return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function printBill(code) {
+    if (!code || code === 'undefined') return;
+
+    let iframe = document.getElementById('print-iframe-mz');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe-mz';
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0px';
+        iframe.style.height = '0px';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+    }
+
+    iframe.src = `/booking/bill/${code}?print=true`;
 }
 
 // ══════ SOUND EFFECTS ══════
