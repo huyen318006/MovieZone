@@ -104,7 +104,9 @@ class FilmManageController extends Controller
     {
         //đổ thể loại cho view
         $genres = Genre::all();
-        return view('admin.film_management.addfilm', compact('genres'));
+        //thêm thể loại phòng cho film
+        $room_name = Room::all();
+        return view('admin.film_management.addfilm', compact('genres','room_name'));
     }
     public function store(Request $request)
     {
@@ -145,6 +147,10 @@ class FilmManageController extends Controller
             // Thể loại (checkbox array)
             'genres' => 'required|array',
             'genres.*' => 'exists:genres,id',
+
+            // Loại phòng hỗ trợ (chọn từ các loại phòng hiện có)
+            'room_types' => 'nullable|array',
+            'room_types.*' => 'string',
 
             // Media
             'poster' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -196,6 +202,17 @@ class FilmManageController extends Controller
         ]);
         // dd($movie);
         $movie->genres()->sync($request->input('genres', []));
+
+        if ($request->filled('room_types')) {
+            DB::table('movie_room_types')->where('movie_id', $movie->id)->delete();
+            foreach ($request->input('room_types', []) as $roomType) {
+                DB::table('movie_room_types')->insert([
+                    'movie_id' => $movie->id,
+                    'type_name_room' => (string) $roomType,
+                ]);
+            }
+        }
+
         DB::table('audit_logs')->insert([
             'user_id'     => auth()->id(),
             'action'      => 'create_movie',
@@ -234,9 +251,15 @@ class FilmManageController extends Controller
             ->pluck('genre_id')
             ->toArray();
 
+        // ID kiểu phòng hỗ trợ hiện tại
+        $currentRoomIds = DB::table('movie_room_types')
+            ->where('movie_id', $id)
+            ->pluck('type_name_room')
+            ->toArray();
+
         $genres = Genre::all();
 
-        return view('admin.film_management.updatefilm', compact('movie_id', 'genres', 'currentGenreIds'));
+        return view('admin.film_management.updatefilm', compact('movie_id', 'genres', 'currentGenreIds', 'currentRoomIds'));
     }
 
     public function apiCheckSlots(Request $request)
@@ -379,13 +402,31 @@ class FilmManageController extends Controller
         $payload['release_date'] = $request->release_date; // giữ nguyên DB nếu NOW_SHOWING/ENDED
         $payload['end_date']     = $request->end_date;     // giữ nguyên DB nếu ENDED
 
+        // ── 1. Chuẩn bị dữ liệu Ghi Log (Lấy trạng thái CŨ trước khi sửa) ──
+        $oldMovie = $movie->toArray();
+        $oldMovie['genres'] = DB::table('movie_genres')->where('movie_id', $movie->id)->pluck('genre_id')->toArray();
+        $oldMovie['room_types'] = DB::table('movie_room_types')->where('movie_id', $movie->id)->pluck('type_name_room')->toArray();
+
         // ── Thực hiện cập nhật ────────────────────────────────────────────
         $movie->update($payload);
 
         // ── Cập nhật thể loại ─────────────────────────────────────────────
         $movie->genres()->sync($request->genres ?? []);
 
-        $oldMovie = $movie->getOriginal();
+        // ── Cập nhật Định dạng / Kiểu phòng hỗ trợ ────────────────────────
+        DB::table('movie_room_types')->where('movie_id', $movie->id)->delete();
+        if ($request->filled('room_types')) {
+            foreach ($request->input('room_types', []) as $roomType) {
+                DB::table('movie_room_types')->insert([
+                    'movie_id' => $movie->id,
+                    'type_name_room' => (string) $roomType,
+                ]);
+            }
+        }
+
+        // ── 2. Bổ sung quan hệ vào payload để ghi trạng thái MỚI ──────────
+        $payload['genres'] = $request->genres ?? [];
+        $payload['room_types'] = $request->input('room_types', []);
 
         DB::table('audit_logs')->insert([
             'user_id'     => auth()->id(),
@@ -429,7 +470,7 @@ class FilmManageController extends Controller
         return view('admin.film.confirm_stop', compact('movie', 'showtimeCount', 'bookingCount'));
     }
 
-    // Thay đổi trạng thái của phim   
+    // Thay đổi trạng thái của phim
     // Thay đổi trạng thái của phim
     public function toggleStatus(Request $request, $id)
     {

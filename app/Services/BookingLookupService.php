@@ -167,10 +167,24 @@ class BookingLookupService
     {
         $timeline = [];
 
+        // Helper: đảm bảo timestamp luôn là ISO string
+        $toISO = function ($value): ?string {
+            if (!$value) return null;
+            if ($value instanceof \Carbon\Carbon || $value instanceof \DateTimeInterface) {
+                return $value->toISOString();
+            }
+            // Nếu là string, thử parse
+            try {
+                return \Carbon\Carbon::parse($value)->toISOString();
+            } catch (\Exception $e) {
+                return (string) $value;
+            }
+        };
+
         // Booking created
         $timeline[] = [
             'event'       => 'BOOKING_CREATED',
-            'timestamp'   => $booking->created_at?->toISOString(),
+            'timestamp'   => $toISO($booking->created_at),
             'description' => 'Booking được tạo',
             'icon'        => '📝',
         ];
@@ -179,7 +193,7 @@ class BookingLookupService
         if ($booking->expired_at) {
             $timeline[] = [
                 'event'       => 'BOOKING_EXPIRED_AT',
-                'timestamp'   => $booking->expired_at,
+                'timestamp'   => $toISO($booking->expired_at),
                 'description' => 'Hết hạn thanh toán',
                 'icon'        => '⏰',
             ];
@@ -190,7 +204,7 @@ class BookingLookupService
             $paymentMethod = $booking->payment?->payment_method ?? 'N/A';
             $timeline[] = [
                 'event'       => 'PAYMENT_SUCCESS',
-                'timestamp'   => $booking->paid_at,
+                'timestamp'   => $toISO($booking->paid_at),
                 'description' => "Thanh toán thành công qua {$paymentMethod}",
                 'icon'        => '💳',
             ];
@@ -199,9 +213,10 @@ class BookingLookupService
         // Tickets generated
         if ($booking->tickets && $booking->tickets->count() > 0) {
             $firstTicket = $booking->tickets->sortBy('created_at')->first();
+            $ticketTimestamp = $toISO($firstTicket->created_at) ?? $toISO($booking->paid_at) ?? $toISO($booking->created_at);
             $timeline[] = [
                 'event'       => 'TICKETS_GENERATED',
-                'timestamp'   => $firstTicket->created_at?->toISOString(),
+                'timestamp'   => $ticketTimestamp,
                 'description' => $booking->tickets->count() . ' vé được tạo',
                 'icon'        => '🎟️',
             ];
@@ -211,7 +226,7 @@ class BookingLookupService
                 $checkedBy = $ticket->checkedInByUser?->name ?? 'N/A';
                 $timeline[] = [
                     'event'       => 'TICKET_CHECKED_IN',
-                    'timestamp'   => $ticket->checked_in_at,
+                    'timestamp'   => $toISO($ticket->checked_in_at),
                     'description' => "Vé {$ticket->ticket_code} check-in bởi {$checkedBy}",
                     'icon'        => '✅',
                 ];
@@ -228,13 +243,13 @@ class BookingLookupService
 
             $timeline[] = [
                 'event'       => 'BOOKING_CANCELLED',
-                'timestamp'   => $cancelLog?->created_at ?? $booking->updated_at?->toISOString(),
+                'timestamp'   => $toISO($cancelLog?->created_at ?? $booking->updated_at),
                 'description' => 'Booking đã bị hủy',
                 'icon'        => '❌',
             ];
         }
 
-        // Sort by timestamp
+        // Sort by timestamp ascending (cũ nhất trước → mới nhất sau)
         usort($timeline, fn($a, $b) => strcmp($a['timestamp'] ?? '', $b['timestamp'] ?? ''));
 
         return $timeline;

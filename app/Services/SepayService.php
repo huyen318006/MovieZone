@@ -6,6 +6,7 @@ use App\Mail\BookingInvoiceMail;
 use App\Models\Payment;
 use App\Models\SepayOrder;
 use App\Notifications\BookingPaidNotification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -245,24 +246,57 @@ class SepayService
                         'booking_id' => $order->booking_id,
                     ]);
 
-                    // === GỬI EMAIL HOÁ ĐƠN TỰ ĐỘNG ===
+                    // === SINH MÃ VÉ (Ticket Code + QR Code) ===
+                    $pdfPath = null;
+                    if ($order->booking_id && $order->booking) {
+                        try {
+                            $ticketService = app(TicketService::class);
+                            $tickets = DB::transaction(function () use ($ticketService, $order) {
+                                return $ticketService->generateTicketsForBooking($order->booking);
+                            });
+
+                            Log::info('Tickets generated for booking', [
+                                'order_code'   => $orderCode,
+                                'booking_code' => $order->booking->booking_code,
+                                'ticket_count' => $tickets->count(),
+                            ]);
+
+                            // Sinh PDF vé kèm QR Code
+                            $pdfService = app(TicketPDFService::class);
+                            $pdfPath = $pdfService->generateBookingTicketsPDF($order->booking->fresh());
+
+                        } catch (\Exception $ticketEx) {
+                            // Không throw — thanh toán vẫn thành công, ticket có thể retry sau
+                            Log::error('Failed to generate tickets or PDF', [
+                                'order_code' => $orderCode,
+                                'booking_id' => $order->booking_id,
+                                'error'      => $ticketEx->getMessage(),
+                            ]);
+                        }
+                    }
+
+                    // === GỬI EMAIL HOÁ ĐƠN TỰ ĐỘNG (kèm PDF vé) ===
                     try {
                         $customerEmail = $order->getCustomerEmail();
                         $user = $order->booking ? $order->booking->user : null;
 
                         if ($customerEmail) {
-                            Mail::to($customerEmail)->send(new BookingInvoiceMail($order->fresh(), $user));
+                            Mail::to($customerEmail)->send(
+                                new BookingInvoiceMail($order->fresh(), $user, $pdfPath)
+                            );
 
                             // Đánh dấu đã gửi email
                             $meta = $order->metadata ?? [];
                             $meta['email_sent'] = true;
                             $meta['email_sent_at'] = now()->toIso8601String();
                             $meta['email_sent_to'] = $customerEmail;
+                            $meta['pdf_attached'] = !empty($pdfPath);
                             $order->update(['metadata' => $meta]);
 
                             Log::info('Booking invoice email sent', [
-                                'order_code' => $orderCode,
-                                'email' => $customerEmail,
+                                'order_code'   => $orderCode,
+                                'email'        => $customerEmail,
+                                'pdf_attached' => !empty($pdfPath),
                             ]);
                         }
 

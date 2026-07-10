@@ -336,6 +336,40 @@
                     </div>
                 </div>
 
+                {{-- KIỂU PHÒNG HỖ TRỢ --}}
+                <div class="card shadow-sm mt-3">
+                    <div class="card-header">
+                        <strong>Định dạng / Kiểu phòng hỗ trợ</strong>
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted">Phim này có thể chiếu ở các phòng nào?</p>
+                        <div class="row">
+                            @php
+                                $formats = ['2D', '3D', '4DX', 'VIP', 'IMAX'];
+                            @endphp
+                            @foreach ($formats as $format)
+                                <div class="col-md-6 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="room_types[]"
+                                            value="{{ $format }}" id="format_{{ $format }}"
+                                            {{ in_array($format, old('room_types', $currentRoomIds ?? [])) ? 'checked' : '' }}>
+
+                                        <label class="form-check-label" for="format_{{ $format }}">
+                                            {{ $format }}
+                                        </label>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        @error('room_types')
+                            <div class="text-danger small mt-1">
+                                {{ $message }}
+                            </div>
+                        @enderror
+                    </div>
+                </div>
+
             </div>
 
         </div>

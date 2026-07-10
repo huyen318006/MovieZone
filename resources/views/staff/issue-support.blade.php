@@ -195,8 +195,8 @@ function hideValidationError(){
 }
 
 const VALIDATORS = {
-    booking_code: /^BK-\d{8}-\d{3,}$/,
-    ticket_code: /^TK-\d{8}-\d{3,}$/,
+    booking_code: /^BK[A-Z2-9]{10}$/,
+    ticket_code: /^TK[A-Z2-9]{12}$/,
     phone: /^(0|\+84)(3|5|7|8|9)\d{8}$/,
     email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     qr_content: /^MZ\|.+\|.{12}$/,

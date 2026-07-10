@@ -35,6 +35,10 @@ class Movie extends Model
     {
         return $this->belongsToMany(Genre::class, 'movie_genres');
     }
+    public function movieroomtytle()
+    {
+        return $this->belongsToMany(MovieRoomTytle::class, 'movie_room_tytle', 'movie_id', 'room_id');
+    }
 
     public function showtimes()
     {

@@ -19,6 +19,38 @@ class SeatManageController extends Controller
     private array $allowedStatuses = ['ACTIVE', 'BLOCKED', 'BROKEN'];
 
     /**
+     * Chặn thao tác ghế khi đã có suất chiếu bắt đầu hoặc có booking (trừ CANCELLED/REFUNDED).
+     */
+    private function assertSeatRoomNotLockedForRealtime(Room $room): void
+    {
+        $hasStartedOrOpenShowtime = $room->showtimes()
+            ->where('start_time', '<=', now())
+            ->where('status', '!=', 'CANCELLED')
+            ->exists();
+
+        if ($hasStartedOrOpenShowtime) {
+            throw new \Exception('Phòng này đang trong thời gian chiếu (đã bắt đầu). Không thể chỉnh sửa ghế.');
+        }
+
+        $hasNonCancelledBooking = \App\Models\Booking::query()
+            ->whereIn('showtime_id', $room->showtimes()->pluck('id'))
+            ->whereNotIn('status', ['CANCELLED', 'REFUNDED'])
+            ->exists();
+
+        if ($hasNonCancelledBooking) {
+            throw new \Exception('Phòng này đã có khách đặt vé. Không thể chỉnh sửa ghế.');
+        }
+    }
+
+    private function assertSeatNotLockedForRealtime(Seat $seat): void
+    {
+        $room = $seat->room;
+        if ($room) {
+            $this->assertSeatRoomNotLockedForRealtime($room);
+        }
+    }
+
+    /**
      * Lấy giá ghế theo seat_type từ bảng ticket_prices.
      * Do hiện hệ thống chưa truyền day_type/time_type nên lấy bản ghi ACTIVE đầu tiên matching cinema + seat_type.
      */
@@ -67,6 +99,66 @@ class SeatManageController extends Controller
         if (!$hasPermission) {
             abort(403, 'Bạn không có quyền quản lý ghế.');
         }
+    }
+
+    /**
+     * Tính toán động các vùng ghế dựa trên total_seats của phòng.
+     *
+     * Quy tắc:
+     *  - Mỗi hàng = seatsPerRow ghế (mặc định 10, cố định theo thiết kế rạp).
+     *  - Tổng số hàng = ceil(total_seats / seatsPerRow).
+     *  - STANDARD: phần còn lại ở đầu (ít nhất 1 hàng, bắt đầu từ A).
+     *  - VIP:      ~55% hàng giữa (nhiều hơn STANDARD, tối thiểu 1 hàng).
+     *  - COUPLE:   cố định 1 hàng cuối.
+     *
+     * @return array{
+     *   totalRows: int,
+     *   seatsPerRow: int,
+     *   maxRow: string,
+     *   standardRows: string[],
+     *   vipRows: string[],
+     *   coupleRows: string[],
+     * }
+     */
+    private function computeZones(Room $room): array
+    {
+        $totalSeats  = (int) $room->total_seats;
+        $seatsPerRow = 10; // ghế mỗi hàng (cố định theo thiết kế rạp)
+
+        $totalRows = (int) ceil($totalSeats / $seatsPerRow);
+        $totalRows = max($totalRows, 3); // Tối thiểu 3 hàng (1 STANDARD + 1 VIP + 1 COUPLE)
+
+        // COUPLE cố định 1 hàng cuối
+        $coupleCount = 1;
+
+        // VIP ~55% tổng hàng (nhiều hơn STANDARD, tối thiểu 1)
+        $vipCount      = max(1, (int) round($totalRows * 0.55));
+        $standardCount = $totalRows - $vipCount - $coupleCount;
+
+        // Đảm bảo STANDARD ít nhất 1 hàng
+        if ($standardCount < 1) {
+            $standardCount = 1;
+            $vipCount = max(1, $totalRows - $standardCount - $coupleCount);
+        }
+
+        // Gán chữ cái hàng
+        $allRowLetters = array_map(
+            fn($n) => chr(64 + $n),
+            range(1, $totalRows)
+        );
+
+        $standardRows = array_slice($allRowLetters, 0, $standardCount);
+        $vipRows      = array_slice($allRowLetters, $standardCount, $vipCount);
+        $coupleRows   = array_slice($allRowLetters, $standardCount + $vipCount);
+
+        return [
+            'totalRows'    => $totalRows,
+            'seatsPerRow'  => $seatsPerRow,
+            'maxRow'       => end($allRowLetters),
+            'standardRows' => $standardRows,
+            'vipRows'      => $vipRows,
+            'coupleRows'   => $coupleRows,
+        ];
     }
 
     private function normalizeSeatStatus(string $status): string
@@ -165,6 +257,14 @@ class SeatManageController extends Controller
                 ->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.']);
         }
 
+        // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+        try {
+            $this->assertSeatRoomNotLockedForRealtime($room);
+        } catch (\Exception $e) {
+            return redirect()->route('admin.seats.index', ['room_id' => $room->id])
+                ->withErrors(['error' => $e->getMessage()]);
+        }
+
         return view('admin.seats.create', compact('room'));
     }
 
@@ -178,6 +278,14 @@ class SeatManageController extends Controller
             return redirect()->route('admin.seats.index', [
                 'room_id' => $seat->room_id,
             ])->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.']);
+        }
+
+        // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+        try {
+            $this->assertSeatNotLockedForRealtime($seat);
+        } catch (\Exception $e) {
+            return redirect()->route('admin.seats.index', ['room_id' => $seat->room_id])
+                ->withErrors(['error' => $e->getMessage()]);
         }
 
         return view('admin.seats.edit', compact('seat'));
@@ -195,65 +303,100 @@ class SeatManageController extends Controller
         'status' => 'required|in:' . implode(',', $this->allowedStatuses),
     ]);
 
+    $room = Room::with('showtimes')->findOrFail($validated['room_id']);
 
-    // ... (Giữ nguyên các đoạn validate row_label, VIP, BLOCKED, exists ở trên) ...
-    $rowLabel = strtoupper($validated['row_label']);
-//     |---------------------------------------------
-// | VALIDATE RULE THEO HÀNG GHẾ (SYNC BATCH)
-// |---------------------------------------------
-// */
-$vipRows = ['E','F','G','H'];
-$coupleRows = ['J','K'];
-
-if ($validated['seat_type'] === 'VIP' && !in_array($rowLabel, $vipRows)) {
-    return back()
-        ->withErrors(['error' => 'VIP chỉ được đặt ở hàng E-F-G-H'])
-        ->withInput();
-}
-
-if ($validated['seat_type'] === 'COUPLE' && !in_array($rowLabel, $coupleRows)) {
-    return back()
-        ->withErrors(['error' => 'COUPLE chỉ được đặt ở hàng J-K'])
-        ->withInput();
-}
-
-if (
-    $validated['seat_type'] === 'STANDARD' &&
-    (in_array($rowLabel, $vipRows) || in_array($rowLabel, $coupleRows))
-) {
-    return back()
-        ->withErrors(['error' => "Hàng {$rowLabel} không hợp lệ cho STANDARD"])
-        ->withInput();
-}
-    $seatCode = $rowLabel . $validated['seat_number'];
-
-    // ... (Giữ nguyên đoạn check tồn tại) ...
-
+    // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
     try {
-        DB::transaction(function () use ($validated, $rowLabel, $seatCode) {
-            // 1. Lưu ghế vào bảng seats
-            $newSeat = Seat::create(array_merge($validated, [
-                'row_label' => $rowLabel,
-                'seat_code' => $seatCode,
-                'price' => $this->getSeatPriceFromTicketPrices($validated['seat_type'], $validated['room_id']),
-            ]));
+        $this->assertSeatRoomNotLockedForRealtime($room);
+    } catch (\Exception $e) {
+        return back()->withInput()->withErrors(['error' => $e->getMessage()]);
+    }
+
+    $rowLabel = strtoupper($validated['row_label']);
+
+    // Lấy thông tin phòng để tính vùng ghế động
+    $storeRoom = Room::find($validated['room_id']);
+    if (!$storeRoom) {
+        return back()->withErrors(['error' => 'Phòng không tồn tại.'])->withInput();
+    }
+
+    $zones = $this->computeZones($storeRoom);
 
 
-            // 2. ĐƯA HÀM ĐỒNG BỘ VÀO ĐÂY (Trong transaction)
-            // Truyền trực tiếp $newSeat->room_id vào
-            $this->ensureShowtimeSeatsForRoom($newSeat->room_id);
-        });
-    } catch (\Throwable $e) {
+    if ($validated['seat_type'] === 'VIP' && !in_array($rowLabel, $zones['vipRows'])) {
+        $vipRange = implode(', ', $zones['vipRows']);
         return back()
-            ->withErrors(['error' => 'Không thể lưu, có thể ghế đã tồn tại . Vui lòng kiểm tra lại.'])
+            ->withErrors(['error' => "VIP chỉ được đặt ở hàng: {$vipRange}"])
             ->withInput();
     }
 
-    $room = Room::findOrFail($validated['room_id']);
+    if ($validated['seat_type'] === 'COUPLE' && !in_array($rowLabel, $zones['coupleRows'])) {
+        $coupleRange = implode(', ', $zones['coupleRows']);
+        return back()
+            ->withErrors(['error' => "COUPLE chỉ được đặt ở hàng: {$coupleRange}"])
+            ->withInput();
+    }
 
+    if (
+        $validated['seat_type'] === 'STANDARD' &&
+        (in_array($rowLabel, $zones['vipRows']) || in_array($rowLabel, $zones['coupleRows']))
+    ) {
+        return back()
+            ->withErrors(['error' => "Hàng {$rowLabel} không hợp lệ cho STANDARD (đây là vùng VIP hoặc COUPLE)"])
+            ->withInput();
+    }
+    $seatsToCreate = [];
+    if ($validated['seat_type'] === 'COUPLE') {
+        $num = (int)$validated['seat_number'];
+        $num1 = $num % 2 === 1 ? $num : $num - 1;
+        $num2 = $num1 + 1;
+        $seatsToCreate[] = ['number' => $num1, 'code' => $rowLabel . $num1];
+        $seatsToCreate[] = ['number' => $num2, 'code' => $rowLabel . $num2];
+    } else {
+        $seatsToCreate[] = ['number' => $validated['seat_number'], 'code' => $rowLabel . $validated['seat_number']];
+    }
+
+    // Check tồn tại
+    foreach ($seatsToCreate as $stc) {
+        $exists = Seat::withTrashed()
+            ->where('room_id', $validated['room_id'])
+            ->where('row_label', $rowLabel)
+            ->where('seat_number', $stc['number'])
+            ->exists();
+        
+        if ($exists) {
+            return back()
+                ->withErrors(['error' => "Ghế {$stc['code']} đã tồn tại. Không thể tạo."])
+                ->withInput();
+        }
+    }
+
+    try {
+        DB::transaction(function () use ($validated, $rowLabel, $seatsToCreate) {
+            $lastSeat = null;
+            foreach ($seatsToCreate as $stc) {
+                $lastSeat = Seat::create(array_merge($validated, [
+                    'row_label' => $rowLabel,
+                    'seat_number' => $stc['number'],
+                    'seat_code' => $stc['code'],
+                    'price' => $this->getSeatPriceFromTicketPrices($validated['seat_type'], $validated['room_id']),
+                ]));
+            }
+
+            if ($lastSeat) {
+                $this->ensureShowtimeSeatsForRoom($lastSeat->room_id);
+            }
+        });
+    } catch (\Throwable $e) {
+        return back()
+            ->withErrors(['error' => 'Không thể lưu ghế. Vui lòng kiểm tra lại.'])
+            ->withInput();
+    }
+
+    $createdCodes = implode(', ', array_column($seatsToCreate, 'code'));
     return redirect()->route('admin.seats.index', [
         'room_id' => $validated['room_id']
-    ])->with('success', "Thêm ghế {$seatCode} thành công.");
+    ])->with('success', "Thêm ghế {$createdCodes} thành công.");
 }
     public function update(Request $request, $id)
     {
@@ -337,28 +480,32 @@ if (
     {
         $this->ensureAdminAccess();
 
+        // ── Bước 1: Validate cơ bản ────────────────────────────────────────────
         $validated = $request->validate(
             [
-                'room_id' => 'required|exists:rooms,id',
+                'room_id'   => 'required|exists:rooms,id',
                 'row_label' => [
                     'required',
                     'string',
                     'max:1',
                     'regex:/^[A-Z]$/'
                 ],
-                'start' => 'required|integer|between:1,10',
-                'end' => 'required|integer|between:1,10|gte:start',
+                'start'     => 'required|integer|min:1',
+                'end'       => 'required|integer|min:1|gte:start',
                 'seat_type' => 'required|in:STANDARD,VIP,COUPLE',
-
             ],
             [
                 'row_label.required' => 'Vui lòng nhập hàng ghế.',
-                'row_label.string' => 'Hàng ghế phải là chữ cái A-Z.',
-                'row_label.max' => 'Hàng ghế chỉ 1 ký tự.',
-                'row_label.regex' => 'Hàng ghế chỉ được là chữ cái A-Z (không số, không ký tự đặc biệt).',
+                'row_label.string'   => 'Hàng ghế phải là chữ cái A-Z.',
+                'row_label.max'      => 'Hàng ghế chỉ 1 ký tự.',
+                'row_label.regex'    => 'Hàng ghế chỉ được là chữ cái A-Z (không số, không ký tự đặc biệt).',
+                'start.min'          => 'Số ghế bắt đầu phải lớn hơn 0.',
+                'end.min'            => 'Số ghế kết thúc phải lớn hơn 0.',
+                'end.gte'            => 'Số ghế kết thúc phải lớn hơn hoặc bằng số ghế bắt đầu.',
             ]
         );
 
+        // ── Bước 2: Kiểm tra phòng ────────────────────────────────────────────
         $room = Room::find($validated['room_id']);
 
         if (!$room || $room->status !== 'ACTIVE') {
@@ -368,69 +515,71 @@ if (
         }
 
         $rowLabel = strtoupper($validated['row_label']);
-        /**
-         * CHỈ ĐỊNH KHU VIP / COUPLE
-         * còn lại mặc định STANDARD
-         */
-        $vipRows = ['E', 'F', 'G', 'H'];
-        $coupleRows = ['J', 'K'];
 
-        if (in_array($rowLabel, $vipRows)) {
+        // ── Bước 3: Tính vùng ghế động từ total_seats ────────────────────────
+        $zones = $this->computeZones($room);
+
+        /*
+        |-------------------------------------------------------------------
+        | Vùng ghế được tính tự động theo total_seats:
+        |   STANDARD: ~50% hàng đầu (bắt đầu từ A)
+        |   VIP:      ~30% hàng giữa
+        |   COUPLE:   ~20% hàng cuối
+        |-------------------------------------------------------------------
+        */
+
+        // ── Bước 4: Validate hàng ghế không vượt quá phòng ──────────────────
+        if (ord($rowLabel) > ord($zones['maxRow'])) {
+            $vipRange    = implode(', ', $zones['vipRows']);
+            $coupleRange = implode(', ', $zones['coupleRows']);
+            return back()
+                ->withErrors([
+                    'error' => "Phòng {$room->name} ({$room->room_type}) chỉ có {$room->total_seats} ghế, "
+                             . "tối đa đến hàng {$zones['maxRow']}. "
+                             . "Phân vùng: VIP [{$vipRange}], COUPLE [{$coupleRange}], còn lại là STANDARD."
+                ])
+                ->withInput();
+        }
+
+        // ── Bước 5: Validate chéo row_label ↔ seat_type ──────────────────────
+        if (in_array($rowLabel, $zones['vipRows'])) {
             $expectedType = 'VIP';
-        } elseif (in_array($rowLabel, $coupleRows)) {
+        } elseif (in_array($rowLabel, $zones['coupleRows'])) {
             $expectedType = 'COUPLE';
         } else {
             $expectedType = 'STANDARD';
         }
 
-        /**
-         * validate chéo giữa row và seat_type
-         */
         if ($validated['seat_type'] !== $expectedType) {
+            $vipRange    = implode(', ', $zones['vipRows']);
+            $coupleRange = implode(', ', $zones['coupleRows']);
             return back()->withErrors([
-                'error' => "Hàng {$rowLabel} chỉ được phép tạo ghế {$expectedType}."
+                'error' => "Hàng {$rowLabel} chỉ được phép tạo ghế loại '{$expectedType}'. "
+                         . "(VIP: [{$vipRange}] | COUPLE: [{$coupleRange}] | còn lại: STANDARD)"
             ])->withInput();
         }
-        // Giới hạn số hàng theo tổng số ghế của phòng
-        $maxRow = chr(64 + ceil($room->total_seats / 10));
 
-        if (ord($rowLabel) > ord($maxRow)) {
+        // ── Bước 6: Validate số ghế không vượt quá seatsPerRow ───────────────
+        $seatsPerRow = $zones['seatsPerRow'];
+        if ($validated['end'] > $seatsPerRow) {
             return back()
                 ->withErrors([
-                'error' => "Để đảm bảo chất lượng trải nghiệm xem phim, phòng {$room->name} ({$room->room_type}) chỉ được thiết kế tối đa {$room->total_seats} ghế ngồi. Phòng này chỉ cho phép cấu hình từ hàng A đến {$maxRow}. Quy tắc áp dụng: E-H ghế VIP, J-K ghế Couple.Còn lại ghế thường "
+                    'error' => "Số ghế cuối không được vượt quá {$seatsPerRow} ghế/hàng."
                 ])
                 ->withInput();
         }
 
-        /*
-|--------------------------------------------------------------------------
-| QUY TẮC CẤU HÌNH GHẾ TOÀN HỆ THỐNG
-|--------------------------------------------------------------------------
-|
-| A-D  : STANDARD (4 hàng đầu)
-| E-H  : VIP
-| I    : STANDARD
-| J-K  : COUPLE
-| L-Z  : STANDARD
-|
-|--------------------------------------------------------------------------
-*/
-
-
-
-        /*
-|--------------------------------------------------------------------------
-| Giới hạn số ghế mỗi lần tạo
-|--------------------------------------------------------------------------
-*/
-
-        if (($validated['end'] - $validated['start'] + 1) > 20) {
+        // ── Bước 7: Giới hạn số ghế tạo mỗi lần ─────────────────────────────
+        $batchSize = $validated['end'] - $validated['start'] + 1;
+        if ($batchSize > $seatsPerRow) {
             return back()
                 ->withErrors([
-                    'error' => 'Chỉ tạo tối đa 20 ghế/lần để tránh lỗi cấu hình.'
+                    'error' => "Chỉ được tạo tối đa {$seatsPerRow} ghế/lần (1 hàng đầy)."
                 ])
                 ->withInput();
         }
+
+        // ── Bước 8: Tạo ghế trong transaction ────────────────────────────────
         $created = [];
         $skipped = [];
 
@@ -439,26 +588,27 @@ if (
                 for ($i = $validated['start']; $i <= $validated['end']; $i++) {
                     $seatCode = $rowLabel . $i;
 
-                    // Nếu đã tồn tại (dù soft-deleted hay không) thì coi như đã tạo/đã tồn tại.
+                    // Nếu đã tồn tại (kể cả soft-deleted) → bỏ qua hoặc phục hồi
                     $seat = Seat::withTrashed()
                         ->where('room_id', $validated['room_id'])
                         ->where('row_label', $rowLabel)
                         ->where('seat_number', $i)
                         ->first();
 
-
                     if ($seat) {
                         $skipped[] = $seatCode;
 
-                        // Nếu ghế đang bị soft delete thì phục hồi luôn.
+                        // Phục hồi nếu bị soft-delete
                         if ($seat->trashed()) {
                             $seat->restore();
                             $seat->update([
                                 'seat_type' => $validated['seat_type'],
-                                'price' => $this->getSeatPriceFromTicketPrices($validated['seat_type'], $validated['room_id']),
-                                'status' => 'ACTIVE',
+                                'price'     => $this->getSeatPriceFromTicketPrices(
+                                                    $validated['seat_type'],
+                                                    $validated['room_id']
+                                               ),
+                                'status'    => 'ACTIVE',
                             ]);
-
                             $created[] = $seat->seat_code;
                         }
 
@@ -466,13 +616,16 @@ if (
                     }
 
                     $seat = Seat::create([
-                        'room_id' => $validated['room_id'],
-                        'row_label' => $rowLabel,
+                        'room_id'     => $validated['room_id'],
+                        'row_label'   => $rowLabel,
                         'seat_number' => $i,
-                        'seat_code' => $seatCode,
-                        'seat_type' => $validated['seat_type'],
-                        'price' => $this->getSeatPriceFromTicketPrices($validated['seat_type'], $validated['room_id']),
-                        'status' => 'ACTIVE',
+                        'seat_code'   => $seatCode,
+                        'seat_type'   => $validated['seat_type'],
+                        'price'       => $this->getSeatPriceFromTicketPrices(
+                                             $validated['seat_type'],
+                                             $validated['room_id']
+                                         ),
+                        'status'      => 'ACTIVE',
                     ]);
 
                     $created[] = $seat->seat_code;
@@ -484,19 +637,21 @@ if (
                 ->withInput();
         }
 
-
+        // ── Bước 9: Đồng bộ showtime_seats ───────────────────────────────────
         $this->ensureShowtimeSeatsForRoom($validated['room_id']);
 
+        // ── Bước 10: Trả về kết quả ───────────────────────────────────────────
         $room = Room::findOrFail($validated['room_id']);
 
         if (!empty($created)) {
-            $successMessage = 'Đã tạo ' . count($created) . ' ghế cho hàng ' . $rowLabel . ': ' . implode(', ', $created) . '.';
+            $successMessage = 'Đã tạo ' . count($created) . ' ghế cho hàng ' . $rowLabel
+                            . ': ' . implode(', ', $created) . '.';
         } else {
-            $successMessage = 'Không tạo thêm ghế nào vì các ghế đã tồn tại.';
+            $successMessage = 'Không tạo thêm ghế nào (các ghế đã tồn tại).';
         }
 
         if (!empty($skipped)) {
-            $successMessage .= ' Các ghế đã tồn tại: ' . implode(', ', $skipped) . '.';
+            $successMessage .= ' Bỏ qua (đã tồn tại): ' . implode(', ', $skipped) . '.';
         }
 
         return redirect()->route('admin.seats.index', [
@@ -508,12 +663,26 @@ if (
     {
         $this->ensureAdminAccess();
 
+        // Chặn theo phòng: nếu phòng đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+        // thì không được xóa nhiều.
+
+
         $validated = $request->validate([
             'seat_ids' => 'required|array',
             'seat_ids.*' => 'exists:seats,id',
         ]);
 
         $seatIds = $validated['seat_ids'];
+
+        // Check khóa theo phòng cho mọi ghế được chọn
+        foreach ($seatIds as $seatId) {
+            $seat = Seat::with('room')->findOrFail($seatId);
+            try {
+                $this->assertSeatNotLockedForRealtime($seat);
+            } catch (\Exception $e) {
+                return back()->withErrors(['error' => $e->getMessage()]);
+            }
+        }
         $deleted = [];
         $blocked = [];
 
@@ -577,24 +746,34 @@ if (
         return back()->withErrors(['error' => 'Không có ghế nào được chọn để xóa.']);
     }
 
-   public function toggleLock($id)
+    public function toggleLock($id)
 {
-    $this->ensureAdminAccess();
+        $this->ensureAdminAccess();
 
-    $seat = Seat::findOrFail($id);
+        $seat = Seat::findOrFail($id);
 
-    // Fix: Nếu ghế đang bị khách khác HOLD (lưu trong cache seat_held_*), không cho admin khóa/mở.
-    $heldBySomeone = $seat->showtimeSeats()
-        ->whereHas('showtime', function ($q) {
-            $q->where('start_time', '>', now());
-        })
-        ->get()
-        ->contains(function ($showtimeSeat) {
-            $heldBy = \Illuminate\Support\Facades\Cache::get(
-                'seat_held_' . $showtimeSeat->showtime_id . '_' . $showtimeSeat->id
-            );
-            return $heldBy && $heldBy != Auth::id();
-        });
+        // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+        try {
+            $this->assertSeatNotLockedForRealtime($seat);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+
+        // Fix: Nếu ghế đang bị khách khác HOLD
+        $heldBySomeone = $seat->showtimeSeats()
+            ->whereHas('showtime', function ($q) {
+                $q->where('start_time', '>', now());
+            })
+            ->get()
+            ->contains(function ($showtimeSeat) {
+                $heldBy = \Illuminate\Support\Facades\Cache::get(
+                    'seat_held_' . $showtimeSeat->showtime_id . '_' . $showtimeSeat->id
+                );
+                return $heldBy && $heldBy != Auth::id();
+            });
+
+
+
 
     if ($heldBySomeone) {
         return back()->withErrors(['error' => "Ghế {$seat->seat_code} đang được khách giữ (hold), không thể khóa/mở khóa lúc này."]);
@@ -616,9 +795,27 @@ if (
 
     // 3. Cập nhật ghế gốc
     $seat->update(['status' => $newStatus]);
+    
+    // Tự động cập nhật ghế còn lại nếu là COUPLE
+    $siblingSeat = null;
+    if ($seat->seat_type === 'COUPLE') {
+        $num = $seat->seat_number;
+        $siblingNum = $num % 2 === 1 ? $num + 1 : $num - 1;
+        $siblingSeat = Seat::where('room_id', $seat->room_id)
+            ->where('row_label', $seat->row_label)
+            ->where('seat_number', $siblingNum)
+            ->first();
+            
+        if ($siblingSeat && $siblingSeat->status !== 'BROKEN') {
+            $siblingSeat->update(['status' => $newStatus]);
+        }
+    }
 
     // 4. Đồng bộ ngay lập tức sang các suất chiếu tương lai
     $this->syncShowtimeSeatState($seat->fresh());
+    if (isset($siblingSeat)) {
+        $this->syncShowtimeSeatState($siblingSeat->fresh());
+    }
 
     // 5. Ghi log
     $this->writeAuditLog(
@@ -635,11 +832,104 @@ if (
     return back()->with('success', $message);
 }
 
+    public function toggleLockMany(Request $request)
+    {
+        $this->ensureAdminAccess();
+
+        $validated = $request->validate([
+            'seat_ids' => 'required|array|min:1',
+            'seat_ids.*' => 'required|integer|distinct|exists:seats,id',
+        ]);
+
+        $seatIds = array_values($validated['seat_ids']);
+
+        // Load seats with room for realtime lock validation
+        $seats = Seat::with('room')->whereIn('id', $seatIds)->get();
+        if ($seats->count() !== count($seatIds)) {
+            return back()->withErrors(['error' => 'Danh sách ghế không hợp lệ.']);
+        }
+
+        // Validate per room: room cannot have started showtime/open or non-cancelled booking
+        $rooms = $seats->pluck('room')->filter();
+        $roomsUnique = $rooms->unique('id')->values();
+        foreach ($roomsUnique as $room) {
+            try {
+                $this->assertSeatRoomNotLockedForRealtime($room);
+            } catch (\Exception $e) {
+                return back()->withErrors(['error' => $e->getMessage()]);
+            }
+        }
+
+        $updatedCount = 0;
+
+        DB::transaction(function () use ($seats, &$updatedCount) {
+            foreach ($seats as $seat) {
+                if ($seat->status === 'BROKEN') {
+                    // Skip broken seats silently (UI should already avoid, but keep safe)
+                    continue;
+                }
+
+                $newStatus = $seat->status === 'BLOCKED' ? 'ACTIVE' : 'BLOCKED';
+                $oldStatus = $seat->status;
+
+                $seat->update(['status' => $newStatus]);
+
+                // Couple: toggle/update both seats
+                if ($seat->seat_type === 'COUPLE') {
+                    $siblingNum = ($seat->seat_number % 2 === 1) ? $seat->seat_number + 1 : $seat->seat_number - 1;
+                    $siblingSeat = Seat::where('room_id', $seat->room_id)
+                        ->where('row_label', $seat->row_label)
+                        ->where('seat_number', $siblingNum)
+                        ->first();
+
+                    if ($siblingSeat && $siblingSeat->status !== 'BROKEN') {
+                        $siblingSeat->update(['status' => $newStatus]);
+                    }
+                }
+
+                // Sync future showtime seats
+                $this->syncShowtimeSeatState($seat->fresh());
+
+                if ($seat->seat_type === 'COUPLE') {
+                    $siblingNum = ($seat->seat_number % 2 === 1) ? $seat->seat_number + 1 : $seat->seat_number - 1;
+                    $siblingSeat = Seat::where('room_id', $seat->room_id)
+                        ->where('row_label', $seat->row_label)
+                        ->where('seat_number', $siblingNum)
+                        ->first();
+
+                    if ($siblingSeat) {
+                        $this->syncShowtimeSeatState($siblingSeat->fresh());
+                    }
+                }
+
+                $this->writeAuditLog(
+                    $newStatus === 'BLOCKED' ? 'seat.bulk_block' : 'seat.bulk_unblock',
+                    $seat,
+                    ['status' => $oldStatus],
+                    ['status' => $newStatus]
+                );
+
+                $updatedCount++;
+            }
+        });
+
+        return back()->with('success', 'Đã cập nhật trạng thái ' . $updatedCount . ' ghế (toggle).');
+    }
+
     public function destroy($id)
     {
         $this->ensureAdminAccess();
 
+
         $seat = Seat::findOrFail($id);
+
+        // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+        try {
+            $this->assertSeatNotLockedForRealtime($seat);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+
 
         // Gợi ý cho phương thức destroy
         if ($seat->showtimeSeats()->whereHas('showtime', function($q) {
@@ -648,10 +938,31 @@ if (
             return back()->withErrors(['error' => 'Ghế này đang thuộc suất chiếu sắp diễn ra.']);
         }
 
+        $siblingSeat = null;
+        if ($seat->seat_type === 'COUPLE') {
+            $num = $seat->seat_number;
+            $siblingNum = $num % 2 === 1 ? $num + 1 : $num - 1;
+            $siblingSeat = Seat::where('room_id', $seat->room_id)
+                ->where('row_label', $seat->row_label)
+                ->where('seat_number', $siblingNum)
+                ->first();
+                
+            if ($siblingSeat && $siblingSeat->showtimeSeats()->whereHas('showtime', function($q) {
+                $q->where('start_time', '>', now());
+            })->exists()) {
+                return back()->withErrors(['error' => 'Ghế cặp này đang thuộc suất chiếu sắp diễn ra.']);
+            }
+        }
+
         $seat->delete();
         $this->writeAuditLog('seat.delete_soft', $seat, ['status' => $seat->status], ['deleted' => true]);
 
-        return back()->with('success', "Đã xóa mềm ghế {$seat->seat_code}.");
+        if ($siblingSeat) {
+            $siblingSeat->delete();
+            $this->writeAuditLog('seat.delete_soft', $siblingSeat, ['status' => $siblingSeat->status], ['deleted' => true]);
+        }
+
+        return back()->with('success', "Đã xóa mềm ghế {$seat->seat_code}" . ($siblingSeat ? " và {$siblingSeat->seat_code}" : "") . ".");
     }
 
     private function writeAuditLog(string $action, Seat $seat, array $oldValue, array $newValue): void

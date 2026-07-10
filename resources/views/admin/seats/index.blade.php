@@ -145,9 +145,14 @@
                             <button type="button" class="btn btn-outline-secondary btn-sm" id="bulkSelectModeBtn">
                                 <i class="bi bi-ui-checks-grid me-1"></i> Chọn nhiều
                             </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" id="bulkToggleOpenBtn" data-bs-toggle="modal" data-bs-target="#bulkToggleModal" disabled>
+                                <i class="bi bi-lock-fill me-1"></i> Toggle khóa/mở nhiều <span class="badge text-bg-warning ms-1" id="bulkToggleCountBadge">0</span>
+                            </button>
+
                             <button type="button" class="btn btn-outline-danger btn-sm" id="bulkDeleteOpenBtn" data-bs-toggle="modal" data-bs-target="#bulkDeleteModal" disabled>
                                 <i class="bi bi-trash3 me-1"></i> Xóa nhiều <span class="badge text-bg-danger ms-1" id="bulkDeleteCountBadge">0</span>
                             </button>
+
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkCreateModal">
                                 <i class="bi bi-plus-square me-1"></i> Tạo nhiều
                             </button>
@@ -177,37 +182,78 @@
                                     <div class="seat-row">
                                         <div class="row-label">{{ $row }}</div>
                                         <div class="row-seats">
-                                            @foreach ($seats as $seat)
+                                            @php $skipNext = false; @endphp
+                                            @foreach ($seats as $index => $seat)
+                                                @if ($skipNext)
+                                                    @php $skipNext = false; @endphp
+                                                    @continue
+                                                @endif
                                                 @php
                                                     $isLocked = in_array($seat->status, ['LOCKED', 'BLOCKED']);
+                                                    $isCouple = ($seat->seat_type === 'COUPLE');
+                                                    $nextSeat = $seats[$index + 1] ?? null;
+                                                    $isPair = $isCouple && $nextSeat && $nextSeat->seat_type === 'COUPLE';
                                                 @endphp
-                                                <div class="seat-wrapper" data-seat-wrapper="{{ $seat->id }}">
-                                                    <input type="checkbox"
-                                                           class="seat-checkbox visually-hidden"
-                                                           name="seat_ids[]"
-                                                           value="{{ $seat->id }}"
-                                                           form="bulkDeleteForm"
-                                                           aria-label="Chọn ghế {{ $seat->seat_code }}">
 
-                                                    <button type="button"
-                                                            class="seat-trigger"
-                                                            data-seat-id="{{ $seat->id }}"
-                                                            data-seat-code="{{ $seat->seat_code }}"
-                                                            data-seat-type="{{ $seat->seat_type }}"
-                                                            data-seat-status="{{ $seat->status }}"
-                                                            data-seat-price="{{ number_format($seat->price) }}đ"
-                                                            data-edit-url="{{ route('admin.seats.edit', $seat->id) }}"
-                                                            data-toggle-url="{{ route('admin.seats.toggle_lock', $seat->id) }}"
-                                                            data-delete-url="{{ route('admin.seats.destroy', $seat->id) }}"
-                                                            data-is-locked="{{ $isLocked ? '1' : '0' }}"
-                                                            data-is-broken="{{ $seat->status === 'BROKEN' ? '1' : '0' }}"
-                                                            title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
-                                                        <span class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}">
-                                                            <strong>{{ $seat->seat_code }}</strong>
-                                                            <small>{{ $seat->seat_type }}</small>
-                                                        </span>
-                                                    </button>
-                                                </div>
+                                                @if ($isPair)
+                                                    @php
+                                                        $skipNext = true;
+                                                        $isLocked2 = in_array($nextSeat->status, ['LOCKED', 'BLOCKED']);
+                                                        $combinedLocked = $isLocked || $isLocked2;
+                                                        $combinedBroken = $seat->status === 'BROKEN' || $nextSeat->status === 'BROKEN';
+                                                        $combinedStatus = $combinedBroken ? 'BROKEN' : ($combinedLocked ? 'BLOCKED' : 'ACTIVE');
+                                                    @endphp
+                                                    <div class="seat-wrapper" data-seat-wrapper="{{ $seat->id }},{{ $nextSeat->id }}">
+                                                        <input type="checkbox" class="seat-checkbox visually-hidden" name="seat_ids[]" value="{{ $seat->id }}" form="bulkDeleteForm" aria-label="Chọn ghế {{ $seat->seat_code }}">
+                                                        <input type="checkbox" class="seat-checkbox visually-hidden" name="seat_ids[]" value="{{ $nextSeat->id }}" form="bulkDeleteForm" aria-label="Chọn ghế {{ $nextSeat->seat_code }}">
+
+                                                        <button type="button"
+                                                                class="seat-trigger"
+                                                                data-seat-id="{{ $seat->id }},{{ $nextSeat->id }}"
+                                                                data-seat-code="{{ $seat->seat_code }}-{{ $nextSeat->seat_code }}"
+                                                                data-seat-type="COUPLE"
+                                                                data-seat-status="{{ $combinedStatus }}"
+                                                                data-seat-price="{{ number_format($seat->price + $nextSeat->price) }}đ"
+                                                                data-edit-url="{{ route('admin.seats.edit', $seat->id) }}"
+                                                                data-toggle-url="{{ route('admin.seats.toggle_lock', $seat->id) }}"
+                                                                data-delete-url="{{ route('admin.seats.destroy', $seat->id) }}"
+                                                                data-is-locked="{{ $combinedLocked ? '1' : '0' }}"
+                                                                data-is-broken="{{ $combinedBroken ? '1' : '0' }}"
+                                                                title="{{ $seat->seat_code }} & {{ $nextSeat->seat_code }} · {{ number_format($seat->price + $nextSeat->price) }}đ · {{ $combinedStatus }}">
+                                                            <span class="seat seat-{{ $combinedStatus === 'ACTIVE' ? 'COUPLE' : $combinedStatus }}" style="width: 88px; padding: 7px 4px;">
+                                                                <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                                                                    <strong>{{ $seat->seat_code }}</strong>
+                                                                    <i class="bi bi-heart-fill mx-1" style="color: #fbcfe8; font-size: 11px;"></i>
+                                                                    <strong>{{ $nextSeat->seat_code }}</strong>
+                                                                </div>
+                                                                <small>COUPLE</small>
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                @else
+                                                    <div class="seat-wrapper" data-seat-wrapper="{{ $seat->id }}">
+                                                        <input type="checkbox" class="seat-checkbox visually-hidden" name="seat_ids[]" value="{{ $seat->id }}" form="bulkDeleteForm" aria-label="Chọn ghế {{ $seat->seat_code }}">
+
+                                                        <button type="button"
+                                                                class="seat-trigger"
+                                                                data-seat-id="{{ $seat->id }}"
+                                                                data-seat-code="{{ $seat->seat_code }}"
+                                                                data-seat-type="{{ $seat->seat_type }}"
+                                                                data-seat-status="{{ $seat->status }}"
+                                                                data-seat-price="{{ number_format($seat->price) }}đ"
+                                                                data-edit-url="{{ route('admin.seats.edit', $seat->id) }}"
+                                                                data-toggle-url="{{ route('admin.seats.toggle_lock', $seat->id) }}"
+                                                                data-delete-url="{{ route('admin.seats.destroy', $seat->id) }}"
+                                                                data-is-locked="{{ $isLocked ? '1' : '0' }}"
+                                                                data-is-broken="{{ $seat->status === 'BROKEN' ? '1' : '0' }}"
+                                                                title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
+                                                            <span class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}">
+                                                                <strong>{{ $seat->seat_code }}</strong>
+                                                                <small>{{ $seat->seat_type }}</small>
+                                                            </span>
+                                                        </button>
+                                                    </div>
+                                                @endif
                                             @endforeach
                                         </div>
                                     </div>
@@ -256,11 +302,39 @@
         </div>
 
 
+        <div class="modal fade" id="bulkToggleModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Toggle khóa/mở nhiều ghế</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Bạn đã chọn <strong id="bulkToggleCount">0</strong> ghế.
+                        <div class="text-muted small mt-2">
+                            Ghế đang <b>ACTIVE/BLOCKED</b> sẽ được <b>toggle</b> trạng thái.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <form id="bulkToggleForm" action="{{ route('admin.seats.toggle_lock_many') }}" method="POST" style="margin:0;">
+                            @csrf
+                            <div id="bulkToggleSeatIdsContainer"></div>
+                            <button type="submit" class="btn btn-warning" id="bulkToggleSubmit" disabled>
+                                Xác nhận toggle
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="modal fade" id="bulkDeleteModal" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
                         <h5 class="modal-title">Xóa nhiều ghế</h5>
+
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
@@ -364,8 +438,23 @@
             const bulkDeleteCountBadge = document.getElementById('bulkDeleteCountBadge');
             const bulkDeleteSubmit = document.getElementById('bulkDeleteSubmit');
             const bulkDeleteOpenBtn = document.getElementById('bulkDeleteOpenBtn');
+
+            const bulkToggleCount = document.getElementById('bulkToggleCount');
+            const bulkToggleCountBadge = document.getElementById('bulkToggleCountBadge');
+            const bulkToggleSubmit = document.getElementById('bulkToggleSubmit');
+            const bulkToggleOpenBtn = document.getElementById('bulkToggleOpenBtn');
+            const bulkToggleSeatIdsContainer = document.getElementById('bulkToggleSeatIdsContainer');
+
             const bulkSelectModeBtn = document.getElementById('bulkSelectModeBtn');
             const bulkModeHint = document.getElementById('bulkModeHint');
+
+            // Toggle open modal handlers (update count + payload on open)
+            if (bulkToggleOpenBtn) {
+                bulkToggleOpenBtn.addEventListener('click', function () {
+                    updateBulkToggleState();
+                });
+            }
+
             const selectedSeatEmpty = document.getElementById('selectedSeatEmpty');
             const selectedSeatDetail = document.getElementById('selectedSeatDetail');
             const selectedSeatCode = document.getElementById('selectedSeatCode');
@@ -388,6 +477,28 @@
                 if (bulkDeleteOpenBtn) bulkDeleteOpenBtn.disabled = selectedCount === 0;
             }
 
+            function updateBulkToggleState() {
+                const selectedCount = document.querySelectorAll('.seat-checkbox:checked').length;
+                if (bulkToggleCount) bulkToggleCount.textContent = selectedCount;
+                if (bulkToggleCountBadge) bulkToggleCountBadge.textContent = selectedCount;
+                if (bulkToggleSeatIdsContainer) bulkToggleSeatIdsContainer.innerHTML = '';
+                if (bulkToggleSubmit) bulkToggleSubmit.disabled = selectedCount === 0;
+                if (bulkToggleOpenBtn) bulkToggleOpenBtn.disabled = selectedCount === 0;
+
+                if (!bulkToggleSeatIdsContainer) return;
+                // Build hidden inputs for toggle many
+                const checked = Array.from(document.querySelectorAll('.seat-checkbox:checked'));
+                checked.forEach(function(cb){
+                    const id = cb.value;
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'seat_ids[]';
+                    input.value = id;
+                    bulkToggleSeatIdsContainer.appendChild(input);
+                });
+            }
+
+
             function clearActiveSeat() {
                 document.querySelectorAll('.seat-wrapper.is-selected').forEach(function(wrapper) {
                     wrapper.classList.remove('is-selected');
@@ -408,22 +519,29 @@
                 }
             }
 
-            function toggleSeatForBulk(wrapper, checkbox) {
-                if (!checkbox) return;
-                checkbox.checked = !checkbox.checked;
-                wrapper.classList.toggle('is-bulk-selected', checkbox.checked);
+            function toggleSeatForBulk(wrapper, forceState = null) {
+                const checkboxes = wrapper.querySelectorAll('.seat-checkbox');
+                if (checkboxes.length === 0) return;
+
+                const firstCheckbox = checkboxes[0];
+                const newState = forceState !== null ? forceState : !firstCheckbox.checked;
+
+                checkboxes.forEach(cb => cb.checked = newState);
+                wrapper.classList.toggle('is-bulk-selected', newState);
+
                 updateBulkDeleteState();
+                updateBulkToggleState();
             }
+
 
             document.querySelectorAll('.seat-trigger').forEach(function(trigger) {
                 trigger.addEventListener('click', function() {
                     const wrapper = trigger.closest('.seat-wrapper');
-                    const checkbox = wrapper.querySelector('.seat-checkbox');
                     const isLocked = trigger.dataset.isLocked === '1';
                     const isBroken = trigger.dataset.isBroken === '1';
 
                     if (isBulkMode) {
-                        toggleSeatForBulk(wrapper, checkbox);
+                        toggleSeatForBulk(wrapper);
                         return;
                     }
 
