@@ -1,0 +1,8 @@
+Các bước làm chat_bot ai
+1. cấu hình file config/services.php (đã xong)
+2. Khai báo kết nối với ENV (đã xong)
+3. Tạo service kết nối API gemini
+4. TẠO  controller và service xử lý logic
+5. Khai báo route 
+6. Tạo model chat_message nếu cần
+7. xử lý logic View chat bot

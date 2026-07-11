@@ -1,0 +1,54 @@
+# Giải thích Luồng Hoạt động và Cấu trúc Chatbot (Level 1 + Level 2)
+
+## 1. Luồng xử lý tổng quan
+Luồng xử lý của Chatbot sử dụng phương pháp chia để trị (Two-step generation) kết hợp giữa API của Gemini và Database của hệ thống (MySQL). 
+
+**Sơ đồ luồng:**
+1. **User Message:** Người dùng gửi tin nhắn (VD: "Ngày mai có phim gì?").
+2. **Detect Intent (Phân tích ý định & Thực thể):** Hệ thống gọi Gemini lần 1 (`detectIntent` trong `GeminiService`) yêu cầu AI đọc câu hỏi và trả về 1 chuỗi JSON xác định ý định (Intent) và trích xuất thông tin (Entities).
+3. **Query Database (Truy xuất dữ liệu):** Dựa vào Intent và Entities thu được (ở bước 2), `ApiChatbotController` thực hiện logic switch-case để truy vấn cơ sở dữ liệu (Movie, Showtime, Genre) nhằm lấy ra dữ liệu thực tế.
+4. **Build Context (Xây dựng Ngữ cảnh):** Thông tin từ DB được chuyển thành định dạng chuỗi (Text/JSON) tạo thành "Ngữ cảnh - Context".
+5. **Generate Response (Tạo phản hồi):** Hệ thống gọi Gemini lần 2 (`generateResponse`) truyền vào cả "Ngữ cảnh" (đã build ở bước 4) và "Câu hỏi của người dùng". Ở bước này, Prompt ép buộc Gemini CHỈ ĐƯỢC trả lời dựa vào ngữ cảnh (tránh ảo giác / bịa đặt dữ liệu).
+6. **Return Response:** Bot trả về câu trả lời tự nhiên nhất cho người dùng.
+
+---
+
+## 2. Giải thích các Intent (Ý định)
+
+Trong `GeminiService@detectIntent`, chúng ta đã định nghĩa các intent sau:
+- `GREETING`: Chào hỏi cơ bản.
+- `MOVIE_SEARCH`: Tìm kiếm phim chung (VD: "Có phim gì hot không?").
+- `MOVIE_DETAIL`: Xem chi tiết phim (VD: "Avatar thời lượng bao nhiêu?").
+- `GENRE_SEARCH`: Tìm phim theo thể loại (VD: "Có phim kinh dị không?").
+- `SHOWTIME_SEARCH`: Xem lịch chiếu / suất chiếu (VD: "Tối nay có suất chiếu Avatar không?").
+- `FAQ`: Câu hỏi thường gặp chung về rạp chiếu (độ tuổi, giá vé, giờ mở cửa...).
+
+---
+
+## 3. Giải thích các Biến chính trong Controller (`ApiChatbotController`)
+
+- `$message`: Chuỗi văn bản tin nhắn của người dùng gửi lên qua request.
+- `$analysis`: Mảng chứa kết quả sau khi gọi Gemini phân tích `detectIntent`. Bao gồm `intent` và `entities`.
+- `$intent`: Chuỗi phân loại ý định được lấy từ `$analysis['intent']`.
+- `$entities`: Mảng (Dictionary) chứa các thông tin trích xuất được từ câu hỏi (VD: tên phim, thể loại, ngày).
+- `$context`: Biến dạng chuỗi `String`. Ban đầu rỗng. Nó dùng để gom các thông tin truy xuất từ CSDL thành một đoạn văn bản. Ngữ cảnh này sau đó làm "tài liệu tham khảo" cho con AI trả lời.
+- `$searchDate`: Biến lưu trữ thời gian (Carbon instance) để query suất chiếu. Nếu user nhắc đến "mai", biến này được cộng thêm 1 ngày.
+- `$reply`: Câu trả lời bằng ngôn ngữ tự nhiên, được tạo bởi Gemini ở bước cuối dựa trên `$context` và `$message`.
+
+---
+
+## 4. Giải thích hàm trong `GeminiService`
+
+- `detectIntent($message)`:
+  - Tạo một prompt đặc biệt yêu cầu AI đóng vai là một "Hệ thống phân tích ngôn ngữ tự nhiên".
+  - Ép AI trả về chuẩn JSON. 
+  - Hàm dùng `json_decode` để biến string JSON từ AI thành mảng PHP.
+
+- `generateResponse($message, $context)`:
+  - Yêu cầu AI đóng vai là một "Trợ lý ảo thân thiện".
+  - Nhận `$context` (những gì truy xuất từ DB) và ghép vào System Prompt.
+  - Ràng buộc quan trọng nhất: "Nếu thông tin không có trong ngữ cảnh, hãy xin lỗi và báo là chưa có thông tin, tuyệt đối KHÔNG tự bịa ra phim".
+
+## 5. Ưu điểm của cách tiếp cận này
+- Tránh được vấn đề "ảo giác" (Hallucination) của AI: AI sẽ không tự bịa ra suất chiếu hay tên phim linh tinh, mà chỉ dùng dữ liệu thực từ database truyền lên qua biến `$context`.
+- Dễ dàng mở rộng Level 3 (Đặt vé, Đăng nhập) ở bước Query Database sau này bằng cách bắt các Intent mới.
