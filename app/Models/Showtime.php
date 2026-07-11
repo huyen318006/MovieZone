@@ -17,7 +17,7 @@ class Showtime extends Model
         'start_time',
         'end_time',
         'format',
-        'language_type',
+        // 'language_type',
         'status',
         'cancel_reason',
         'cancelled_at',

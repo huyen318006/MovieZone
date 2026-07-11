@@ -90,7 +90,7 @@
                         @enderror
                     </div>
 
-                    <!-- Ngôn ngữ -->
+                    {{-- <!-- Ngôn ngữ -->
                     <div class="col-12 col-lg-4">
                         <label class="form-label fw-semibold">Ngôn ngữ <span class="text-danger">*</span></label>
                         <input
@@ -105,7 +105,7 @@
                         @error('language_type')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                    </div>
+                    </div> --}}
                 </div>
 
                 {{-- Card thông tin phim --}}
