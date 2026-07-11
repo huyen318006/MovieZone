@@ -25,6 +25,7 @@ use App\Http\Controllers\ShowtimeController;
 use App\Http\Controllers\Staff\StaffDashboardController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\VoucherController;
+use App\Http\Controllers\ChatbotController;
 use App\Models\Movie;
 use Illuminate\Support\Facades\Route;
 
@@ -479,4 +480,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Hỗ trợ check-in vé
     Route::post('/admin/api/bookings/tickets/{ticket_id}/check-in', [BookingManageController::class, 'checkInTicket'])->name('admin.bookings.ticket.checkin');
 });
+
+// Chatbot API (Menu-based - Giai đoạn 1)
+Route::post('/api/chatbot', ChatbotController::class)->name('api.chatbot');
 
