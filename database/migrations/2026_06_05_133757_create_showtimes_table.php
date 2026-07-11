@@ -31,8 +31,6 @@ return new class extends Migration
 
             $table->dateTime('end_time');
 
-            $table->string('format');
-
             $table->string('language_type');
 
             $table->enum('status', [

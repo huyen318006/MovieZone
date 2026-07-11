@@ -29,7 +29,6 @@ class ShowtimeSeeder extends Seeder
                 'room_id' => rand(1, 5),
                 'start_time' => $start,
                 'end_time' => $start->copy()->addHours(2),
-                'format' => rand(1, 2) === 1 ? '2D' : '3D',
                 'language_type' => rand(1, 2) === 1 ? 'English' : 'Vietnamese',
                 'status' => 'OPEN',
                 'created_at' => now(),
