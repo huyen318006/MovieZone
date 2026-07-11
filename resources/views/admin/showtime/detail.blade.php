@@ -32,8 +32,8 @@
                 <dt class="col-sm-3">Định dạng</dt>
                 <dd class="col-sm-9">{{ $showtime->format }}</dd>
 
-                <dt class="col-sm-3">Ngôn ngữ</dt>
-                <dd class="col-sm-9">{{ $showtime->language_type }}</dd>
+                {{-- <dt class="col-sm-3">Ngôn ngữ</dt>
+                <dd class="col-sm-9">{{ $showtime->language_type }}</dd> --}}
 
                 <dt class="col-sm-3">Trạng thái</dt>
                 <dd class="col-sm-9">{{ $showtime->status }}</dd>
