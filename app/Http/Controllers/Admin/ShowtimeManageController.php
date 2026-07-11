@@ -196,7 +196,6 @@ class ShowtimeManageController extends Controller
             'movie_id' => ['required', 'exists:movies,id'],
             'room_id' => ['required', 'exists:rooms,id'],
             'start_time' => ['required', 'date'],
-            'language_type' => ['required', 'string', 'max:255'],
         ]);
 
         $cinema = $this->currentCinema();
@@ -289,7 +288,6 @@ class ShowtimeManageController extends Controller
                 'room_id' => $room->id,
                 'start_time' => $startTime,
                 'end_time' => $endTime,
-                'language_type' => $request->language_type,
                 'status' => 'OPEN',
             ]);
 
@@ -321,7 +319,6 @@ class ShowtimeManageController extends Controller
                     'room_id' => $showtime->room_id,
                     'start_time' => $showtime->start_time,
                     'end_time' => $showtime->end_time,
-                    'language_type' => $showtime->language_type,
                     'status' => $showtime->status,
                 ]),
                 'created_at' => now(),
@@ -391,7 +388,6 @@ class ShowtimeManageController extends Controller
             'movie_id' => ['required', 'exists:movies,id'],
             'room_id' => ['required', 'exists:rooms,id'],
             'start_time' => ['required', 'date'],
-            'language_type' => ['required', 'string', 'max:255'],
         ]);
 
         $cinema = $this->currentCinema();
@@ -531,7 +527,6 @@ class ShowtimeManageController extends Controller
                 'room_id' => $room->id,
                 'start_time' => $startTime,
                 'end_time' => $endTime,
-                'language_type' => $request->language_type,
             ]);
 
             // Bước 11: Ghi log thao tác Admin vào AuditLog
@@ -880,6 +875,7 @@ class ShowtimeManageController extends Controller
         $request->validate([
             'room_id' => ['required', 'exists:rooms,id'],
             'date'    => ['required', 'date'],
+            'showtime_id' => ['nullable', 'integer', 'exists:showtimes,id'],
         ]);
 
         $cinema = $this->currentCinema();
@@ -934,6 +930,7 @@ class ShowtimeManageController extends Controller
         // Đếm số ghế đã cấu hình cho phòng
         $seatCount = Seat::where('room_id', $room->id)->where('status', 'ACTIVE')->count();
 
+        // Trả về thêm danh sách showtimes để FE có thể kiểm tra slot conflict theo từng suất
         return response()->json([
             'room' => [
                 'id'          => $room->id,
@@ -949,15 +946,13 @@ class ShowtimeManageController extends Controller
                     'movie_poster'    => $st->movie->poster_url ?? null,
                     'start_time'      => $st->start_time->format('H:i'),
                     'end_time'        => $st->end_time->format('H:i'),
-                    'start_hour'      => (float) $st->start_time->format('G') + $st->start_time->format('i') / 60,
-                    'end_hour'        => (float) $st->end_time->format('G') + $st->end_time->format('i') / 60,
-                    'duration_minutes'=> $st->movie->duration_minutes ?? 0,
                     'status'          => $st->status,
                 ];
             })->values()->toArray(),
             'gaps' => $gaps,
             'date' => $date->format('Y-m-d'),
         ]);
+
     }
     /* ============================================================
      * API: Kiểm tra danh sách phòng chiếu khả dụng & lý do trùng
@@ -1024,12 +1019,23 @@ class ShowtimeManageController extends Controller
         }
 
         // Bước 7: Trả kết quả JSON về cho client
+        // Trường hợp update suất chiếu: cho phép chọn lại đúng chính suất đang sửa
+        // (room + start_time bị trùng chính showtime_id) => getConflictingShowtime đã bỏ qua showtime_id.
         return response()->json([
             'rooms' => $result,
         ]);
     }
 
+    // NOTE:
+    // apiCheckRoomsAvailability dùng start_time/end_time để lock phòng khi trùng lịch.
+    // Khi admin đang edit một showtime thì cần loại xung đột với chính showtime đó.
+    // Logic bỏ qua này nằm trong getConflictingShowtime() bằng $ignoreShowtimeId.
+    // Vì client luôn gửi showtime_id đang sửa, getConflictingShowtime sẽ không trả conflict
+    // nếu conflict thuộc chính showtime_id đó.
+
     /* ============================================================
+
+
      * API: Quét tất cả các phòng & tính toán khoảng trống khả dụng
      * - Đầu vào: movie_id, date
      * - Xử lý: 

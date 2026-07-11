@@ -213,15 +213,42 @@
                                                     ->isNotEmpty();
                                         @endphp
 
-                                        @if(!$hasBookingActivity)
-                                            <a href="{{ route('admin.view.update.showtime', $showtime->id) }}" class="btn btn-outline-primary btn-sm"> <i class="bi bi-pencil me-1"></i>
+                                        @php
+                                            $hasBookingActivity = $showtime->bookings->isNotEmpty()
+                                                || $showtime->showtimeSeats
+                                                    ->whereIn('status', ['HELD', 'SOLD'])
+                                                    ->isNotEmpty();
+
+                                            $canEdit =
+                                                !$hasBookingActivity
+                                                && $showtime->status !== 'CANCELLED'
+                                                && $showtime->start_time->isFuture();
+                                        @endphp
+
+                                        @if($canEdit)
+                                            <a href="{{ route('admin.view.update.showtime', $showtime->id) }}" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-pencil me-1"></i>
                                                 Sửa
                                             </a>
                                         @else
-                                            <button class="btn btn-outline-secondary btn-sm" disabled title="Suất chiếu đã phát sinh hoạt động đặt vé nên không thể chỉnh sửa"> <i class="bi bi-lock me-1"></i>
+                                            <button
+                                                class="btn btn-outline-secondary btn-sm"
+                                                disabled
+                                                title="
+                                                @if($showtime->status === 'CANCELLED')
+                                                    Suất chiếu đã hủy
+                                                @elseif($showtime->start_time->isPast())
+                                                    Suất chiếu đã bắt đầu
+                                                @else
+                                                    Suất chiếu đã có khách đặt
+                                                @endif
+                                                "
+                                            >
+                                                <i class="bi bi-lock me-1"></i>
                                                 Khóa sửa
                                             </button>
                                         @endif
+
                                         @if($showtime->status !== 'CANCELLED')
                                             <a href="{{ route('admin.showtime.confirm_cancel', $showtime->id) }}" class="btn btn-outline-warning btn-sm">
                                                 <i class="bi bi-x-circle me-1"></i>
