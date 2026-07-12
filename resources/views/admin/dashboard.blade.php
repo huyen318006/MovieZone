@@ -115,13 +115,26 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-12 d-flex gap-2 justify-content-end">
-            <a href="{{ route('admin.dashboard') }}" class="btn btn-light">
-                <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
-            </a>
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-funnel me-1"></i> Lọc thống kê
-            </button>
+        <div class="col-12 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('admin.dashboard', ['start_date' => now()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'cinema_id' => $filters['cinema_id'] ?? null, 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
+                    Hôm nay
+                </a>
+                <a href="{{ route('admin.dashboard', ['start_date' => now()->subDays(6)->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'cinema_id' => $filters['cinema_id'] ?? null, 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
+                    7 ngày gần nhất
+                </a>
+                <a href="{{ route('admin.dashboard', ['start_date' => now()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->endOfMonth()->format('Y-m-d'), 'cinema_id' => $filters['cinema_id'] ?? null, 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
+                    Tháng hiện tại
+                </a>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ route('admin.dashboard') }}" class="btn btn-light">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel me-1"></i> Lọc thống kê
+                </button>
+            </div>
         </div>
     </form>
 </section>
