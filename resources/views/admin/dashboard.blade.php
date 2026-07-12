@@ -25,6 +25,11 @@
         'concession_revenue' => 0,
         'total_revenue' => 0,
     ];
+    $voucherStats = $dashboard['voucher_stats'] ?? [
+        'usage_count' => 0,
+        'discount_amount' => 0,
+        'top_vouchers' => collect(),
+    ];
     $filters = $dashboard['filters'] ?? [];
     $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
     $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
@@ -281,6 +286,53 @@
                 <div class="text-muted small">Doanh thu bắp nước</div>
                 <div class="fs-4 fw-bold text-danger">{{ number_format($revenueBreakdown['concession_revenue'] ?? 0) }}đ</div>
                 <div class="text-muted small">Combo + sản phẩm lẻ</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="panel mb-4">
+    <div class="panel-header">
+        <div class="section-title">
+            <i class="bi bi-ticket-detailed"></i>
+            <div>
+                <h5 class="mb-0">Voucher và giảm giá</h5>
+                <p class="text-muted mb-0">Theo dõi mức độ sử dụng ưu đãi trong bộ lọc</p>
+            </div>
+        </div>
+        <div class="badge text-bg-warning">
+            Đã giảm: {{ number_format($voucherStats['discount_amount'] ?? 0) }}đ
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Lượt dùng voucher</div>
+                <div class="fs-4 fw-bold text-primary">{{ number_format($voucherStats['usage_count'] ?? 0) }}</div>
+                <div class="text-muted small">Từ các booking hợp lệ</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Tổng tiền giảm</div>
+                <div class="fs-4 fw-bold text-warning">{{ number_format($voucherStats['discount_amount'] ?? 0) }}đ</div>
+                <div class="text-muted small">Tổng discount_amount</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Voucher nổi bật</div>
+                @if (($voucherStats['top_vouchers'] ?? collect())->isNotEmpty())
+                    @foreach ($voucherStats['top_vouchers']->take(2) as $voucher)
+                        <div class="d-flex justify-content-between gap-2 mt-2">
+                            <span class="fw-bold">{{ $voucher->code }}</span>
+                            <span class="text-muted">{{ number_format($voucher->usage_count) }} lượt</span>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="fs-6 fw-bold text-muted mt-2">Chưa có dữ liệu voucher</div>
+                @endif
             </div>
         </div>
     </div>

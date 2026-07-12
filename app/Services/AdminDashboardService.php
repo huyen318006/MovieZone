@@ -64,6 +64,7 @@ class AdminDashboardService
             'least_effective_room' => $this->leastEffectiveRoom($filters),
             'booking_status_stats' => $this->bookingStatusStats($filters),
             'revenue_breakdown' => $this->revenueBreakdown($filters),
+            'voucher_stats' => $this->voucherStats($filters),
         ];
     }
 
@@ -100,6 +101,11 @@ class AdminDashboardService
                 'product_revenue' => 0,
                 'concession_revenue' => 0,
                 'total_revenue' => 0,
+            ],
+            'voucher_stats' => [
+                'usage_count' => 0,
+                'discount_amount' => 0,
+                'top_vouchers' => collect(),
             ],
         ];
     }
@@ -345,6 +351,40 @@ class AdminDashboardService
             'product_revenue' => $productRevenue,
             'concession_revenue' => $comboRevenue + $productRevenue,
             'total_revenue' => $ticketRevenue + $comboRevenue + $productRevenue,
+        ];
+    }
+
+    private function voucherStats(array $filters): array
+    {
+        $baseQuery = DB::table('voucher_usages')
+            ->join('vouchers', 'voucher_usages.voucher_id', '=', 'vouchers.id')
+            ->join('bookings', 'voucher_usages.booking_id', '=', 'bookings.id')
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
+            ->whereBetween('voucher_usages.used_at', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']));
+
+        $summary = (clone $baseQuery)
+            ->selectRaw('COUNT(voucher_usages.id) as usage_count, COALESCE(SUM(bookings.discount_amount), 0) as discount_amount')
+            ->first();
+
+        $topVouchers = (clone $baseQuery)
+            ->groupBy('vouchers.id', 'vouchers.code')
+            ->select([
+                'vouchers.id',
+                'vouchers.code',
+                DB::raw('COUNT(voucher_usages.id) as usage_count'),
+                DB::raw('COALESCE(SUM(bookings.discount_amount), 0) as discount_amount'),
+            ])
+            ->orderByDesc('usage_count')
+            ->limit(5)
+            ->get();
+
+        return [
+            'usage_count' => (int) ($summary->usage_count ?? 0),
+            'discount_amount' => (float) ($summary->discount_amount ?? 0),
+            'top_vouchers' => $topVouchers,
         ];
     }
 
