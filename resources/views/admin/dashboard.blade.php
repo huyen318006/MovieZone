@@ -18,6 +18,13 @@
         'expired' => 0,
         'success_rate' => 0,
     ];
+    $revenueBreakdown = $dashboard['revenue_breakdown'] ?? [
+        'ticket_revenue' => 0,
+        'combo_revenue' => 0,
+        'product_revenue' => 0,
+        'concession_revenue' => 0,
+        'total_revenue' => 0,
+    ];
     $filters = $dashboard['filters'] ?? [];
     $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
     $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
@@ -228,6 +235,52 @@
             <div class="border rounded-3 p-3 h-100">
                 <div class="text-muted small">Tỷ lệ thành công</div>
                 <div class="fs-4 fw-bold text-primary">{{ number_format($bookingStatusStats['success_rate'] ?? 0, 1) }}%</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="panel mb-4">
+    <div class="panel-header">
+        <div class="section-title">
+            <i class="bi bi-cash-stack"></i>
+            <div>
+                <h5 class="mb-0">Cơ cấu doanh thu</h5>
+                <p class="text-muted mb-0">Tách doanh thu vé và bắp nước trong bộ lọc</p>
+            </div>
+        </div>
+        <div class="badge text-bg-success">
+            Tổng: {{ number_format($revenueBreakdown['total_revenue'] ?? 0) }}đ
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-6 col-xl-3">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Doanh thu vé</div>
+                <div class="fs-4 fw-bold text-primary">{{ number_format($revenueBreakdown['ticket_revenue'] ?? 0) }}đ</div>
+                <div class="text-muted small">Từ ghế đã bán</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Doanh thu combo</div>
+                <div class="fs-4 fw-bold text-success">{{ number_format($revenueBreakdown['combo_revenue'] ?? 0) }}đ</div>
+                <div class="text-muted small">Combo bắp nước</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Doanh thu sản phẩm lẻ</div>
+                <div class="fs-4 fw-bold text-warning">{{ number_format($revenueBreakdown['product_revenue'] ?? 0) }}đ</div>
+                <div class="text-muted small">Bắp/nước/snack bán lẻ</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Doanh thu bắp nước</div>
+                <div class="fs-4 fw-bold text-danger">{{ number_format($revenueBreakdown['concession_revenue'] ?? 0) }}đ</div>
+                <div class="text-muted small">Combo + sản phẩm lẻ</div>
             </div>
         </div>
     </div>

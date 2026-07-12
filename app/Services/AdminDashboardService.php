@@ -63,6 +63,7 @@ class AdminDashboardService
             'room_performance' => $this->roomPerformance($filters),
             'least_effective_room' => $this->leastEffectiveRoom($filters),
             'booking_status_stats' => $this->bookingStatusStats($filters),
+            'revenue_breakdown' => $this->revenueBreakdown($filters),
         ];
     }
 
@@ -92,6 +93,13 @@ class AdminDashboardService
                 'cancelled' => 0,
                 'expired' => 0,
                 'success_rate' => 0,
+            ],
+            'revenue_breakdown' => [
+                'ticket_revenue' => 0,
+                'combo_revenue' => 0,
+                'product_revenue' => 0,
+                'concession_revenue' => 0,
+                'total_revenue' => 0,
             ],
         ];
     }
@@ -281,6 +289,62 @@ class AdminDashboardService
             'cancelled' => (int) ($rows->cancelled ?? 0),
             'expired' => (int) ($rows->expired ?? 0),
             'success_rate' => $total > 0 ? round(($paid / $total) * 100, 1) : 0,
+        ];
+    }
+
+    private function revenueBreakdown(array $filters): array
+    {
+        $ticketRevenue = (float) DB::table('booking_seats')
+            ->join('bookings', 'booking_seats.booking_id', '=', 'bookings.id')
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
+            ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
+            ->where(function ($query) {
+                $query->where('bookings.status', 'PAID')
+                    ->orWhere('bookings.payment_status', 'PAID')
+                    ->orWhere('payments.status', 'SUCCESS');
+            })
+            ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->sum('booking_seats.price');
+
+        $comboRevenue = (float) DB::table('booking_combos')
+            ->join('bookings', 'booking_combos.booking_id', '=', 'bookings.id')
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
+            ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
+            ->where(function ($query) {
+                $query->where('bookings.status', 'PAID')
+                    ->orWhere('bookings.payment_status', 'PAID')
+                    ->orWhere('payments.status', 'SUCCESS');
+            })
+            ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->sum('booking_combos.total_price');
+
+        $productRevenue = (float) DB::table('booking_products')
+            ->join('bookings', 'booking_products.booking_id', '=', 'bookings.id')
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
+            ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
+            ->where(function ($query) {
+                $query->where('bookings.status', 'PAID')
+                    ->orWhere('bookings.payment_status', 'PAID')
+                    ->orWhere('payments.status', 'SUCCESS');
+            })
+            ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->sum('booking_products.total_price');
+
+        return [
+            'ticket_revenue' => $ticketRevenue,
+            'combo_revenue' => $comboRevenue,
+            'product_revenue' => $productRevenue,
+            'concession_revenue' => $comboRevenue + $productRevenue,
+            'total_revenue' => $ticketRevenue + $comboRevenue + $productRevenue,
         ];
     }
 
