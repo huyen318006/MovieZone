@@ -66,7 +66,7 @@
 
         <div>
             <h2 class="mb-1">Admin Dashboard</h2>
-            <p class="mb-0">Theo dõi doanh thu, vé bán, tỷ lệ lấp đầy, phim bán chạy và hiệu suất phòng chiếu</p>
+            <p class="mb-0">Phân tích doanh thu, booking, suất chiếu, khung giờ, combo/voucher và hiệu quả khai thác phòng</p>
         </div>
     </div>
 
@@ -197,6 +197,11 @@
         </div>
     </div>
 
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <i class="bi bi-bar-chart-line text-primary"></i>
+    <h4 class="mb-0">Phân tích nâng cao</h4>
 </div>
 
 <section class="panel mb-4">
@@ -351,7 +356,7 @@
         <div class="section-title">
             <i class="bi bi-calendar2-check"></i>
             <div>
-                <h5 class="mb-0">Suất chiếu hiệu quả</h5>
+                <h5 class="mb-0">Xếp hạng suất chiếu</h5>
                 <p class="text-muted mb-0">Xếp hạng suất chiếu theo tỷ lệ lấp đầy và vé bán</p>
             </div>
         </div>
@@ -503,79 +508,6 @@
     @endif
 </section>
 
-<div class="row g-4">
-
-    {{-- Top movies --}}
-    <div class="col-12 col-xl-7">
-        <section class="panel">
-            <div class="panel-header">
-                <div class="section-title">
-                    <i class="bi bi-trophy"></i>
-                    <div>
-                        <h5 class="mb-0">Phim bán chạy</h5>
-                        <p class="text-muted mb-0">Xếp hạng theo số vé bán trong bộ lọc</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="activity-list">
-                @forelse ($topMovies as $index => $movie)
-                    <div class="activity-item">
-                        <div class="activity-dot" style="background:{{ $index === 0 ? '#f59e0b' : '#2563eb' }}"></div>
-                        <div class="flex-grow-1">
-                            <div class="fw-bold">#{{ $index + 1 }} {{ $movie->title }}</div>
-                            <div class="text-muted">
-                                {{ number_format($movie->sold_tickets) }} vé · {{ number_format($movie->ticket_revenue) }}đ doanh thu vé
-                            </div>
-                        </div>
-                    </div>
-                @empty
-                    <div class="text-muted fw-bold py-3">
-                        <i class="bi bi-inbox me-1"></i> Chưa có dữ liệu phim bán chạy trong bộ lọc.
-                    </div>
-                @endforelse
-            </div>
-        </section>
-    </div>
-
-    {{-- Recent bookings --}}
-    <div class="col-12 col-xl-5">
-        <section class="panel">
-            <div class="panel-header">
-                <div class="section-title">
-                    <i class="bi bi-receipt"></i>
-                    <div>
-                        <h5 class="mb-0">Booking mới</h5>
-                        <p class="text-muted mb-0">Các booking mới nhất trong bộ lọc</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="activity-list">
-                @forelse ($recentBookings as $booking)
-                    <a class="activity-item text-decoration-none" href="{{ route('admin.bookings.index') }}" title="Mở quản lý booking">
-                        <div class="activity-dot" style="background:#0f766e"></div>
-                        <div class="flex-grow-1">
-                            <div class="fw-bold text-body">{{ $booking->booking_code }}</div>
-                            <div class="text-muted">
-                                {{ $booking->user?->name ?? 'Khách hàng' }} · {{ $booking->showtime?->movie?->title ?? 'Không rõ phim' }}
-                            </div>
-                            <div class="text-muted small">
-                                {{ optional($booking->created_at)->format('d/m/Y H:i') }} · {{ number_format($booking->final_amount) }}đ
-                            </div>
-                        </div>
-                        <span class="badge text-bg-secondary">{{ $booking->status }}</span>
-                    </a>
-                @empty
-                    <div class="text-muted fw-bold py-3">
-                        <i class="bi bi-inbox me-1"></i> Chưa có booking mới trong bộ lọc.
-                    </div>
-                @endforelse
-            </div>
-        </section>
-    </div>
-
-</div>
 
 <div class="row g-4 mt-1">
     <div class="col-12">
@@ -584,8 +516,8 @@
                 <div class="section-title">
                     <i class="bi bi-door-open"></i>
                     <div>
-                        <h5 class="mb-0">Hiệu suất phòng chiếu</h5>
-                        <p class="text-muted mb-0">Phòng có suất chiếu nhưng tỷ lệ lấp đầy thấp nhất trong bộ lọc</p>
+                        <h5 class="mb-0">Hiệu quả khai thác phòng</h5>
+                        <p class="text-muted mb-0">Gộp nhiều suất chiếu để xem phòng nào khai thác chưa tốt</p>
                     </div>
                 </div>
 
