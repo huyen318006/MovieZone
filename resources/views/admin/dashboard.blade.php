@@ -30,6 +30,7 @@
         'discount_amount' => 0,
         'top_vouchers' => collect(),
     ];
+    $showtimePerformance = $dashboard['showtime_performance'] ?? collect();
     $filters = $dashboard['filters'] ?? [];
     $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
     $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
@@ -336,6 +337,66 @@
             </div>
         </div>
     </div>
+</section>
+
+<section class="panel mb-4">
+    <div class="panel-header">
+        <div class="section-title">
+            <i class="bi bi-calendar2-check"></i>
+            <div>
+                <h5 class="mb-0">Suất chiếu hiệu quả</h5>
+                <p class="text-muted mb-0">Xếp hạng suất chiếu theo tỷ lệ lấp đầy và vé bán</p>
+            </div>
+        </div>
+        @if ($showtimePerformance->isNotEmpty())
+            <div class="badge text-bg-success">
+                Tốt nhất: {{ number_format($showtimePerformance->first()->occupancy_rate, 1) }}%
+            </div>
+        @endif
+    </div>
+
+    @if ($showtimePerformance->isEmpty())
+        <div class="text-muted fw-bold py-3">
+            <i class="bi bi-inbox me-1"></i> Chưa có suất chiếu để thống kê trong bộ lọc.
+        </div>
+    @else
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th>Suất chiếu</th>
+                        <th>Rạp / Phòng</th>
+                        <th class="text-end">Vé bán</th>
+                        <th class="text-end">Tổng ghế</th>
+                        <th class="text-end">Doanh thu vé</th>
+                        <th class="text-end">Lấp đầy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($showtimePerformance as $showtime)
+                        <tr>
+                            <td>
+                                <div class="fw-bold">{{ $showtime->movie_title }}</div>
+                                <div class="text-muted small">{{ \Carbon\Carbon::parse($showtime->start_time)->format('d/m/Y H:i') }}</div>
+                            </td>
+                            <td>
+                                <div>{{ $showtime->cinema_name }}</div>
+                                <div class="text-muted small">{{ $showtime->room_name }}</div>
+                            </td>
+                            <td class="text-end">{{ number_format($showtime->sold_tickets) }}</td>
+                            <td class="text-end">{{ number_format($showtime->total_seats) }}</td>
+                            <td class="text-end">{{ number_format($showtime->ticket_revenue) }}đ</td>
+                            <td class="text-end">
+                                <span class="badge {{ $showtime->occupancy_rate >= 70 ? 'text-bg-success' : ($showtime->occupancy_rate >= 40 ? 'text-bg-warning' : 'text-bg-danger') }}">
+                                    {{ number_format($showtime->occupancy_rate, 1) }}%
+                                </span>
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
 </section>
 
 <div class="row g-4">

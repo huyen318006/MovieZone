@@ -65,6 +65,7 @@ class AdminDashboardService
             'booking_status_stats' => $this->bookingStatusStats($filters),
             'revenue_breakdown' => $this->revenueBreakdown($filters),
             'voucher_stats' => $this->voucherStats($filters),
+            'showtime_performance' => $this->showtimePerformance($filters),
         ];
     }
 
@@ -107,6 +108,7 @@ class AdminDashboardService
                 'discount_amount' => 0,
                 'top_vouchers' => collect(),
             ],
+            'showtime_performance' => collect(),
         ];
     }
 
@@ -386,6 +388,66 @@ class AdminDashboardService
             'discount_amount' => (float) ($summary->discount_amount ?? 0),
             'top_vouchers' => $topVouchers,
         ];
+    }
+
+    private function showtimePerformance(array $filters): Collection
+    {
+        $totalSeatsSubquery = DB::table('showtime_seats')
+            ->join('showtimes', 'showtime_seats.showtime_id', '=', 'showtimes.id')
+            ->whereNotIn('showtime_seats.status', ['BLOCKED', 'LOCKED', 'BROKEN'])
+            ->whereBetween('showtimes.start_time', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->groupBy('showtimes.id')
+            ->select([
+                'showtimes.id as showtime_id',
+                DB::raw('COUNT(showtime_seats.id) as total_seats'),
+            ]);
+
+        $soldSeatsSubquery = DB::table('booking_seats')
+            ->join('bookings', 'booking_seats.booking_id', '=', 'bookings.id')
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
+            ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
+            ->where(function ($query) {
+                $query->where('bookings.status', 'PAID')
+                    ->orWhere('bookings.payment_status', 'PAID')
+                    ->orWhere('payments.status', 'SUCCESS');
+            })
+            ->whereBetween('showtimes.start_time', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->groupBy('showtimes.id')
+            ->select([
+                'showtimes.id as showtime_id',
+                DB::raw('COUNT(booking_seats.id) as sold_tickets'),
+                DB::raw('COALESCE(SUM(booking_seats.price), 0) as ticket_revenue'),
+            ]);
+
+        return DB::table('showtimes')
+            ->join('movies', 'showtimes.movie_id', '=', 'movies.id')
+            ->join('cinemas', 'showtimes.cinema_id', '=', 'cinemas.id')
+            ->join('rooms', 'showtimes.room_id', '=', 'rooms.id')
+            ->joinSub($totalSeatsSubquery, 'seat_totals', 'showtimes.id', '=', 'seat_totals.showtime_id')
+            ->leftJoinSub($soldSeatsSubquery, 'seat_sales', 'showtimes.id', '=', 'seat_sales.showtime_id')
+            ->whereBetween('showtimes.start_time', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->select([
+                'showtimes.id',
+                'showtimes.start_time',
+                'movies.title as movie_title',
+                'cinemas.name as cinema_name',
+                'rooms.name as room_name',
+                'seat_totals.total_seats',
+                DB::raw('COALESCE(seat_sales.sold_tickets, 0) as sold_tickets'),
+                DB::raw('COALESCE(seat_sales.ticket_revenue, 0) as ticket_revenue'),
+                DB::raw('ROUND((COALESCE(seat_sales.sold_tickets, 0) / NULLIF(seat_totals.total_seats, 0)) * 100, 1) as occupancy_rate'),
+            ])
+            ->orderByDesc('occupancy_rate')
+            ->orderByDesc('sold_tickets')
+            ->limit(8)
+            ->get();
     }
 
     private function filteredBookings(array $filters): Builder
