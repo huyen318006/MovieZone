@@ -141,7 +141,7 @@
                 </div>
             </div>
             <div class="metric-meta">
-                <span>Payment SUCCESS trong bộ lọc</span>
+                <span>Doanh thu từ thanh toán thành công</span>
             </div>
         </div>
     </div>

@@ -20,11 +20,11 @@ class AdminDashboardService
     {
         $startDate = !empty($filters['start_date'])
             ? Carbon::parse($filters['start_date'])->startOfDay()
-            : now()->startOfMonth();
+            : now()->startOfDay();
 
         $endDate = !empty($filters['end_date'])
             ? Carbon::parse($filters['end_date'])->endOfDay()
-            : now()->endOfDay();
+            : now()->addWeek()->endOfDay();
 
         return [
             'start_date' => $startDate,
