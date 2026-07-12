@@ -10,6 +10,14 @@
     $recentBookings = $dashboard['recent_bookings'] ?? collect();
     $roomPerformance = $dashboard['room_performance'] ?? collect();
     $leastEffectiveRoom = $dashboard['least_effective_room'] ?? null;
+    $bookingStatusStats = $dashboard['booking_status_stats'] ?? [
+        'total' => 0,
+        'paid' => 0,
+        'pending' => 0,
+        'cancelled' => 0,
+        'expired' => 0,
+        'success_rate' => 0,
+    ];
     $filters = $dashboard['filters'] ?? [];
     $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
     $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
@@ -170,6 +178,60 @@
     </div>
 
 </div>
+
+<section class="panel mb-4">
+    <div class="panel-header">
+        <div class="section-title">
+            <i class="bi bi-pie-chart"></i>
+            <div>
+                <h5 class="mb-0">Trạng thái booking</h5>
+                <p class="text-muted mb-0">Theo dõi chất lượng booking trong bộ lọc</p>
+            </div>
+        </div>
+        <div class="badge text-bg-primary">
+            Thành công: {{ number_format($bookingStatusStats['success_rate'] ?? 0, 1) }}%
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-6 col-lg-2">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Tổng booking</div>
+                <div class="fs-4 fw-bold">{{ number_format($bookingStatusStats['total'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Đã thanh toán</div>
+                <div class="fs-4 fw-bold text-success">{{ number_format($bookingStatusStats['paid'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Chờ thanh toán</div>
+                <div class="fs-4 fw-bold text-warning">{{ number_format($bookingStatusStats['pending'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Đã hủy</div>
+                <div class="fs-4 fw-bold text-danger">{{ number_format($bookingStatusStats['cancelled'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Hết hạn</div>
+                <div class="fs-4 fw-bold text-secondary">{{ number_format($bookingStatusStats['expired'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Tỷ lệ thành công</div>
+                <div class="fs-4 fw-bold text-primary">{{ number_format($bookingStatusStats['success_rate'] ?? 0, 1) }}%</div>
+            </div>
+        </div>
+    </div>
+</section>
 
 <div class="row g-4">
 

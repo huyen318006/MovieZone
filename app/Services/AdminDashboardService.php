@@ -62,6 +62,7 @@ class AdminDashboardService
             'recent_bookings' => $this->recentBookings($filters),
             'room_performance' => $this->roomPerformance($filters),
             'least_effective_room' => $this->leastEffectiveRoom($filters),
+            'booking_status_stats' => $this->bookingStatusStats($filters),
         ];
     }
 
@@ -84,6 +85,14 @@ class AdminDashboardService
             'recent_bookings' => collect(),
             'room_performance' => collect(),
             'least_effective_room' => null,
+            'booking_status_stats' => [
+                'total' => 0,
+                'paid' => 0,
+                'pending' => 0,
+                'cancelled' => 0,
+                'expired' => 0,
+                'success_rate' => 0,
+            ],
         ];
     }
 
@@ -250,6 +259,29 @@ class AdminDashboardService
     private function leastEffectiveRoom(array $filters): ?object
     {
         return $this->roomPerformance($filters)->first();
+    }
+
+    private function bookingStatusStats(array $filters): array
+    {
+        $rows = Booking::query()
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->selectRaw("\n                COUNT(*) as total,\n                SUM(CASE WHEN bookings.status = 'PAID' OR bookings.payment_status = 'PAID' THEN 1 ELSE 0 END) as paid,\n                SUM(CASE WHEN bookings.status IN ('PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT') OR bookings.payment_status = 'UNPAID' THEN 1 ELSE 0 END) as pending,\n                SUM(CASE WHEN bookings.status = 'CANCELLED' THEN 1 ELSE 0 END) as cancelled,\n                SUM(CASE WHEN bookings.status = 'EXPIRED' THEN 1 ELSE 0 END) as expired\n            ")
+            ->first();
+
+        $total = (int) ($rows->total ?? 0);
+        $paid = (int) ($rows->paid ?? 0);
+
+        return [
+            'total' => $total,
+            'paid' => $paid,
+            'pending' => (int) ($rows->pending ?? 0),
+            'cancelled' => (int) ($rows->cancelled ?? 0),
+            'expired' => (int) ($rows->expired ?? 0),
+            'success_rate' => $total > 0 ? round(($paid / $total) * 100, 1) : 0,
+        ];
     }
 
     private function filteredBookings(array $filters): Builder
