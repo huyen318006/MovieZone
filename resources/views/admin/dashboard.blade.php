@@ -32,6 +32,12 @@
     ];
     $showtimePerformance = $dashboard['showtime_performance'] ?? collect();
     $timeSlotPerformance = $dashboard['time_slot_performance'] ?? collect();
+    $comboStats = $dashboard['combo_stats'] ?? [
+        'top_combos' => collect(),
+        'combo_quantity' => 0,
+        'combo_revenue' => 0,
+        'booking_with_combo_rate' => 0,
+    ];
     $filters = $dashboard['filters'] ?? [];
     $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
     $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
@@ -434,6 +440,62 @@
                         <div class="text-muted small">Suất chiếu: {{ number_format($slot->showtime_count) }}</div>
                         <div class="text-muted small">Vé bán: {{ number_format($slot->sold_tickets) }} / {{ number_format($slot->total_seats) }} ghế</div>
                         <div class="fw-bold mt-2">{{ number_format($slot->ticket_revenue) }}đ</div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+</section>
+
+<section class="panel mb-4">
+    <div class="panel-header">
+        <div class="section-title">
+            <i class="bi bi-cup-straw"></i>
+            <div>
+                <h5 class="mb-0">Combo bán chạy</h5>
+                <p class="text-muted mb-0">Theo dõi doanh thu bắp nước và combo được mua nhiều</p>
+            </div>
+        </div>
+        <div class="badge text-bg-success">
+            {{ number_format($comboStats['booking_with_combo_rate'] ?? 0, 1) }}% booking có combo
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-4">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Số lượng combo bán</div>
+                <div class="fs-4 fw-bold text-primary">{{ number_format($comboStats['combo_quantity'] ?? 0) }}</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Doanh thu combo</div>
+                <div class="fs-4 fw-bold text-success">{{ number_format($comboStats['combo_revenue'] ?? 0) }}đ</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="border rounded-3 p-3 h-100">
+                <div class="text-muted small">Tỷ lệ booking mua combo</div>
+                <div class="fs-4 fw-bold text-warning">{{ number_format($comboStats['booking_with_combo_rate'] ?? 0, 1) }}%</div>
+            </div>
+        </div>
+    </div>
+
+    @if (($comboStats['top_combos'] ?? collect())->isEmpty())
+        <div class="text-muted fw-bold py-3">
+            <i class="bi bi-inbox me-1"></i> Chưa có dữ liệu combo trong bộ lọc.
+        </div>
+    @else
+        <div class="activity-list">
+            @foreach ($comboStats['top_combos'] as $index => $combo)
+                <div class="activity-item">
+                    <div class="activity-dot" style="background:{{ $index === 0 ? '#f59e0b' : '#0f766e' }}"></div>
+                    <div class="flex-grow-1">
+                        <div class="fw-bold">#{{ $index + 1 }} {{ $combo->name }}</div>
+                        <div class="text-muted">
+                            {{ number_format($combo->quantity) }} combo · {{ number_format($combo->revenue) }}đ doanh thu
+                        </div>
                     </div>
                 </div>
             @endforeach

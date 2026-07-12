@@ -67,6 +67,7 @@ class AdminDashboardService
             'voucher_stats' => $this->voucherStats($filters),
             'showtime_performance' => $this->showtimePerformance($filters),
             'time_slot_performance' => $this->timeSlotPerformance($filters),
+            'combo_stats' => $this->comboStats($filters),
         ];
     }
 
@@ -111,6 +112,12 @@ class AdminDashboardService
             ],
             'showtime_performance' => collect(),
             'time_slot_performance' => collect(),
+            'combo_stats' => [
+                'top_combos' => collect(),
+                'combo_quantity' => 0,
+                'combo_revenue' => 0,
+                'booking_with_combo_rate' => 0,
+            ],
         ];
     }
 
@@ -513,6 +520,61 @@ class AdminDashboardService
             })
             ->sortByDesc('occupancy_rate')
             ->values();
+    }
+
+    private function comboStats(array $filters): array
+    {
+        $baseQuery = DB::table('booking_combos')
+            ->join('bookings', 'booking_combos.booking_id', '=', 'bookings.id')
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
+            ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
+            ->where(function ($query) {
+                $query->where('bookings.status', 'PAID')
+                    ->orWhere('bookings.payment_status', 'PAID')
+                    ->orWhere('payments.status', 'SUCCESS');
+            })
+            ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']));
+
+        $summary = (clone $baseQuery)
+            ->selectRaw('COALESCE(SUM(booking_combos.quantity), 0) as combo_quantity, COALESCE(SUM(booking_combos.total_price), 0) as combo_revenue')
+            ->first();
+
+        $bookingWithCombo = (clone $baseQuery)
+            ->distinct('booking_combos.booking_id')
+            ->count('booking_combos.booking_id');
+
+        $totalPaidBookings = $this->filteredBookings($filters)
+            ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
+            ->where(function ($query) {
+                $query->where('bookings.status', 'PAID')
+                    ->orWhere('bookings.payment_status', 'PAID')
+                    ->orWhere('payments.status', 'SUCCESS');
+            })
+            ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
+            ->count('bookings.id');
+
+        $topCombos = (clone $baseQuery)
+            ->join('combos', 'booking_combos.combo_id', '=', 'combos.id')
+            ->groupBy('combos.id', 'combos.name')
+            ->select([
+                'combos.id',
+                'combos.name',
+                DB::raw('SUM(booking_combos.quantity) as quantity'),
+                DB::raw('COALESCE(SUM(booking_combos.total_price), 0) as revenue'),
+            ])
+            ->orderByDesc('quantity')
+            ->limit(5)
+            ->get();
+
+        return [
+            'top_combos' => $topCombos,
+            'combo_quantity' => (int) ($summary->combo_quantity ?? 0),
+            'combo_revenue' => (float) ($summary->combo_revenue ?? 0),
+            'booking_with_combo_rate' => $totalPaidBookings > 0 ? round(($bookingWithCombo / $totalPaidBookings) * 100, 1) : 0,
+        ];
     }
 
     private function filteredBookings(array $filters): Builder
