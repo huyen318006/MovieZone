@@ -31,6 +31,7 @@
         'top_vouchers' => collect(),
     ];
     $showtimePerformance = $dashboard['showtime_performance'] ?? collect();
+    $timeSlotPerformance = $dashboard['time_slot_performance'] ?? collect();
     $filters = $dashboard['filters'] ?? [];
     $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
     $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
@@ -395,6 +396,47 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+    @endif
+</section>
+
+<section class="panel mb-4">
+    <div class="panel-header">
+        <div class="section-title">
+            <i class="bi bi-clock-history"></i>
+            <div>
+                <h5 class="mb-0">Khung giờ hiệu quả</h5>
+                <p class="text-muted mb-0">So sánh sáng, chiều, tối theo vé bán và tỷ lệ lấp đầy</p>
+            </div>
+        </div>
+        @if ($timeSlotPerformance->isNotEmpty())
+            <div class="badge text-bg-info">
+                Tốt nhất: {{ $timeSlotPerformance->first()->slot_label }}
+            </div>
+        @endif
+    </div>
+
+    @if ($timeSlotPerformance->isEmpty())
+        <div class="text-muted fw-bold py-3">
+            <i class="bi bi-inbox me-1"></i> Chưa có dữ liệu khung giờ trong bộ lọc.
+        </div>
+    @else
+        <div class="row g-3">
+            @foreach ($timeSlotPerformance as $slot)
+                <div class="col-md-4">
+                    <div class="border rounded-3 p-3 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="fw-bold fs-5">{{ $slot->slot_label }}</div>
+                            <span class="badge {{ $slot->occupancy_rate >= 70 ? 'text-bg-success' : ($slot->occupancy_rate >= 40 ? 'text-bg-warning' : 'text-bg-danger') }}">
+                                {{ number_format($slot->occupancy_rate, 1) }}%
+                            </span>
+                        </div>
+                        <div class="text-muted small">Suất chiếu: {{ number_format($slot->showtime_count) }}</div>
+                        <div class="text-muted small">Vé bán: {{ number_format($slot->sold_tickets) }} / {{ number_format($slot->total_seats) }} ghế</div>
+                        <div class="fw-bold mt-2">{{ number_format($slot->ticket_revenue) }}đ</div>
+                    </div>
+                </div>
+            @endforeach
         </div>
     @endif
 </section>

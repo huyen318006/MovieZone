@@ -66,6 +66,7 @@ class AdminDashboardService
             'revenue_breakdown' => $this->revenueBreakdown($filters),
             'voucher_stats' => $this->voucherStats($filters),
             'showtime_performance' => $this->showtimePerformance($filters),
+            'time_slot_performance' => $this->timeSlotPerformance($filters),
         ];
     }
 
@@ -109,6 +110,7 @@ class AdminDashboardService
                 'top_vouchers' => collect(),
             ],
             'showtime_performance' => collect(),
+            'time_slot_performance' => collect(),
         ];
     }
 
@@ -448,6 +450,69 @@ class AdminDashboardService
             ->orderByDesc('sold_tickets')
             ->limit(8)
             ->get();
+    }
+
+    private function timeSlotPerformance(array $filters): Collection
+    {
+        $totalSeatsSubquery = DB::table('showtime_seats')
+            ->join('showtimes', 'showtime_seats.showtime_id', '=', 'showtimes.id')
+            ->whereNotIn('showtime_seats.status', ['BLOCKED', 'LOCKED', 'BROKEN'])
+            ->whereBetween('showtimes.start_time', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->groupBy(DB::raw("CASE\n                WHEN HOUR(showtimes.start_time) BETWEEN 6 AND 11 THEN 'morning'\n                WHEN HOUR(showtimes.start_time) BETWEEN 12 AND 17 THEN 'afternoon'\n                ELSE 'evening'\n            END"))
+            ->select([
+                DB::raw("CASE\n                    WHEN HOUR(showtimes.start_time) BETWEEN 6 AND 11 THEN 'morning'\n                    WHEN HOUR(showtimes.start_time) BETWEEN 12 AND 17 THEN 'afternoon'\n                    ELSE 'evening'\n                END as slot_key"),
+                DB::raw('COUNT(DISTINCT showtimes.id) as showtime_count'),
+                DB::raw('COUNT(showtime_seats.id) as total_seats'),
+            ]);
+
+        $soldSeatsSubquery = DB::table('booking_seats')
+            ->join('bookings', 'booking_seats.booking_id', '=', 'bookings.id')
+            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
+            ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
+            ->where(function ($query) {
+                $query->where('bookings.status', 'PAID')
+                    ->orWhere('bookings.payment_status', 'PAID')
+                    ->orWhere('payments.status', 'SUCCESS');
+            })
+            ->whereBetween('showtimes.start_time', [$filters['start_date'], $filters['end_date']])
+            ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
+            ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
+            ->groupBy(DB::raw("CASE\n                WHEN HOUR(showtimes.start_time) BETWEEN 6 AND 11 THEN 'morning'\n                WHEN HOUR(showtimes.start_time) BETWEEN 12 AND 17 THEN 'afternoon'\n                ELSE 'evening'\n            END"))
+            ->select([
+                DB::raw("CASE\n                    WHEN HOUR(showtimes.start_time) BETWEEN 6 AND 11 THEN 'morning'\n                    WHEN HOUR(showtimes.start_time) BETWEEN 12 AND 17 THEN 'afternoon'\n                    ELSE 'evening'\n                END as slot_key"),
+                DB::raw('COUNT(booking_seats.id) as sold_tickets'),
+                DB::raw('COALESCE(SUM(booking_seats.price), 0) as ticket_revenue'),
+            ]);
+
+        $rows = DB::query()
+            ->fromSub($totalSeatsSubquery, 'slot_totals')
+            ->leftJoinSub($soldSeatsSubquery, 'slot_sales', 'slot_totals.slot_key', '=', 'slot_sales.slot_key')
+            ->select([
+                'slot_totals.slot_key',
+                'slot_totals.showtime_count',
+                'slot_totals.total_seats',
+                DB::raw('COALESCE(slot_sales.sold_tickets, 0) as sold_tickets'),
+                DB::raw('COALESCE(slot_sales.ticket_revenue, 0) as ticket_revenue'),
+                DB::raw('ROUND((COALESCE(slot_sales.sold_tickets, 0) / NULLIF(slot_totals.total_seats, 0)) * 100, 1) as occupancy_rate'),
+            ])
+            ->get();
+
+        $labels = [
+            'morning' => 'Sáng',
+            'afternoon' => 'Chiều',
+            'evening' => 'Tối',
+        ];
+
+        return $rows
+            ->map(function ($row) use ($labels) {
+                $row->slot_label = $labels[$row->slot_key] ?? $row->slot_key;
+                return $row;
+            })
+            ->sortByDesc('occupancy_rate')
+            ->values();
     }
 
     private function filteredBookings(array $filters): Builder
