@@ -177,4 +177,30 @@ class CheckInController extends Controller
             'Content-Type' => 'application/pdf',
         ]);
     }
+
+    /**
+     * In hoá đơn booking (render HTML) - hoạt động với mọi phương thức thanh toán.
+     */
+    public function printBill(string $bookingCode)
+    {
+        $booking = \App\Models\Booking::with([
+            'user:id,name,email,phone',
+            'showtime.movie:id,title,poster_url',
+            'showtime.cinema:id,name',
+            'showtime.room:id,name,room_type',
+            'bookingSeats',
+            'tickets.bookingSeat',
+            'payment',
+            'bookingCombos.combo',
+        ])->where('booking_code', $bookingCode)->first();
+
+        if (!$booking) {
+            return response('<h2 style="text-align:center;padding:40px;">Không tìm thấy booking.</h2>', 404);
+        }
+
+        $autoPrint = request()->query('print') === 'true';
+        $singleTicketCode = request()->query('ticket');
+
+        return view('staff.print-bill', compact('booking', 'autoPrint', 'singleTicketCode'));
+    }
 }

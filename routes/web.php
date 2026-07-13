@@ -439,6 +439,9 @@ Route::middleware(['auth', 'staff.permission:ticket.checkin'])
 
         Route::get('/api/check-in/{bookingId}/download-pdf', [CheckInController::class, 'downloadPDF'])
             ->name('api.checkin.download-pdf');
+
+        Route::get('/print-bill/{bookingCode}', [CheckInController::class, 'printBill'])
+            ->name('print-bill');
     });
 
 /* --------------------- UC-STAFF-04: HỖ TRỢ SỰ CỐ ĐẶT VÉ ------------------ */

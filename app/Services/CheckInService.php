@@ -69,6 +69,7 @@ class CheckInService
         // Lookup by booking_code → trả danh sách tickets
         $booking = Booking::with([
             'tickets.bookingSeat',
+            'tickets.checkedInByUser:id,name',
             'showtime.movie:id,title,poster_url',
             'showtime.cinema:id,name',
             'showtime.room:id,name,room_type',
@@ -87,13 +88,16 @@ class CheckInService
             ];
         }
 
+        // Luôn lấy danh sách tickets dù có lỗi hay không
+        $tickets = $this->getAllBookingTickets($booking);
+
         // Validate booking-level
         $bookingError = $this->checkBookingStatus($booking);
         if ($bookingError) {
             return [
                 'can_checkin' => false,
                 'booking' => $this->formatBooking($booking),
-                'tickets' => [],
+                'tickets' => $tickets,
                 'error' => $bookingError,
             ];
         }
@@ -104,24 +108,10 @@ class CheckInService
             return [
                 'can_checkin' => false,
                 'booking' => $this->formatBooking($booking),
-                'tickets' => [],
+                'tickets' => $tickets,
                 'error' => $showtimeError,
             ];
         }
-
-        // Return all tickets with can_checkin flag
-        $tickets = $booking->tickets->map(function ($ticket) {
-            return [
-                'id' => $ticket->id,
-                'ticket_code' => $ticket->ticket_code,
-                'seat_code' => $ticket->bookingSeat?->seat_code ?? 'N/A',
-                'seat_type' => $ticket->bookingSeat?->seat_type ?? 'N/A',
-                'status' => $ticket->status,
-                'can_checkin' => $ticket->status === 'UNUSED',
-                'checked_in_at' => $ticket->checked_in_at,
-                'checked_in_by_name' => $ticket->checkedInByUser?->name,
-            ];
-        });
 
         return [
             'can_checkin' => $tickets->where('can_checkin', true)->isNotEmpty(),
@@ -307,7 +297,14 @@ class CheckInService
         // Check booking status
         $bookingError = $this->checkBookingStatus($booking);
         if ($bookingError) {
-            return ['can_checkin' => false, 'ticket' => $this->formatTicketPreview($ticket), 'error' => $bookingError];
+            return [
+                'can_checkin' => false,
+                'ticket' => $this->formatTicketPreview($ticket),
+                'booking' => $this->formatBooking($booking),
+                'tickets' => $this->getAllBookingTickets($booking),
+                'scanned_ticket_code' => $ticketCode,
+                'error' => $bookingError,
+            ];
         }
 
         // Check ticket status
@@ -341,7 +338,14 @@ class CheckInService
         // Check showtime
         $showtimeError = $this->checkShowtime($booking->showtime);
         if ($showtimeError) {
-            return ['can_checkin' => false, 'ticket' => $this->formatTicketPreview($ticket), 'error' => $showtimeError];
+            return [
+                'can_checkin' => false,
+                'ticket' => $this->formatTicketPreview($ticket),
+                'booking' => $this->formatBooking($booking),
+                'tickets' => $this->getAllBookingTickets($booking),
+                'scanned_ticket_code' => $ticketCode,
+                'error' => $showtimeError,
+            ];
         }
 
         // Check room
@@ -349,6 +353,9 @@ class CheckInService
             return [
                 'can_checkin' => false,
                 'ticket' => $this->formatTicketPreview($ticket),
+                'booking' => $this->formatBooking($booking),
+                'tickets' => $this->getAllBookingTickets($booking),
+                'scanned_ticket_code' => $ticketCode,
                 'error' => ['code' => 'ROOM_INACTIVE', 'message' => 'Phòng chiếu không hoạt động.'],
             ];
         }
