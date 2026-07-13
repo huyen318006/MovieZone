@@ -103,27 +103,34 @@
             </div>
 
             <div class="row g-3 mt-1">
-                <div class="col-md-3">
+                <div class="col">
                     <div class="summary-card summary-standard">
                         <div class="summary-label">STANDARD</div>
                         <div class="summary-value">{{ $seatsGrouped->flatten()->where('seat_type', 'STANDARD')->count() }}
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col">
                     <div class="summary-card summary-vip">
                         <div class="summary-label">VIP</div>
                         <div class="summary-value">{{ $seatsGrouped->flatten()->where('seat_type', 'VIP')->count() }}</div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col">
                     <div class="summary-card summary-couple">
                         <div class="summary-label">COUPLE</div>
                         <div class="summary-value">{{ $seatsGrouped->flatten()->where('seat_type', 'COUPLE')->count() }}
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col">
+                    <div class="summary-card summary-demo">
+                        <div class="summary-label">DEMO</div>
+                        <div class="summary-value">{{ $seatsGrouped->flatten()->where('seat_type', 'DEMO')->count() }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col">
                     <div class="summary-card summary-blocked">
                         <div class="summary-label">ĐÃ KHÓA</div>
                         <div class="summary-value">
@@ -163,6 +170,7 @@
                             <span class="legend-item"><span class="dot" style="background:#3b82f6"></span> STANDARD</span>
                             <span class="legend-item"><span class="dot" style="background:#eab308"></span> VIP</span>
                             <span class="legend-item"><span class="dot" style="background:#ec4899"></span> COUPLE</span>
+                            <span class="legend-item"><span class="dot" style="background:#10b981"></span> DEMO</span>
                             <span class="legend-item"><span class="dot" style="background:#475569"></span> BLOCKED</span>
                             <span class="legend-item"><span class="dot" style="background:#ef4444"></span> BROKEN</span>
                         </div>
@@ -617,6 +625,10 @@
         background: linear-gradient(90deg, #fdf2f8 0%, #fce7f3 100%);
     }
 
+    .summary-demo {
+        background: linear-gradient(90deg, #ecfdf5 0%, #a7f3d0 100%);
+    }
+
     .summary-blocked {
         background: linear-gradient(90deg, #f8fafc 0%, #e2e8f0 100%);
     }
@@ -790,6 +802,12 @@
     .seat-BROKEN {
         background: linear-gradient(180deg, #fecaca 0%, #ef4444 100%);
         color: #fff7ed;
+    }
+
+    .seat-DEMO {
+        background: linear-gradient(180deg, #a7f3d0 0%, #10b981 100%);
+        color: #064e3b;
+        border-color: #6ee7b7;
     }
 
     .selected-seat-panel {

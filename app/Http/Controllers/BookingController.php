@@ -92,7 +92,7 @@ class BookingController extends Controller
             $allSeatsMatrix[$row][$num] = (object) [
                 'id' => $showtimeSeat->id,
                 'seat' => $seat,
-                'price' => $showtimeSeat->price ?? $seat->base_price ?? 90000,
+                'price' => $showtimeSeat->price ?? $seat->price ?? 90000,
                 'display_status' => $displayStatus,
             ];
         }
@@ -113,6 +113,8 @@ class BookingController extends Controller
                     $mappedType = 'vip';
                 } elseif ($seatType === 'COUPLE' || $row === 'J') {
                     $mappedType = 'sweetbox';
+                } elseif ($seatType === 'DEMO') {
+                    $mappedType = 'demo';
                 }
 
                 $seatMap[$row][] = [
@@ -153,7 +155,7 @@ class BookingController extends Controller
                     'seat_id' => $seat->id,
                 ],
                 [
-                    'price' => $seat->base_price ?? 90000,
+                    'price' => $seat->price ?? 90000,
                     'status' => 'AVAILABLE',
                 ]
             );
@@ -527,11 +529,19 @@ class BookingController extends Controller
             $paymentMethod = $request->input('payment_method', 'ONLINE');
             $status = ($paymentMethod == 'CASH') ? 'PENDING_CASH_PAYMENT' : 'PENDING_PAYMENT';
 
+            // Lưu thông tin khách hàng từ form xác nhận
+            $customerName = $request->input('customer_name');
+            $customerPhone = $request->input('customer_phone');
+            $customerEmail = $request->input('customer_email');
+
             // Luồng chính: Tạo booking mới
             $booking = Booking::create([
                 'booking_code' => $bookingCode,
                 'user_id' => Auth::id(),
                 'showtime_id' => $showtimeId,
+                'customer_name' => $customerName,
+                'customer_email' => $customerEmail,
+                'customer_phone' => $customerPhone,
                 'total_ticket_amount' => $totalTicketAmount,
                 'total_combo_amount' => $totalComboAmount,
                 'discount_amount' => $discountAmount,
@@ -547,6 +557,8 @@ class BookingController extends Controller
                 $seatType = $seat->seat->seat_type ?? 'STANDARD';
                 if ($row === 'J' || $seatType === 'COUPLE') {
                     $seatType = 'COUPLE';
+                } elseif ($seatType === 'DEMO') {
+                    $seatType = 'DEMO';
                 }
 
                 DB::table('booking_seats')->insert([
@@ -584,6 +596,8 @@ class BookingController extends Controller
                     $seatType = 'sweetbox';
                 } elseif ($seatKind === 'VIP') {
                     $seatType = 'vip';
+                } elseif ($seatKind === 'DEMO') {
+                    $seatType = 'demo';
                 }
 
                 $seatDetails[] = [
@@ -602,11 +616,6 @@ class BookingController extends Controller
                     'total_price' => $comboItem['total_price'],
                 ];
             }
-
-            // Lưu thông tin khách hàng vào metadata
-            $customerName = $request->input('customer_name');
-            $customerPhone = $request->input('customer_phone');
-            $customerEmail = $request->input('customer_email');
 
             $sepayOrder = SepayOrder::create([
                 'order_code' => $bookingCode,

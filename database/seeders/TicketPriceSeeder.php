@@ -25,6 +25,7 @@ class TicketPriceSeeder extends Seeder
             'STANDARD' => 80000,   // Ghế thường mặc định 80k
             'VIP' => 150000,  // Ghế VIP mặc định 150k
             'COUPLE' => 250000,  // Ghế Đôi mặc định 250k
+            'DEMO' => 10000,    // Ghế Demo mặc định 10k (test booking)
         ];
 
         $ticketPrices = [];

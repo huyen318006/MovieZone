@@ -67,6 +67,7 @@ class SepayService
         'standard' => 10000,
         'vip' => 150000,
         'sweetbox' => 200000,
+        'demo' => 10000,
     ];
 
     /**

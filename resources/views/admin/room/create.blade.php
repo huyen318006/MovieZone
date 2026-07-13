@@ -47,10 +47,20 @@
 
                     <div class="col-12 col-md-6">
                         <label for="room_type" class="form-label">Loại phòng <span class="text-danger">*</span></label>
-                        <input type="text" id="room_type" name="room_type" class="form-control @error('room_type') is-invalid @enderror" value="{{ old('room_type') }}" placeholder="VD: 2D, 3D, IMAX" required>
+                        <select id="room_type" name="room_type" class="form-select @error('room_type') is-invalid @enderror" required onchange="onRoomTypeChange(this.value)">
+                            <option value="" disabled {{ old('room_type') ? '' : 'selected' }}>-- Chọn loại phòng --</option>
+                            <option value="2D" {{ old('room_type') == '2D' ? 'selected' : '' }}>2D</option>
+                            <option value="3D" {{ old('room_type') == '3D' ? 'selected' : '' }}>3D</option>
+                            <option value="IMAX" {{ old('room_type') == 'IMAX' ? 'selected' : '' }}>IMAX</option>
+                            <option value="4DX" {{ old('room_type') == '4DX' ? 'selected' : '' }}>4DX</option>
+                            <option value="Goldclass" {{ old('room_type') == 'Goldclass' ? 'selected' : '' }}>Goldclass</option>
+                        </select>
                         @error('room_type')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                        <div class="form-text text-muted mt-1" id="capacityHint" style="display:none;">
+                            <i class="bi bi-info-circle me-1"></i><span id="capacityHintText"></span>
+                        </div>
                     </div>
 
                     <div class="col-12 col-md-6">
@@ -86,5 +96,31 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+const roomCapacities = {
+    '2D': 120,
+    '3D': 100,
+    'IMAX': 200,
+    '4DX': 80,
+    'Goldclass': 40
+};
+
+function onRoomTypeChange(type) {
+    const capacity = roomCapacities[type];
+    const input = document.getElementById('total_seats');
+    const hint = document.getElementById('capacityHint');
+    const hintText = document.getElementById('capacityHintText');
+    if (capacity) {
+        input.value = capacity;
+        hintText.textContent = `Sức chứa mặc định của phòng ${type}: ${capacity} ghế (có thể chỉnh sửa)`;
+        hint.style.display = 'block';
+    } else {
+        hint.style.display = 'none';
+    }
+}
+</script>
+@endpush
 
 @endsection

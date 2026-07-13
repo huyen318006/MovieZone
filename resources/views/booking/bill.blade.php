@@ -191,9 +191,6 @@
 
             {{-- Action Buttons --}}
             <div class="bill-actions-mz">
-                <button class="bill-btn-secondary" onclick="window.print()" id="btn-print">
-                    <i class="fa-solid fa-print"></i> In Hoá Đơn
-                </button>
                 <a href="{{ route('home') }}" class="bill-btn-primary" id="btn-home">
                     <i class="fa-solid fa-house"></i> Về Trang Chủ
                 </a>
@@ -201,4 +198,12 @@
 
         </div>
     </section>
+
+    @if(request()->query('print') == 'true')
+    <script>
+        window.onload = function() {
+            window.print();
+        }
+    </script>
+    @endif
 @endsection

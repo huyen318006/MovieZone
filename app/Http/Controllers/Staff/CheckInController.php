@@ -68,6 +68,7 @@ class CheckInController extends Controller
             'data'        => $result['ticket'] ?? null,
             'booking'     => $result['booking'] ?? null,
             'tickets'     => $result['tickets'] ?? null,
+            'scanned_ticket_code' => $result['scanned_ticket_code'] ?? null,
             'error'       => $result['error'] ?? null,
         ], $statusCode);
     }
@@ -95,6 +96,7 @@ class CheckInController extends Controller
             'data'        => $result['ticket'] ?? null,
             'booking'     => $result['booking'] ?? null,
             'tickets'     => $result['tickets'] ?? null,
+            'scanned_ticket_code' => $result['scanned_ticket_code'] ?? null,
             'error'       => $result['error'] ?? null,
         ], $statusCode);
     }
@@ -147,5 +149,58 @@ class CheckInController extends Controller
             'success' => true,
             'data' => $history,
         ]);
+    }
+
+    /**
+     * Download PDF vé cho 1 booking (sau khi check-in).
+     */
+    public function downloadPDF($bookingId): \Symfony\Component\HttpFoundation\Response
+    {
+        $booking = \App\Models\Booking::with('tickets')->find($bookingId);
+
+        if (!$booking) {
+            return response()->json(['message' => 'Không tìm thấy booking.'], 404);
+        }
+
+        if ($booking->tickets->isEmpty()) {
+            return response()->json(['message' => 'Booking chưa có vé nào.'], 404);
+        }
+
+        $pdfService = app(\App\Services\TicketPDFService::class);
+        $pdfPath = $pdfService->generateBookingTicketsPDF($booking);
+
+        if (!$pdfPath || !file_exists($pdfPath)) {
+            return response()->json(['message' => 'Không thể tạo file PDF.'], 500);
+        }
+
+        return response()->download($pdfPath, "tickets_{$booking->booking_code}.pdf", [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
+    /**
+     * In hoá đơn booking (render HTML) - hoạt động với mọi phương thức thanh toán.
+     */
+    public function printBill(string $bookingCode)
+    {
+        $booking = \App\Models\Booking::with([
+            'user:id,name,email,phone',
+            'showtime.movie:id,title,poster_url',
+            'showtime.cinema:id,name',
+            'showtime.room:id,name,room_type',
+            'bookingSeats',
+            'tickets.bookingSeat',
+            'payment',
+            'bookingCombos.combo',
+        ])->where('booking_code', $bookingCode)->first();
+
+        if (!$booking) {
+            return response('<h2 style="text-align:center;padding:40px;">Không tìm thấy booking.</h2>', 404);
+        }
+
+        $autoPrint = request()->query('print') === 'true';
+        $singleTicketCode = request()->query('ticket');
+
+        return view('staff.print-bill', compact('booking', 'autoPrint', 'singleTicketCode'));
     }
 }

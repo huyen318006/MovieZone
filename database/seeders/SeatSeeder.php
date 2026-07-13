@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Room;
 use App\Models\Seat;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class SeatSeeder extends Seeder
@@ -43,7 +42,6 @@ class SeatSeeder extends Seeder
                 // Hàng Sweetbox (ghế đôi)
                 'J' => ['type' => 'COUPLE', 'seats' => 10],
 
-            
             ];
 
             foreach ($rowConfig as $rowLabel => $config) {
@@ -51,17 +49,17 @@ class SeatSeeder extends Seeder
                 $numSeats = $config['seats'];
 
                 for ($number = 1; $number <= $numSeats; $number++) {
-                    $code = $rowLabel . str_pad($number, 2, '0', STR_PAD_LEFT);
+                    $code = $rowLabel.str_pad($number, 2, '0', STR_PAD_LEFT);
 
                     $seats[] = [
-                        'room_id'      => $room->id,
-                        'row_label'    => $rowLabel,
-                        'seat_number'  => $number,
-                        'seat_code'    => $code,
-                        'seat_type'    => $seatType,
-                        'status'       => 'ACTIVE',
-                        'created_at'   => now(),
-                        'updated_at'   => now(),
+                        'room_id' => $room->id,
+                        'row_label' => $rowLabel,
+                        'seat_number' => $number,
+                        'seat_code' => $code,
+                        'seat_type' => $seatType,
+                        'status' => 'ACTIVE',
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ];
                 }
             }
@@ -70,7 +68,7 @@ class SeatSeeder extends Seeder
         // Insert một lần duy nhất (rất nhanh)
         Seat::insert($seats);
 
-        $this->command->info('✅ Đã seed ghế thành công cho ' . $rooms->count() . ' phòng!');
-        $this->command->info('   - Tổng số ghế: ' . count($seats));
+        $this->command->info('✅ Đã seed ghế thành công cho '.$rooms->count().' phòng!');
+        $this->command->info('   - Tổng số ghế: '.count($seats));
     }
 }

@@ -367,44 +367,25 @@
 .success-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
 .success-detail { font-size: 13px; color: var(--staff-text-muted); margin-bottom: 4px; }
 
-/* ── History Panel ── */
-.history-panel {
-    background: var(--staff-surface);
-    border: 1px solid var(--staff-border);
-    border-radius: 16px;
-    overflow: hidden;
-}
-
-.history-list { max-height: 400px; overflow-y: auto; }
-
-.history-item {
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--staff-border);
+/* ── QR/Manual Wrappers ── */
+#qrReaderWrap {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 13px;
-}
-
-.history-item:last-child { border-bottom: none; }
-
-.history-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0;
+    align-items: center;
+    width: 100%;
 }
 
-.history-icon.success { background: rgba(16, 185, 129, 0.15); color: var(--staff-success); }
-.history-icon.failed { background: rgba(239, 68, 68, 0.15); color: var(--staff-danger); }
+#manualFormWrap {
+    width: 100%;
+    max-width: 400px;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+}
 
-.history-info { flex: 1; }
-.history-code { font-weight: 600; color: var(--staff-text); }
-.history-meta { font-size: 11px; color: var(--staff-text-muted); }
+#manualFormWrap .manual-form {
+    width: 100%;
+}
 
 /* ── Batch tickets list ── */
 .tickets-list {
@@ -458,15 +439,33 @@
     <div>
         <div class="scanner-panel">
             <div class="scanner-header">
-                <h3><i class="bi bi-qr-code-scan"></i> Quét mã QR</h3>
+                <h3 id="scannerTitle"><i class="bi bi-qr-code-scan"></i> Quét mã QR</h3>
                 <div class="scanner-status" id="scannerStatus">
                     <span class="dot"></span> Đang chờ quét...
                 </div>
             </div>
             <div class="scanner-body">
-                <div id="qr-reader">
-                    <div class="scanner-overlay">
-                        <div class="scan-frame"></div>
+                {{-- QR Reader (shown by default) --}}
+                <div id="qrReaderWrap">
+                    <div id="qr-reader">
+                        <div class="scanner-overlay">
+                            <div class="scan-frame"></div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Manual Form (hidden by default) --}}
+                <div id="manualFormWrap" style="display:none; padding: 16px 0;">
+                    <div class="manual-form">
+                        <select id="manualType">
+                            <option value="booking_code">Mã booking (BK...)</option>
+                            <option value="ticket_code">Mã vé (TK...)</option>
+                        </select>
+                        <input type="text" id="manualCode" placeholder="VD: BKXM7QP9RWBF hoặc TK3QNH65UJP8H8"
+                               onkeydown="if(event.key==='Enter') lookupManual()">
+                        <button class="btn-scan btn-scan-primary" onclick="lookupManual()" id="btnManualLookup">
+                            <i class="bi bi-search"></i> Tra cứu
+                        </button>
                     </div>
                 </div>
 
@@ -474,39 +473,9 @@
                     <button class="btn-scan btn-scan-primary" id="btnStartScan" onclick="toggleScanner()">
                         <i class="bi bi-camera-video"></i> Bắt đầu quét
                     </button>
-                    <button class="btn-scan btn-scan-secondary" onclick="toggleManualInput()">
+                    <button class="btn-scan btn-scan-secondary" id="btnToggleManual" onclick="toggleManualInput()">
                         <i class="bi bi-keyboard"></i> Nhập mã
                     </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Manual Input -->
-        <div class="manual-input-panel" id="manualPanel">
-            <h4 style="font-size:15px; font-weight:600; margin:0 0 12px; display:flex; align-items:center; gap:8px;">
-                <i class="bi bi-keyboard"></i> Nhập mã thủ công
-            </h4>
-            <div class="manual-form">
-                <select id="manualType">
-                    <option value="booking_code">Mã booking (BK...)</option>
-                    <option value="ticket_code">Mã vé (TK...)</option>
-                </select>
-                <input type="text" id="manualCode" placeholder="VD: BKXM7QP9RWBF hoặc TK3QNH65UJP8H8"
-                       onkeydown="if(event.key==='Enter') lookupManual()">
-                <button class="btn-scan btn-scan-primary" onclick="lookupManual()" id="btnManualLookup">
-                    <i class="bi bi-search"></i> Tra cứu
-                </button>
-            </div>
-        </div>
-
-        <!-- Recent History -->
-        <div class="history-panel" style="margin-top: 16px;">
-            <div class="scanner-header">
-                <h3><i class="bi bi-clock-history"></i> Check-in gần đây</h3>
-            </div>
-            <div class="history-list" id="historyList">
-                <div style="padding: 24px; text-align: center; color: var(--staff-text-muted); font-size: 13px;">
-                    Chưa có check-in nào
                 </div>
             </div>
         </div>
@@ -530,9 +499,14 @@
         <div class="success-detail" id="successTicketCode"></div>
         <div class="success-detail" id="successSeat"></div>
         <div class="success-detail" id="successTime"></div>
-        <button class="btn-scan btn-scan-primary" style="margin-top:20px; width:100%;" onclick="closeSuccess()">
-            <i class="bi bi-qr-code-scan"></i> Quét vé tiếp theo
-        </button>
+        <div style="display:flex; gap:10px; margin-top:20px; width:100%;">
+            <button class="btn-scan btn-scan-primary" style="flex:1;" onclick="closeSuccess()">
+                <i class="bi bi-qr-code-scan"></i> Quét vé tiếp theo
+            </button>
+            <button class="btn-scan btn-scan-secondary" style="flex:1;" id="btnPrintPDF" onclick="downloadPDF()">
+                <i class="bi bi-file-earmark-pdf"></i> In PDF
+            </button>
+        </div>
     </div>
 </div>
 @endsection
@@ -548,7 +522,7 @@ const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').content;
 let html5QrCode = null;
 let isScanning = false;
 let scanCooldown = false;
-const recentHistory = [];
+let lastCheckedBookingId = null;
 
 // ══════ QR SCANNER ══════
 
@@ -640,11 +614,38 @@ async function onQRSuccess(decodedText) {
 
 // ══════ MANUAL LOOKUP ══════
 
+let isManualMode = false;
+
 function toggleManualInput() {
-    const panel = document.getElementById('manualPanel');
-    panel.classList.toggle('show');
-    if (panel.classList.contains('show')) {
+    const qrWrap = document.getElementById('qrReaderWrap');
+    const manualWrap = document.getElementById('manualFormWrap');
+    const title = document.getElementById('scannerTitle');
+    const status = document.getElementById('scannerStatus');
+    const btnScan = document.getElementById('btnStartScan');
+    const btnManual = document.getElementById('btnToggleManual');
+
+    isManualMode = !isManualMode;
+
+    if (isManualMode) {
+        // Switch to manual mode
+        if (isScanning) stopScanner();
+        qrWrap.style.display = 'none';
+        manualWrap.style.display = 'block';
+        btnScan.style.display = 'none';
+        btnManual.innerHTML = '<i class="bi bi-qr-code-scan"></i> Quét QR';
+        btnManual.className = 'btn-scan btn-scan-primary';
+        title.innerHTML = '<i class="bi bi-keyboard"></i> Nhập mã thủ công';
+        status.innerHTML = '';
         document.getElementById('manualCode').focus();
+    } else {
+        // Switch to QR mode
+        manualWrap.style.display = 'none';
+        qrWrap.style.display = 'block';
+        btnScan.style.display = '';
+        btnManual.innerHTML = '<i class="bi bi-keyboard"></i> Nhập mã';
+        btnManual.className = 'btn-scan btn-scan-secondary';
+        title.innerHTML = '<i class="bi bi-qr-code-scan"></i> Quét mã QR';
+        status.innerHTML = '<span class="dot"></span> Đang chờ quét...';
     }
 }
 
@@ -757,12 +758,18 @@ function showConfirmCard(data) {
                 <button class="btn-confirm btn-confirm-success" onclick="confirmCheckIn(${ticket.id})">
                     <i class="bi bi-check-circle"></i> Xác nhận Check-in
                 </button>
+                <button class="btn-confirm btn-scan-secondary" style="flex: 0.5;" onclick="printBill('${ticket.booking?.booking_code}')">
+                    <i class="bi bi-printer"></i> In
+                </button>
                 <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()">
                     <i class="bi bi-x-lg"></i> Hủy
                 </button>
             </div>
         ` : `
             <div class="confirm-card-actions">
+                <button class="btn-confirm btn-scan-secondary" onclick="printBill('${ticket.booking?.booking_code}')">
+                    <i class="bi bi-printer"></i> In Hoá Đơn
+                </button>
                 <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()" style="flex:1;">
                     <i class="bi bi-qr-code-scan"></i> Quét vé khác
                 </button>
@@ -780,43 +787,79 @@ function showBatchPanel(data) {
     const panel = document.getElementById('batchPanel');
     const booking = data.booking;
     const tickets = data.tickets || [];
+    const scannedTicketCode = data.scanned_ticket_code || null;
 
-    const checkableTickets = tickets.filter(t => t.can_checkin);
-    const headerClass = data.can_checkin ? 'valid' : 'warning';
-    const headerText = data.can_checkin
-        ? `Booking tìm thấy — ${checkableTickets.length}/${tickets.length} vé có thể check-in`
-        : (data.error?.message || 'Không thể check-in');
+    const checkableTickets = data.can_checkin ? tickets.filter(t => t.can_checkin) : [];
+    const headerClass = checkableTickets.length > 0 ? 'valid' : (tickets.length > 0 ? 'warning' : 'invalid');
+    let headerText;
+    if (checkableTickets.length > 0) {
+        headerText = `Booking tìm thấy — ${checkableTickets.length}/${tickets.length} vé có thể check-in`;
+    } else if (data.error?.message) {
+        headerText = data.error.message;
+    } else {
+        headerText = 'Không thể check-in';
+    }
 
-    let ticketsHtml = tickets.map(t => `
-        <div class="ticket-row ${t.can_checkin ? '' : 'disabled'}">
-            <input type="checkbox" class="batch-ticket-cb" value="${t.id}" ${t.can_checkin ? 'checked' : 'disabled'}
+    let ticketsHtml = tickets.map(t => {
+        const isScanned = scannedTicketCode && t.ticket_code === scannedTicketCode;
+        const canCheck = data.can_checkin && t.can_checkin;
+        return `
+        <div class="ticket-row" style="opacity:${canCheck ? '1' : '0.7'}; ${isScanned ? 'border-color: var(--staff-primary); background: rgba(139,92,246,0.08); box-shadow: 0 0 0 1px var(--staff-primary);' : ''}">
+            <input type="checkbox" class="batch-ticket-cb" value="${t.id}" ${canCheck ? 'checked' : 'disabled'}
                    style="accent-color:var(--staff-primary); width:18px; height:18px;">
             <span class="seat-badge">${t.seat_code}</span>
-            <span style="flex:1; font-size:13px;">${t.ticket_code}</span>
+            <span style="flex:1; font-size:13px; min-width:0;">
+                ${t.ticket_code}
+                ${isScanned ? '<i class="bi bi-arrow-left-short" style="color:var(--staff-primary); font-weight:700;" title="Vé vừa quét"></i>' : ''}
+            </span>
             <span class="status-badge ${t.status.toLowerCase()}">${t.status}</span>
             ${t.checked_in_at ? `<span style="font-size:11px; color:var(--staff-text-muted);">${formatDateTime(t.checked_in_at)}</span>` : ''}
+            <button onclick="event.stopPropagation(); printTicket('${booking?.booking_code}', '${t.ticket_code}', ${t.id}, ${canCheck})"
+                    style="background:transparent; border:1px solid var(--staff-border); color:var(--staff-text-muted); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:3px; flex-shrink:0; transition:all 0.2s;"
+                    onmouseover="this.style.borderColor='var(--staff-primary)';this.style.color='var(--staff-primary)'"
+                    onmouseout="this.style.borderColor='var(--staff-border)';this.style.color='var(--staff-text-muted)'"
+                    title="In & check-in vé ${t.seat_code}">
+                <i class="bi bi-printer"></i>
+            </button>
         </div>
-    `).join('');
+    `}).join('');
+
+    const posterSrc = booking?.poster_url ? `/storage/${booking.poster_url}` : '';
+    const posterImg = posterSrc
+        ? `<img src="${posterSrc}" style="width:60px; height:90px; border-radius:8px; object-fit:cover; flex-shrink:0;" alt="poster">`
+        : `<div style="width:60px; height:90px; border-radius:8px; background:var(--staff-bg); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--staff-text-muted); font-size:20px;"><i class="bi bi-film"></i></div>`;
 
     panel.innerHTML = `
         <div class="confirm-card-header ${headerClass}">
             <i class="bi bi-ticket-detailed"></i> ${headerText}
         </div>
         <div class="confirm-card-body">
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-                <div>
-                    <div style="font-size:13px; color:var(--staff-text-muted);">Booking</div>
-                    <div style="font-weight:700;">${booking?.booking_code || 'N/A'}</div>
+            <div style="display:flex; gap:14px; margin-bottom:16px;">
+                ${posterImg}
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:15px; margin-bottom:6px;">${booking?.movie_title || 'N/A'}</div>
+                    <div style="font-size:13px; color:var(--staff-text-muted); display:flex; flex-direction:column; gap:3px;">
+                        <span><i class="bi bi-calendar3" style="margin-right:4px; color:var(--staff-primary);"></i>${formatDateTime(booking?.start_time)}</span>
+                        <span><i class="bi bi-building" style="margin-right:4px; color:var(--staff-primary);"></i>${booking?.cinema_name || 'N/A'}</span>
+                        <span><i class="bi bi-door-open" style="margin-right:4px; color:var(--staff-primary);"></i>${booking?.room_name || 'N/A'} ${booking?.room_type ? `(${booking.room_type})` : ''}</span>
+                        <span><i class="bi bi-person" style="margin-right:4px; color:var(--staff-primary);"></i>${booking?.customer_name || 'N/A'}</span>
+                    </div>
                 </div>
-                <div>
-                    <div style="font-size:13px; color:var(--staff-text-muted);">Phim</div>
-                    <div style="font-weight:600;">${booking?.movie_title || 'N/A'}</div>
-                </div>
-                <div>
-                    <div style="font-size:13px; color:var(--staff-text-muted);">Suất</div>
-                    <div style="font-weight:600;">${formatDateTime(booking?.start_time)}</div>
+                <div style="text-align:right; flex-shrink:0;">
+                    <div style="font-size:11px; color:var(--staff-text-muted); text-transform:uppercase; letter-spacing:1px;">Booking</div>
+                    <div style="font-weight:700; font-size:13px; font-family:monospace;">${booking?.booking_code || 'N/A'}</div>
                 </div>
             </div>
+            ${tickets.length > 0 ? `
+                <div style="font-size:12px; color:var(--staff-text-muted); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                    <span><i class="bi bi-ticket-perforated"></i> ${tickets.length} vé trong booking</span>
+                    <button onclick="printBill('${booking?.booking_code}')" style="background:transparent; border:1px solid var(--staff-border); color:var(--staff-text-muted); border-radius:6px; padding:3px 10px; cursor:pointer; font-size:11px; display:flex; align-items:center; gap:4px;"
+                            onmouseover="this.style.borderColor='var(--staff-primary)';this.style.color='var(--staff-primary)'"
+                            onmouseout="this.style.borderColor='var(--staff-border)';this.style.color='var(--staff-text-muted)'">
+                        <i class="bi bi-printer"></i> In tất cả
+                    </button>
+                </div>
+            ` : ''}
             <div class="tickets-list">${ticketsHtml}</div>
         </div>
         ${checkableTickets.length > 0 ? `
@@ -863,10 +906,8 @@ async function confirmCheckIn(ticketId) {
 
         if (data.success) {
             showSuccess(data.data);
-            addToHistory(data.data, true);
         } else {
             showError(data.error?.message || 'Check-in thất bại.');
-            addToHistory({ ticket_code: 'N/A', ...data.error }, false);
         }
 
     } catch (err) {
@@ -926,9 +967,48 @@ function showSuccess(data) {
     document.getElementById('successTicketCode').textContent = `Vé: ${data.ticket_code}`;
     document.getElementById('successSeat').textContent = `Ghế: ${data.seat_code} | ${data.room_name || ''}`;
     document.getElementById('successTime').textContent = `Thời gian: ${data.checked_in_at}`;
+    // Lưu booking_id để in PDF
+    if (data.booking_id) {
+        lastCheckedBookingId = data.booking_id;
+        document.getElementById('btnPrintPDF').style.display = 'inline-flex';
+    } else {
+        document.getElementById('btnPrintPDF').style.display = 'none';
+    }
     document.getElementById('successOverlay').classList.add('show');
     cancelConfirm();
     playBeepSuccess();
+}
+
+async function downloadPDF() {
+    if (!lastCheckedBookingId) {
+        alert('Không tìm thấy thông tin booking để in PDF.');
+        return;
+    }
+    const btn = document.getElementById('btnPrintPDF');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Đang tạo PDF...';
+    try {
+        const res = await fetch(`${API_BASE}/${lastCheckedBookingId}/download-pdf`);
+        if (!res.ok) {
+            const errData = await res.json().catch(() => null);
+            alert(errData?.message || 'Không thể tạo PDF. Vui lòng thử lại.');
+            return;
+        }
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ticket_${lastCheckedBookingId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Lỗi kết nối khi tải PDF.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-file-earmark-pdf"></i> In PDF';
+    }
 }
 
 function closeSuccess() {
@@ -955,40 +1035,97 @@ function cancelConfirm() {
     document.getElementById('batchPanel').classList.remove('show');
 }
 
-function addToHistory(data, success) {
-    recentHistory.unshift({ ...data, success, time: new Date() });
-    if (recentHistory.length > 10) recentHistory.pop();
-    renderHistory();
-}
-
-function renderHistory() {
-    const list = document.getElementById('historyList');
-    if (recentHistory.length === 0) {
-        list.innerHTML = '<div style="padding:24px; text-align:center; color:var(--staff-text-muted); font-size:13px;">Chưa có check-in nào</div>';
-        return;
-    }
-
-    list.innerHTML = recentHistory.map(item => `
-        <div class="history-item">
-            <div class="history-icon ${item.success ? 'success' : 'failed'}">
-                <i class="bi ${item.success ? 'bi-check-lg' : 'bi-x-lg'}"></i>
-            </div>
-            <div class="history-info">
-                <div class="history-code">${item.ticket_code || 'N/A'}</div>
-                <div class="history-meta">${item.seat_code || ''} ${item.movie_title ? '| ' + item.movie_title : ''}</div>
-            </div>
-            <div style="font-size:11px; color:var(--staff-text-muted);">
-                ${item.time.toLocaleTimeString('vi-VN')}
-            </div>
-        </div>
-    `).join('');
-}
 
 function formatDateTime(dt) {
     if (!dt) return 'N/A';
     const d = new Date(dt);
     if (isNaN(d)) return dt;
     return d.toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function printBill(code) {
+    if (!code || code === 'undefined') return;
+
+    let iframe = document.getElementById('print-iframe-mz');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe-mz';
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0px';
+        iframe.style.height = '0px';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+    }
+
+    iframe.src = `/staff/print-bill/${code}?print=true`;
+}
+
+function printTicket(bookingCode, ticketCode, ticketId, canCheckin) {
+    if (!bookingCode || !ticketCode) return;
+
+    let iframe = document.getElementById('print-iframe-mz');
+    if (!iframe) {
+        iframe = document.createElement('iframe');
+        iframe.id = 'print-iframe-mz';
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0px';
+        iframe.style.height = '0px';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+    }
+
+    iframe.src = `/staff/print-bill/${bookingCode}?print=true&ticket=${ticketCode}`;
+
+    // Auto check-in after print
+    if (ticketId && canCheckin) {
+        autoCheckIn(ticketId, ticketCode);
+    }
+}
+
+async function autoCheckIn(ticketId, ticketCode) {
+    try {
+        const res = await fetch(`${API_BASE}/confirm`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                ticket_id: ticketId,
+                scan_method: 'MANUAL',
+            }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            // Update the ticket row in the batch panel
+            const cb = document.querySelector(`.batch-ticket-cb[value="${ticketId}"]`);
+            if (cb) {
+                cb.checked = false;
+                cb.disabled = true;
+                const row = cb.closest('.ticket-row');
+                if (row) {
+                    row.style.opacity = '0.7';
+                    const badge = row.querySelector('.status-badge');
+                    if (badge) {
+                        badge.className = 'status-badge used';
+                        badge.textContent = 'USED';
+                    }
+                    // Add check-in time
+                    const timeSpan = document.createElement('span');
+                    timeSpan.style.cssText = 'font-size:11px; color:var(--staff-text-muted);';
+                    timeSpan.textContent = new Date().toLocaleString('vi-VN');
+                    badge.insertAdjacentElement('afterend', timeSpan);
+                }
+            }
+            playBeepSuccess();
+        }
+    } catch (e) {
+        // Print still works, just skip auto check-in silently
+        console.warn('Auto check-in failed:', e);
+    }
 }
 
 // ══════ SOUND EFFECTS ══════
