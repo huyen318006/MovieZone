@@ -803,6 +803,7 @@ function showBatchPanel(data) {
     const panel = document.getElementById('batchPanel');
     const booking = data.booking;
     const tickets = data.tickets || [];
+    const scannedTicketCode = data.scanned_ticket_code || null;
 
     const checkableTickets = tickets.filter(t => t.can_checkin);
     const headerClass = data.can_checkin ? 'valid' : 'warning';
@@ -810,34 +811,43 @@ function showBatchPanel(data) {
         ? `Booking tìm thấy — ${checkableTickets.length}/${tickets.length} vé có thể check-in`
         : (data.error?.message || 'Không thể check-in');
 
-    let ticketsHtml = tickets.map(t => `
-        <div class="ticket-row ${t.can_checkin ? '' : 'disabled'}">
+    let ticketsHtml = tickets.map(t => {
+        const isScanned = scannedTicketCode && t.ticket_code === scannedTicketCode;
+        return `
+        <div class="ticket-row ${t.can_checkin ? '' : 'disabled'}" style="${isScanned ? 'border-color: var(--staff-primary); background: rgba(139,92,246,0.08); box-shadow: 0 0 0 1px var(--staff-primary);' : ''}">
             <input type="checkbox" class="batch-ticket-cb" value="${t.id}" ${t.can_checkin ? 'checked' : 'disabled'}
                    style="accent-color:var(--staff-primary); width:18px; height:18px;">
             <span class="seat-badge">${t.seat_code}</span>
-            <span style="flex:1; font-size:13px;">${t.ticket_code}</span>
+            <span style="flex:1; font-size:13px;">${t.ticket_code}${isScanned ? ' <i class="bi bi-arrow-left-short" style="color:var(--staff-primary); font-weight:700;" title="Vé vừa quét"></i>' : ''}</span>
             <span class="status-badge ${t.status.toLowerCase()}">${t.status}</span>
             ${t.checked_in_at ? `<span style="font-size:11px; color:var(--staff-text-muted);">${formatDateTime(t.checked_in_at)}</span>` : ''}
         </div>
-    `).join('');
+    `}).join('');
+
+    const posterSrc = booking?.poster_url ? `/storage/${booking.poster_url}` : '';
+    const posterImg = posterSrc
+        ? `<img src="${posterSrc}" style="width:60px; height:90px; border-radius:8px; object-fit:cover; flex-shrink:0;" alt="poster">`
+        : `<div style="width:60px; height:90px; border-radius:8px; background:var(--staff-bg); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--staff-text-muted); font-size:20px;"><i class="bi bi-film"></i></div>`;
 
     panel.innerHTML = `
         <div class="confirm-card-header ${headerClass}">
             <i class="bi bi-ticket-detailed"></i> ${headerText}
         </div>
         <div class="confirm-card-body">
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-                <div>
-                    <div style="font-size:13px; color:var(--staff-text-muted);">Booking</div>
-                    <div style="font-weight:700;">${booking?.booking_code || 'N/A'}</div>
+            <div style="display:flex; gap:14px; margin-bottom:16px;">
+                ${posterImg}
+                <div style="flex:1; min-width:0;">
+                    <div style="font-weight:700; font-size:15px; margin-bottom:6px;">${booking?.movie_title || 'N/A'}</div>
+                    <div style="font-size:13px; color:var(--staff-text-muted); display:flex; flex-direction:column; gap:3px;">
+                        <span><i class="bi bi-calendar3" style="margin-right:4px; color:var(--staff-primary);"></i>${formatDateTime(booking?.start_time)}</span>
+                        <span><i class="bi bi-building" style="margin-right:4px; color:var(--staff-primary);"></i>${booking?.cinema_name || 'N/A'}</span>
+                        <span><i class="bi bi-door-open" style="margin-right:4px; color:var(--staff-primary);"></i>${booking?.room_name || 'N/A'} ${booking?.room_type ? `(${booking.room_type})` : ''}</span>
+                        <span><i class="bi bi-person" style="margin-right:4px; color:var(--staff-primary);"></i>${booking?.customer_name || 'N/A'}</span>
+                    </div>
                 </div>
-                <div>
-                    <div style="font-size:13px; color:var(--staff-text-muted);">Phim</div>
-                    <div style="font-weight:600;">${booking?.movie_title || 'N/A'}</div>
-                </div>
-                <div>
-                    <div style="font-size:13px; color:var(--staff-text-muted);">Suất</div>
-                    <div style="font-weight:600;">${formatDateTime(booking?.start_time)}</div>
+                <div style="text-align:right; flex-shrink:0;">
+                    <div style="font-size:11px; color:var(--staff-text-muted); text-transform:uppercase; letter-spacing:1px;">Booking</div>
+                    <div style="font-weight:700; font-size:13px; font-family:monospace;">${booking?.booking_code || 'N/A'}</div>
                 </div>
             </div>
             <div class="tickets-list">${ticketsHtml}</div>

@@ -2607,14 +2607,30 @@ RESPONSIVE
 
 /* ---- PRINT ---- */
 @media print {
+    /* Reset page */
+    * { box-shadow: none !important; text-shadow: none !important; }
+
+    @page {
+        margin: 8mm;
+        size: A4;
+    }
+
     body {
         background: #fff !important;
         color: #000 !important;
+        font-size: 12px !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
     }
 
+    /* Hide non-essential elements */
     .header,
     .footer,
-    .bill-actions-mz {
+    .bill-actions-mz,
+    .bill-success-header,
+    .bill-email-notice,
+    nav, aside,
+    .navbar, .sidebar {
         display: none !important;
     }
 
@@ -2622,52 +2638,268 @@ RESPONSIVE
         background: #fff !important;
         margin-top: 0 !important;
         padding: 0 !important;
+        min-height: auto !important;
+    }
+
+    .bill-wrapper {
+        max-width: 100% !important;
+        animation: none !important;
     }
 
     .bill-card-mz {
-        border: 2px solid #000;
+        border: 1.5px solid #333 !important;
         background: #fff !important;
+        border-radius: 8px !important;
+        animation: none !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
 
-    .bill-success-header h1,
-    .total-amount,
-    .amount-value {
-        -webkit-text-fill-color: #000;
-        color: #000;
+    /* Compact card top */
+    .bill-card-top {
+        padding: 10px 16px !important;
+        background: #f5f5f5 !important;
+        border-bottom: 1px solid #ddd !important;
     }
 
-    .bill-status-badge,
-    .bill-label-sm,
-    .bill-order-code,
-    .bill-movie-detail h3,
-    .bill-detail-item .label,
-    .bill-detail-item .value,
-    .bill-price-row,
-    .bill-price-total,
-    .trans-row,
-    .bill-card-bottom,
-    .bill-qr-header h4,
-    .bill-qr-header p,
-    .bill-qr-code-text,
-    .bill-qr-cinema {
+    .bill-label-sm {
+        font-size: 9px !important;
+        color: #666 !important;
+    }
+
+    .bill-order-code {
+        font-size: 12px !important;
+        color: #000 !important;
+        -webkit-text-fill-color: #000 !important;
+    }
+
+    .bill-status-badge {
+        font-size: 11px !important;
+        color: #059669 !important;
+        background: #ecfdf5 !important;
+        border-color: #a7f3d0 !important;
+        padding: 3px 10px !important;
+    }
+
+    /* Compact QR section */
+    .bill-qr-section {
+        padding: 12px 16px !important;
+        background: #fafafa !important;
+        border-top: 1px dashed #ccc !important;
+    }
+
+    .bill-qr-header {
+        margin-bottom: 10px !important;
+    }
+
+    .bill-qr-header > i {
+        font-size: 18px !important;
+        color: #333 !important;
+    }
+
+    .bill-qr-header h4 {
+        font-size: 13px !important;
         color: #000 !important;
     }
 
-    .bill-qr-section {
-        background: #f8f8f8 !important;
-        border-top: 2px dashed #ccc !important;
+    .bill-qr-header p {
+        font-size: 11px !important;
+        color: #666 !important;
+    }
+
+    .bill-qr-body {
+        text-align: center;
     }
 
     .bill-qr-frame {
-        box-shadow: 0 0 0 2px #000 !important;
+        padding: 8px !important;
+        box-shadow: 0 0 0 1px #333 !important;
+        border-radius: 8px !important;
+        margin-bottom: 8px !important;
     }
 
     .bill-qr-frame::before {
-        display: none;
+        display: none !important;
+    }
+
+    .bill-qr-frame img {
+        width: 140px !important;
+        height: 140px !important;
     }
 
     .bill-qr-code-text {
+        font-size: 13px !important;
+        letter-spacing: 2px !important;
+        color: #000 !important;
         -webkit-text-fill-color: #000 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .bill-qr-cinema {
+        font-size: 11px !important;
+        color: #555 !important;
+    }
+
+    .bill-qr-cinema i {
+        color: #333 !important;
+    }
+
+    /* Compact movie section */
+    .bill-movie-section {
+        padding: 12px 16px !important;
+        border-bottom: 1px dashed #ccc !important;
+    }
+
+    .bill-movie-icon {
+        font-size: 24px !important;
+    }
+
+    .bill-movie-detail h3 {
+        font-size: 15px !important;
+        color: #000 !important;
+        margin-bottom: 4px !important;
+    }
+
+    .bill-movie-meta {
+        font-size: 11px !important;
+        color: #555 !important;
+        gap: 8px 12px !important;
+    }
+
+    .bill-movie-meta i {
+        color: #333 !important;
+    }
+
+    /* Compact detail grid */
+    .bill-detail-grid {
+        padding: 0 16px !important;
+    }
+
+    .bill-detail-item {
+        padding: 8px 0 !important;
+        gap: 8px !important;
+        border-bottom: 1px solid #eee !important;
+    }
+
+    .bill-detail-item i {
+        font-size: 14px !important;
+        color: #333 !important;
+    }
+
+    .bill-detail-item .label {
+        font-size: 10px !important;
+        color: #888 !important;
+    }
+
+    .bill-detail-item .value {
+        font-size: 12px !important;
+        color: #000 !important;
+    }
+
+    /* Compact customer section */
+    .bill-customer-section {
+        padding: 12px 16px !important;
+        background: #fafafa !important;
+        border: 1px solid #ddd !important;
+        margin-bottom: 12px !important;
+        margin-left: 16px !important;
+        margin-right: 16px !important;
+    }
+
+    .bill-customer-section h4 {
+        font-size: 12px !important;
+        color: #333 !important;
+        margin-bottom: 8px !important;
+    }
+
+    .bill-customer-section span {
+        color: #666 !important;
+        font-size: 10px !important;
+    }
+
+    .bill-customer-section strong {
+        color: #000 !important;
+        font-size: 12px !important;
+    }
+
+    /* Compact price section */
+    .bill-price-section {
+        padding: 12px 16px !important;
+        border-top: 1px solid #ddd !important;
+    }
+
+    .bill-price-section h4 {
+        font-size: 12px !important;
+        color: #333 !important;
+        margin-bottom: 8px !important;
+    }
+
+    .bill-price-section h4 i {
+        color: #333 !important;
+    }
+
+    .bill-price-row {
+        font-size: 12px !important;
+        color: #333 !important;
+        padding: 3px 0 !important;
+    }
+
+    .bill-price-total {
+        padding-top: 8px !important;
+        margin-top: 6px !important;
+        border-top: 1px dashed #999 !important;
+    }
+
+    .total-amount {
+        font-size: 16px !important;
+        color: #000 !important;
+        -webkit-text-fill-color: #000 !important;
+        background: none !important;
+    }
+
+    /* Compact transaction info */
+    .bill-transaction-info {
+        padding: 8px 16px !important;
+        background: #fafafa !important;
+        border-top: 1px solid #ddd !important;
+    }
+
+    .trans-row {
+        font-size: 11px !important;
+        padding: 3px 0 !important;
+    }
+
+    .trans-row span:first-child {
+        color: #666 !important;
+    }
+
+    .trans-row span:last-child {
+        color: #000 !important;
+    }
+
+    /* Compact footer */
+    .bill-card-bottom {
+        padding: 8px 16px !important;
+        font-size: 10px !important;
+        color: #999 !important;
+        border-top: 1px solid #eee !important;
+    }
+
+    /* Prevent page breaks */
+    .bill-card-mz,
+    .bill-card-mz * {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .bill-qr-section,
+    .bill-movie-section,
+    .bill-detail-grid,
+    .bill-price-section,
+    .bill-customer-section,
+    .bill-transaction-info {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
     }
 }
 

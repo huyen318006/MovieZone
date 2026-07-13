@@ -317,6 +317,9 @@ class CheckInService
             return [
                 'can_checkin' => false,
                 'ticket' => $this->formatTicketPreview($ticket),
+                'booking' => $this->formatBooking($booking),
+                'tickets' => $this->getAllBookingTickets($booking),
+                'scanned_ticket_code' => $ticketCode,
                 'error' => [
                     'code' => 'TICKET_ALREADY_CHECKED_IN',
                     'message' => "Vé đã check-in lúc {$checkedAt} bởi {$checkedBy}.",
@@ -328,6 +331,9 @@ class CheckInService
             return [
                 'can_checkin' => false,
                 'ticket' => $this->formatTicketPreview($ticket),
+                'booking' => $this->formatBooking($booking),
+                'tickets' => $this->getAllBookingTickets($booking),
+                'scanned_ticket_code' => $ticketCode,
                 'error' => ['code' => 'TICKET_CANCELLED', 'message' => 'Vé đã bị hủy.'],
             ];
         }
@@ -347,12 +353,39 @@ class CheckInService
             ];
         }
 
-        // All valid!
+        // All valid! Return with all booking tickets for batch view
         return [
             'can_checkin' => true,
             'ticket' => $this->formatTicketPreview($ticket),
+            'booking' => $this->formatBooking($booking),
+            'tickets' => $this->getAllBookingTickets($booking),
+            'scanned_ticket_code' => $ticketCode,
             'error' => null,
         ];
+    }
+
+    /**
+     * Lấy danh sách tất cả vé trong cùng booking.
+     */
+    private function getAllBookingTickets(Booking $booking): \Illuminate\Support\Collection
+    {
+        // Load tickets if not already loaded
+        if (!$booking->relationLoaded('tickets')) {
+            $booking->load(['tickets.bookingSeat', 'tickets.checkedInByUser:id,name']);
+        }
+
+        return $booking->tickets->map(function ($ticket) {
+            return [
+                'id' => $ticket->id,
+                'ticket_code' => $ticket->ticket_code,
+                'seat_code' => $ticket->bookingSeat?->seat_code ?? 'N/A',
+                'seat_type' => $ticket->bookingSeat?->seat_type ?? 'N/A',
+                'status' => $ticket->status,
+                'can_checkin' => $ticket->status === 'UNUSED',
+                'checked_in_at' => $ticket->checked_in_at,
+                'checked_in_by_name' => $ticket->checkedInByUser?->name,
+            ];
+        });
     }
 
     private function checkBookingStatus($booking): ?array

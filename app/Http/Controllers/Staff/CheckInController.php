@@ -68,6 +68,7 @@ class CheckInController extends Controller
             'data'        => $result['ticket'] ?? null,
             'booking'     => $result['booking'] ?? null,
             'tickets'     => $result['tickets'] ?? null,
+            'scanned_ticket_code' => $result['scanned_ticket_code'] ?? null,
             'error'       => $result['error'] ?? null,
         ], $statusCode);
     }
@@ -95,6 +96,7 @@ class CheckInController extends Controller
             'data'        => $result['ticket'] ?? null,
             'booking'     => $result['booking'] ?? null,
             'tickets'     => $result['tickets'] ?? null,
+            'scanned_ticket_code' => $result['scanned_ticket_code'] ?? null,
             'error'       => $result['error'] ?? null,
         ], $statusCode);
     }
