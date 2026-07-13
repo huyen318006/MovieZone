@@ -356,7 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== DOM REFERENCES =====
     const selectMovie = document.getElementById('selectMovie');
     const selectDate = document.getElementById('selectDate');
-    const inputLanguageType = document.getElementById('inputLanguageType');
+    // const inputLanguageType = document.getElementById('inputLanguageType');
     const selectedRoomInput = document.getElementById('selectedRoomId');
     const hiddenStartTimeInput = document.getElementById('hiddenStartTime');
     const showtimeForm = document.getElementById('showtimeForm');
@@ -422,13 +422,13 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('movieRelease').textContent = releaseText || 'Chưa xác định';
 
             // Tự động điền Ngôn ngữ gợi ý từ Phim
-            let defaultLanguageType = data.movie.language || '';
-            if (data.movie.subtitle) {
-                defaultLanguageType += ' - Phụ đề ' + data.movie.subtitle;
-            } else {
-                defaultLanguageType += ' - Bản gốc';
-            }
-            inputLanguageType.value = defaultLanguageType;
+            // let defaultLanguageType = data.movie.language || '';
+            // if (data.movie.subtitle) {
+            //     defaultLanguageType += ' - Phụ đề ' + data.movie.subtitle;
+            // } else {
+            //     defaultLanguageType += ' - Bản gốc';
+            // }
+            // inputLanguageType.value = defaultLanguageType;
 
             movieInfoCard.style.display = 'block';
             btnNext1.disabled = false;
