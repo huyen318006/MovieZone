@@ -18,12 +18,14 @@ use App\Http\Controllers\GoogleController;
 use App\Http\Controllers\MovieController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SepayController;
 use App\Http\Controllers\ShowtimeController;
 use App\Http\Controllers\Staff\StaffDashboardController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\VoucherController;
+use App\Http\Controllers\ChatbotController;
 use App\Models\Movie;
 use Illuminate\Support\Facades\Route;
 
@@ -131,9 +133,8 @@ Route::prefix('sepay')->name('sepay.')->group(function () {
 });
 
 // Khuyến mãi
-Route::get('/promotions', function () {
-    return view('promotion.index');
-})->name('promotions');
+Route::get('/promotions', [PromotionController::class, 'index'])->name('promotions');
+Route::get('/promotions/{promotion}', [PromotionController::class, 'show'])->name('promotion.show');
 
 // Tin tức
 
@@ -225,6 +226,16 @@ Route::controller(ShowtimeManageController::class)->group(function () {
     Route::post('/admin/showtime/{id}/cancel', 'cancel')->name('admin.showtime.cancel');
     // API kiểm tra trùng lịch
     Route::post('/showtimes/check-conflict', 'checkConflict')->name('admin.showtimes.check-conflict');
+    // API lấy thông tin phim (wizard tạo suất chiếu - Bước 1)
+    Route::post('/admin/showtime/api/movie-info', 'apiGetMovieInfo')->name('admin.showtime.api.movie_info');
+    // API lấy danh sách phòng + lịch chiếu trong ngày (wizard - Bước 3)
+    Route::post('/admin/showtime/api/room-schedule', 'apiGetRoomSchedule')->name('admin.showtime.api.room_schedule');
+    // API lấy timeline chi tiết của 1 phòng (wizard - Bước 3 khi click phòng)
+    Route::post('/admin/showtime/api/room-timeline', 'apiGetRoomTimeline')->name('admin.showtime.api.room_timeline');
+    // API kiểm tra phòng trống khả dụng & trùng lịch chi tiết (màn hình update)
+    Route::post('/admin/showtime/api/check-rooms-availability', 'apiCheckRoomsAvailability')->name('admin.showtime.api.check_rooms_availability');
+    // API quét phòng & lấy danh sách khung giờ trống khả dụng (màn hình tạo mới 3 bước)
+    Route::post('/admin/showtime/api/available-slots', 'apiGetAvailableSlots')->name('admin.showtime.api.available_slots');
 });
 // =====================================================================//
 
@@ -476,4 +487,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Hỗ trợ check-in vé
     Route::post('/admin/api/bookings/tickets/{ticket_id}/check-in', [BookingManageController::class, 'checkInTicket'])->name('admin.bookings.ticket.checkin');
 });
+
+// Chatbot API (Menu-based - Giai đoạn 1)
+Route::post('/api/chatbot', ChatbotController::class)->name('api.chatbot');
 

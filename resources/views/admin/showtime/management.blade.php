@@ -171,8 +171,6 @@
                             <th>Phòng</th>
                             <th>Rạp</th>
                             <th>Thời gian</th>
-                            <th>Định dạng</th>
-                            <th>Ngôn ngữ</th>
                             <th>Trạng thái</th>
                             <th style="width: 280px;">Hành động</th>
                         </tr>
@@ -197,10 +195,7 @@
                                     <div class="fw-semibold">{{ optional($showtime->start_time)->format('d/m/Y H:i') }}</div>
                                     <small class="text-muted">Đến {{ optional($showtime->end_time)->format('H:i') }}</small>
                                 </td>
-                                <td>
-                                    <span class="badge text-bg-primary">{{ $showtime->format }}</span>
-                                </td>
-                                <td>{{ $showtime->language_type }}</td>
+                                {{-- <td>{{ $showtime->language_type }}</td> --}}
                                 <td>
                                     <span class="badge {{ $status['class'] }}">{{ $status['label'] }}</span>
                                 </td>
@@ -210,10 +205,49 @@
                                             <i class="bi bi-eye me-1"></i>
                                             Chi tiết
                                         </a>
-                                        <a href="{{ route('admin.view.update.showtime', $showtime->id) }}" class="btn btn-outline-primary btn-sm">
-                                            <i class="bi bi-pencil me-1"></i>
-                                            Sửa
-                                        </a>
+                                        {{-- nếu đã có khách đặt thì hiện nút sửa là khóa sửa --}}
+                                        @php
+                                            $hasBookingActivity = $showtime->bookings->isNotEmpty() || $showtime->showtimeSeats
+                                                    ->whereIn('status', ['HELD', 'SOLD'])
+                                                    ->isNotEmpty();
+                                        @endphp
+
+                                        @php
+                                            $hasBookingActivity = $showtime->bookings->isNotEmpty()
+                                                || $showtime->showtimeSeats
+                                                    ->whereIn('status', ['HELD', 'SOLD'])
+                                                    ->isNotEmpty();
+
+                                            $canEdit =
+                                                !$hasBookingActivity
+                                                && $showtime->status !== 'CANCELLED'
+                                                && $showtime->start_time->isFuture();
+                                        @endphp
+
+                                        @if($canEdit)
+                                            <a href="{{ route('admin.view.update.showtime', $showtime->id) }}" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-pencil me-1"></i>
+                                                Sửa
+                                            </a>
+                                        @else
+                                            <button
+                                                class="btn btn-outline-secondary btn-sm"
+                                                disabled
+                                                title="
+                                                @if($showtime->status === 'CANCELLED')
+                                                    Suất chiếu đã hủy
+                                                @elseif($showtime->start_time->isPast())
+                                                    Suất chiếu đã bắt đầu
+                                                @else
+                                                    Suất chiếu đã có khách đặt
+                                                @endif
+                                                "
+                                            >
+                                                <i class="bi bi-lock me-1"></i>
+                                                Khóa sửa
+                                            </button>
+                                        @endif
+
                                         @if($showtime->status !== 'CANCELLED')
                                             <a href="{{ route('admin.showtime.confirm_cancel', $showtime->id) }}" class="btn btn-outline-warning btn-sm">
                                                 <i class="bi bi-x-circle me-1"></i>
