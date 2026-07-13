@@ -814,11 +814,11 @@ function showBatchPanel(data) {
             </span>
             <span class="status-badge ${t.status.toLowerCase()}">${t.status}</span>
             ${t.checked_in_at ? `<span style="font-size:11px; color:var(--staff-text-muted);">${formatDateTime(t.checked_in_at)}</span>` : ''}
-            <button onclick="event.stopPropagation(); printTicket('${booking?.booking_code}', '${t.ticket_code}')"
+            <button onclick="event.stopPropagation(); printTicket('${booking?.booking_code}', '${t.ticket_code}', ${t.id}, ${canCheck})"
                     style="background:transparent; border:1px solid var(--staff-border); color:var(--staff-text-muted); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:3px; flex-shrink:0; transition:all 0.2s;"
                     onmouseover="this.style.borderColor='var(--staff-primary)';this.style.color='var(--staff-primary)'"
                     onmouseout="this.style.borderColor='var(--staff-border)';this.style.color='var(--staff-text-muted)'"
-                    title="In vé ${t.seat_code}">
+                    title="In & check-in vé ${t.seat_code}">
                 <i class="bi bi-printer"></i>
             </button>
         </div>
@@ -1060,7 +1060,7 @@ function printBill(code) {
     iframe.src = `/staff/print-bill/${code}?print=true`;
 }
 
-function printTicket(bookingCode, ticketCode) {
+function printTicket(bookingCode, ticketCode, ticketId, canCheckin) {
     if (!bookingCode || !ticketCode) return;
 
     let iframe = document.getElementById('print-iframe-mz');
@@ -1075,6 +1075,57 @@ function printTicket(bookingCode, ticketCode) {
     }
 
     iframe.src = `/staff/print-bill/${bookingCode}?print=true&ticket=${ticketCode}`;
+
+    // Auto check-in after print
+    if (ticketId && canCheckin) {
+        autoCheckIn(ticketId, ticketCode);
+    }
+}
+
+async function autoCheckIn(ticketId, ticketCode) {
+    try {
+        const res = await fetch(`${API_BASE}/confirm`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                ticket_id: ticketId,
+                scan_method: 'MANUAL',
+            }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            // Update the ticket row in the batch panel
+            const cb = document.querySelector(`.batch-ticket-cb[value="${ticketId}"]`);
+            if (cb) {
+                cb.checked = false;
+                cb.disabled = true;
+                const row = cb.closest('.ticket-row');
+                if (row) {
+                    row.style.opacity = '0.7';
+                    const badge = row.querySelector('.status-badge');
+                    if (badge) {
+                        badge.className = 'status-badge used';
+                        badge.textContent = 'USED';
+                    }
+                    // Add check-in time
+                    const timeSpan = document.createElement('span');
+                    timeSpan.style.cssText = 'font-size:11px; color:var(--staff-text-muted);';
+                    timeSpan.textContent = new Date().toLocaleString('vi-VN');
+                    badge.insertAdjacentElement('afterend', timeSpan);
+                }
+            }
+            playBeepSuccess();
+        }
+    } catch (e) {
+        // Print still works, just skip auto check-in silently
+        console.warn('Auto check-in failed:', e);
+    }
 }
 
 // ══════ SOUND EFFECTS ══════
