@@ -6,13 +6,21 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\Room;
+use App\Models\Seat;
+use App\Models\Showtime;
 use App\Models\ShowtimeSeat;
+use App\Models\TicketPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class RoomManageController extends Controller
 {
+    // ===== Auto-create seats when creating room =====
+
+    private int $seatsPerRow = 10;
+
     /**
      * Danh sách phòng chiếu — lọc trạng thái, tìm kiếm.
      * Hiển thị tất cả phòng chiếu ngay khi vào trang.
@@ -78,6 +86,9 @@ class RoomManageController extends Controller
 
         $room = Room::create($validated);
 
+        // Auto-create seats theo cấu trúc phòng.
+        $this->autoCreateSeatsForRoom($room);
+
         $this->writeAuditLog('CREATE', $room, null, $room->toArray());
 
         return redirect()->route('admin.rooms.index')
@@ -132,7 +143,17 @@ class RoomManageController extends Controller
                 ->with('error', 'Không thể thay đổi sức chứa hoặc ẩn phòng. Lý do: ' . $reasonText);
         }
 
+        $wasTotalSeatsChanged = (int) $room->total_seats !== (int) ($validated['total_seats'] ?? $room->total_seats);
+        $wasStatusChanged = (string) $room->status !== (string) ($validated['status'] ?? $room->status);
+
         $room->update($validated);
+
+        // Nếu admin sửa sức chứa (total_seats) hoặc chuyển trạng thái, và phòng đang ACTIVE
+        // thì rebuild layout seats theo total_seats mới.
+        // Điều này đảm bảo ví dụ: chọn 2D -> auto ghế theo total_seats; sau đó sửa lại total_seats -> layout đổi theo.
+        if ($room->status === 'ACTIVE' && ($wasTotalSeatsChanged || $wasStatusChanged)) {
+            $this->rebuildSeatsForRoom($room);
+        }
 
         $this->writeAuditLog('UPDATE', $room, $oldValue, $room->fresh()->toArray());
 
@@ -300,4 +321,255 @@ class RoomManageController extends Controller
             'created_at' => now(),
         ]);
     }
+
+    /**
+     * Tự động tạo seats khi tạo room mới theo cùng logic computeZones() đang dùng ở SeatManageController.
+     */
+    private function autoCreateSeatsForRoom(Room $room): void
+    {
+        // Chỉ auto tạo khi phòng active
+        if ($room->status !== 'ACTIVE') {
+            return;
+        }
+
+        $zones = $this->computeZonesLikeSeatManage($room);
+
+        // Nếu đã có seats thì không tạo lại
+        $existingCount = $room->seats()->count();
+        if ($existingCount > 0) {
+            return;
+        }
+
+        $seatsPerRow = $zones['seatsPerRow'];
+        $standardRows = $zones['standardRows'];
+        $vipRows = $zones['vipRows'];
+        $coupleRows = $zones['coupleRows'];
+
+        $cinemaId = (int) $room->cinema_id;
+        $roomType = (string) $room->room_type;
+
+        // TicketPriceSeeder đang seed room_type theo 2 giá trị: STANDARD / VIP
+        // (không có 2D/3D/IMAX/...). Vì vậy map room_type -> TicketPrice.room_type ở đây.
+        $ticketRoomType = match ($roomType) {
+            '2D', '3D' => 'STANDARD',
+            'IMAX', '4DX', 'Goldclass' => 'VIP',
+            default => 'STANDARD',
+        };
+
+        // Price theo từng room_type (bạn đang muốn mapping theo số ghế/giá cố định)
+        // Theo note của bạn:
+        // 2D=120, 3D=140, IMAX=160, VIP=80, 4DX=100
+        // => chúng ta dùng total_seats (đã được set default khi chọn room_type ở UI)
+        // và giá ghế lấy theo TicketPrice (STANDARD/VIP/COUPLE) như hiện tại.
+
+        $seatPriceByType = [
+            // STANDARD/VIP/COUPLE lấy theo ma trận giá TicketPrice hiện tại,
+            // nhưng map total_seats theo room_type ở UI (2D/3D/IMAX/4DX/Vip/G...) để ra đúng số ghế.
+            // Note của bạn: giá label/room_type (2D=120, 3D=140, IMAX=160, VIP=80, 4DX=100)
+            // ở đây được hiểu là tổng số ghế (total_seats) đã set sẵn.
+            'STANDARD' => $this->getSeatPriceFromTicketPricesLikeSeatManage('STANDARD', $cinemaId, $ticketRoomType),
+            'VIP' => $this->getSeatPriceFromTicketPricesLikeSeatManage('VIP', $cinemaId, $ticketRoomType),
+            'COUPLE' => $this->getSeatPriceFromTicketPricesLikeSeatManage('COUPLE', $cinemaId, $ticketRoomType),
+        ];
+
+        // Ghi theo transaction
+        $targetSeatCount = (int) $room->total_seats;
+
+        DB::transaction(function () use (
+            $room,
+            $standardRows,
+            $vipRows,
+            $coupleRows,
+            $seatPriceByType,
+            $seatsPerRow,
+            $targetSeatCount
+        ) {
+            $created = 0;
+
+            // helper tạo seat và dừng khi đủ total_seats
+            $createSeat = function (string $rowLabel, int $i, string $seatType) use (
+                $room,
+                $seatPriceByType,
+                &$created,
+                $targetSeatCount,
+                $seatsPerRow
+            ) {
+                if ($created >= $targetSeatCount) {
+                    return false;
+                }
+
+                $seatCode = $rowLabel . $i;
+
+                \App\Models\Seat::create([
+                    'room_id' => $room->id,
+                    'row_label' => $rowLabel,
+                    'seat_number' => $i,
+                    'seat_code' => $seatCode,
+                    'seat_type' => $seatType,
+                    'status' => 'ACTIVE',
+                    'price' => $seatPriceByType[$seatType],
+                ]);
+
+                $created++;
+                return true;
+            };
+
+            foreach ($standardRows as $rowLabel) {
+                for ($i = 1; $i <= $seatsPerRow; $i++) {
+                    if (! $createSeat($rowLabel, $i, 'STANDARD')) {
+                        return;
+                    }
+                }
+            }
+
+            foreach ($vipRows as $rowLabel) {
+                for ($i = 1; $i <= $seatsPerRow; $i++) {
+                    if (! $createSeat($rowLabel, $i, 'VIP')) {
+                        return;
+                    }
+                }
+            }
+
+            foreach ($coupleRows as $rowLabel) {
+                for ($i = 1; $i <= $seatsPerRow; $i++) {
+                    if (! $createSeat($rowLabel, $i, 'COUPLE')) {
+                        return;
+                    }
+                }
+            }
+        });
+
+        // Đồng bộ showtime_seats cho các suất chiếu tương lai.
+        $this->ensureShowtimeSeatsForRoom($room->id);
+    }
+
+    private function computeZonesLikeSeatManage(Room $room): array
+    {
+        $totalSeats = (int) $room->total_seats;
+        $seatsPerRow = $this->seatsPerRow;
+
+        $totalRows = (int) ceil($totalSeats / $seatsPerRow);
+        $totalRows = max($totalRows, 3);
+
+        $coupleCount = 1;
+        $vipCount = max(1, (int) round($totalRows * 0.55));
+        $standardCount = $totalRows - $vipCount - $coupleCount;
+
+        if ($standardCount < 1) {
+            $standardCount = 1;
+            $vipCount = max(1, $totalRows - $standardCount - $coupleCount);
+        }
+
+        $allRowLetters = array_map(
+            fn ($n) => chr(64 + $n),
+            range(1, $totalRows)
+        );
+
+        $standardRows = array_slice($allRowLetters, 0, $standardCount);
+        $vipRows = array_slice($allRowLetters, $standardCount, $vipCount);
+        $coupleRows = array_slice($allRowLetters, $standardCount + $vipCount);
+
+        return [
+            'totalRows' => $totalRows,
+            'seatsPerRow' => $seatsPerRow,
+            'maxRow' => end($allRowLetters),
+            'standardRows' => $standardRows,
+            'vipRows' => $vipRows,
+            'coupleRows' => $coupleRows,
+        ];
+    }
+
+    private function getSeatPriceFromTicketPricesLikeSeatManage(string $seatType, int $cinemaId, string $roomType): float
+    {
+        $ticketPrice = TicketPrice::query()
+            ->where('seat_type', $seatType)
+            ->where('room_type', $roomType)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('id')
+            ->first();
+
+
+        if ($ticketPrice) {
+            return (float) $ticketPrice->price;
+        }
+
+        // Fallback: ticket_prices có thể không seed theo room_type đúng
+        $ticketPriceAny = TicketPrice::query()
+            ->where('seat_type', $seatType)
+            ->where('status', 'ACTIVE')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($ticketPriceAny) {
+            return (float) $ticketPriceAny->price;
+        }
+
+        return match ($seatType) {
+            'VIP' => 150000.0,
+            'COUPLE' => 250000.0,
+            default => 80000.0,
+        };
+    }
+
+    /**
+     * Mục tiêu: dùng room_type tương ứng TicketPrice.room_type.
+     * Hiện code TicketPrice controller/seed đang không rõ mapping sâu, nên giữ đơn giản.
+     */
+
+
+    private function rebuildSeatsForRoom(Room $room): void
+    {
+        // Nếu phòng không ACTIVE thì không rebuild
+        if ($room->status !== 'ACTIVE') {
+            return;
+        }
+
+        // Nếu đã có seats thì rebuild lại theo total_seats mới.
+        // Lưu ý: Seat sử dụng SoftDeletes nên delete sẽ soft-delete.
+        // Sau đó sync lại showtime_seats cho các suất chiếu tương lai.
+        $roomId = $room->id;
+
+        // Không cho phép rebuild nếu đang có suất chiếu tương lai đang OPEN (tránh lệch dữ liệu booking/hold)
+        $hasRealtime = Showtime::query()
+            ->where('room_id', $roomId)
+            ->where('start_time', '>', now())
+            ->where('status', 'OPEN')
+            ->exists();
+
+        if ($hasRealtime) {
+            // Bạn có thể đổi thông báo theo policy của hệ thống.
+            throw new \Exception('Không thể thay đổi layout ghế khi phòng đã có suất chiếu tương lai đang OPEN.');
+        }
+
+        $room->seats()->delete();
+
+        // Tạo lại theo total_seats hiện tại
+        $this->autoCreateSeatsForRoom($room);
+    }
+
+    private function ensureShowtimeSeatsForRoom(int $roomId): void
+    {
+        $showtimes = Showtime::query()->where('room_id', $roomId)->get();
+        if ($showtimes->isEmpty()) {
+            return;
+        }
+
+        $seats = Seat::query()->where('room_id', $roomId)->get();
+
+        foreach ($showtimes as $showtime) {
+            foreach ($seats as $seat) {
+                ShowtimeSeat::query()->updateOrCreate(
+                    [
+                        'showtime_id' => $showtime->id,
+                        'seat_id' => $seat->id,
+                    ],
+                    [
+                        'price' => $seat->price,
+                        'status' => ($seat->status === 'LOCKED' || $seat->status === 'BROKEN') ? 'LOCKED' : 'AVAILABLE',
+                    ]
+                );
+            }
+        }
+    }
 }
+

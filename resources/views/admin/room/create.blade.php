@@ -100,10 +100,12 @@
 @push('scripts')
 <script>
 const roomCapacities = {
+    // Mapping sức chứa mặc định theo yêu cầu:
     '2D': 120,
-    '3D': 100,
-    'IMAX': 200,
-    '4DX': 80,
+    '3D': 140,
+    'IMAX': 160,
+    '4DX': 100,
+    // Goldclass: giữ nguyên theo seed/UI hiện tại (bạn có thể đổi nếu muốn)
     'Goldclass': 40
 };
 
