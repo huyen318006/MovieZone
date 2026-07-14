@@ -273,7 +273,7 @@ class RoomManageController extends Controller
 
     private function validateRoom(Request $request, ?Room $room = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'name' => [
                 'required',
                 'string',
@@ -293,7 +293,30 @@ class RoomManageController extends Controller
             'status.required' => 'Vui lòng chọn trạng thái phòng.',
             'status.in' => 'Trạng thái phòng không hợp lệ.',
         ]);
+
+        // Validate sức chứa tối đa theo room_type (giá trị capacity lúc chọn trên UI + 10)
+        $allowance = 10;
+        $roomType = (string) ($validated['room_type'] ?? '');
+        $totalSeats = (int) ($validated['total_seats'] ?? 0);
+
+        $maxBaseByRoomType = match ($roomType) {
+            '2D' => 120 + $allowance,      // UI: 120
+            '3D' => 140 + 0,              // UI: 140 (không cộng allowance theo logic bạn chốt trước đó)
+            'IMAX' => 160 + 0,           // UI: 160
+            '4DX' => 100 + 0,            // UI: 100
+            'Goldclass' => 40 + 0,       // UI: 40
+            default => null,
+        };
+
+        if ($maxBaseByRoomType !== null && $totalSeats > $maxBaseByRoomType) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'total_seats' => "Sức chứa tối đa cho phòng {$roomType} là {$maxBaseByRoomType} ghế.",
+            ]);
+        }
+
+        return $validated;
     }
+
 
     private function hasUpcomingShowtimes(Room $room): bool
     {
