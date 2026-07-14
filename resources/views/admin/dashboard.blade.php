@@ -132,7 +132,7 @@
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
                 </a>
                 <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-funnel me-1"></i> Lọc thống kê
+                    <i class="bi bi-funnel me-1"></i> Lọc thống kê toàn bộ
                 </button>
             </div>
         </div>
