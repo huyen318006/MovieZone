@@ -480,7 +480,11 @@ class RoomManageController extends Controller
         $vipCount = max(1, (int) round($remainingRows * 0.55));
         $standardCount = $remainingRows - $vipCount;
 
-        $frontStandardCount = (int) ceil($standardCount / 2);
+        if ($standardCount <= 8) {
+            $frontStandardCount = min($standardCount, 4);
+        } else {
+            $frontStandardCount = (int) ceil($standardCount / 2);
+        }
         $backStandardCount = $standardCount - $frontStandardCount;
 
         $allRowLetters = array_map(

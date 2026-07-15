@@ -137,8 +137,13 @@ class SeatManageController extends Controller
         $vipCount = max(1, (int) round($remainingRows * 0.55));
         $standardCount = $remainingRows - $vipCount;
 
-        // Chia STANDARD thành phần đầu (gần màn hình) và phần sau (sau VIP)
-        $frontStandardCount = (int) ceil($standardCount / 2);
+        // Mặc định cố gắng đẩy 4 hàng đầu làm STANDARD (theo chuẩn rạp chiếu thường thấy)
+        // Nếu số lượng STANDARD quá lớn (>8 hàng), ta chia đôi.
+        if ($standardCount <= 8) {
+            $frontStandardCount = min($standardCount, 4);
+        } else {
+            $frontStandardCount = (int) ceil($standardCount / 2);
+        }
         $backStandardCount = $standardCount - $frontStandardCount;
 
         
