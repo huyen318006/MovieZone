@@ -67,7 +67,7 @@
     border-radius: 16px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
     border: 1px solid #1e293b; /* Border xanh đen nhẹ */
-    margin: 150px auto 0px auto;
+    margin: 50px auto 50px auto;
 }
 
 /* Header & Tiêu đề */
