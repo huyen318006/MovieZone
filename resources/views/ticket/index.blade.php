@@ -18,11 +18,6 @@
         </div>
     </div>
 
-    <div class="history-header">
-        <h2>Lịch sử giao dịch</h2>
-        <p>Danh sách các vé và giao dịch đã thực hiện trên hệ thống</p>
-    </div>
-
     <div class="history-card">
         <div class="card-header-title">
             <span>Danh sách giao dịch</span>
@@ -32,74 +27,140 @@
         <table class="history-table">
             <thead>
                 <tr>
+                    <th>STT</th>
                     <th>Mã booking</th>
+                    <th>Tên phim</th>
+                    <th>Ngôn ngữ</th>
+                    <th>Ngày chiếu</th>
+                    <th>Suất chiếu</th>
+                    <th>Phòng</th>
+                    <th>Số vé</th>
+                    <th>Số ghế</th>
                     <th>Ngày đặt</th>
                     <th>Tổng tiền</th>
                     <th>Trạng thái đặt</th>
                     <th>Thanh toán</th>
-                    <th>Số vé</th>
-                    <th>Thao tác</th>
                 </tr>
             </thead>
 
             <tbody>
-            @forelse($bookings as $booking)
+            @forelse($bookings as $key=>$booking)
                 <tr>
+                    <td>{{ $key+1 }}</td>
                     <td>
                         <strong class="booking-code">{{ $booking->booking_code }}</strong>
                     </td>
 
+                    {{-- tên phim --}}
+                    <td>
+                        <strong style="color: #ffffff;">
+                            {{ $booking->showtime->movie->title ?? 'Không tìm thấy tên phim' }}
+                        </strong>
+                    </td>
+
+                    {{-- ngôn ngữ --}}
+                    <td>
+                        @if($booking->showtime && $booking->showtime->movie)
+                            <span class="badge-status badge-count">
+                                {{ $booking->showtime->format }} {{ $booking->showtime->movie->language }}
+                            </span>
+                        @else
+                            <span class="text-soft">N/A</span>
+                        @endif
+                    </td>
+
+                    {{-- ngày chiếu --}}
                     <td class="text-soft">
-                        {{ $booking->created_at->format('Y-m-d H:i') }}
+                        {{ $booking->showtime ? $booking->showtime->start_time->format('d/m/Y') : 'N/A' }}
                     </td>
 
+                    {{-- suất chiếu --}}
+                    <td class="text-highlight">
+                        @if($booking->showtime)
+                            <strong>{{ $booking->showtime->start_time->format('H:i') }}</strong> 
+                            <span style="color: #64748b;">-</span> 
+                            <strong>{{ $booking->showtime->end_time->format('H:i') }}</strong>
+                        @else
+                            <span class="text-soft">N/A</span>
+                        @endif
+                    </td>
+
+                    {{-- phòng chiếu --}}
+                    <td>
+                        <span class="badge-status badge-count">
+                            {{ $booking->showtime->room->name ?? 'N/A' }}
+                        </span>
+                    </td>
+
+                    {{-- slg vé --}}
+                    <td>
+                        <span class="badge-status badge-count">
+                            {{ $booking->bookingSeats ? $booking->bookingSeats->count() : 0 }} vé
+                        </span>
+                    </td>
+
+                    {{--Số ghế --}}
+                    <td style="color: #ffffff; font-weight: 600;">
+                        @if($booking->bookingSeats && $booking->bookingSeats->isNotEmpty())
+                            {{ $booking->bookingSeats->pluck('seat_code')->implode(', ') }}
+                        @else
+                            <span style="color: #64748b;">N/A</span>
+                        @endif
+                    </td>
+                    
+                    {{--  ngày đặt --}}
+                    <td class="text-soft">
+                        {{ $booking->created_at->format('d/m/Y H:i') }}
+                    </td>
+
+                    {{--  tổng tiền --}}
                     <td class="price">
-                        {{ number_format($booking->final_amount, 0, ',', '.') }} VNĐ
+                        {{ number_format($booking->final_amount) }} VNĐ
                     </td>
 
+                    {{--trạng thái đặt --}}
                     <td>
-                        @php
-                            $statusClass = match($booking->status) {
-                                'PAID' => 'status-paid',
-                                'PENDING' => 'status-pending',
-                                'CANCELLED' => 'status-cancelled',
-                                'EXPIRED' => 'status-expired',
-                                default => 'status-default',
-                            };
-                        @endphp
-                        <span class="status {{ $statusClass }}">
-                            {{ $booking->status }}
-                        </span>
+                        @if($booking->status == 'PAID')
+                            <span class="status-badge status-paid">Vé hợp lệ</span>
+                        @elseif($booking->status == 'PENDING')
+                            <span class="status-badge status-pending">Chờ thanh toán</span>
+                        @elseif($booking->status == 'EXPIRED')
+                            <span class="status-badge status-expired">Hết hạn giữ chỗ</span>
+                        @elseif($booking->status == 'CANCELLED')
+                            @if($booking->payment_status == 'PAID')
+                                <span class="status-badge status-cancelled">Đã hủy (Chờ hoàn)</span>
+                            @elseif($booking->payment_status == 'REFUNDED')
+                                <span class="status-badge status-refunded-status">Đã hủy (Đã hoàn)</span>
+                            @else
+                                <span class="status-badge status-cancelled">Đã hủy</span>
+                            @endif
+                        @else
+                            <span class="status-badge status-default">{{ $booking->status }}</span>
+                        @endif
                     </td>
 
+                    {{--trạng thái thanh toán--}}
                     <td>
-                        @php
-                            $payClass = match($booking->payment_status) {
-                                'PAID' => 'status-paid',
-                                'UNPAID' => 'status-pending',
-                                'FAILED' => 'status-cancelled',
-                                'REFUNDED' => 'status-refunded',
-                                default => 'status-default',
-                            };
-                        @endphp
-                        <span class="status {{ $payClass }}">
-                            {{ $booking->payment_status }}
-                        </span>
+                        @switch($booking->payment_status)
+                            @case('PAID')
+                                <span class="payment-badge payment-paid">Đã thanh toán</span>
+                                @break
+                            @case('UNPAID')
+                                <span class="payment-badge payment-unpaid">Chưa thanh toán</span>
+                                @break
+                            @case('REFUNDED')
+                                <span class="payment-badge payment-refunded">Đã hoàn tiền</span>
+                                @break
+                            @case('FAILED')
+                                <span class="payment-badge payment-failed">Thanh toán lỗi</span>
+                                @break
+                            @default
+                                <span class="payment-badge payment-default">{{ $booking->payment_status }}</span>
+                        @endswitch
                     </td>
-
-                    <td class="text-soft font-bold">
-                        {{ $booking->tickets->count() }} vé
-                    </td>
-
-                    <td>
-                        <button class="btn-detail" onclick="showBookingDetail({{ $booking->id }})">
-                            <i class="bi bi-eye"></i> Chi tiết
-                        </button>
-                    </td>
-                </tr>
             @empty
                 <tr>
-                    <td colspan="7" class="empty-row">
+                    <td colspan="13" class="empty-row">
                         <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
                         Chưa có giao dịch nào được thực hiện
                     </td>
@@ -133,8 +194,8 @@ body {
 }
 
 .ticket-history-container {
-    max-width: 1200px;
-    margin: 100px auto 50px auto;
+    max-width: 1500px;
+    margin: 50px auto 50px auto;
     padding: 0 20px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -590,6 +651,85 @@ body {
     .modal-content {
         margin: 0 10px 40px 10px;
     }
+}
+/* Style chung cho các Badge */
+.status-badge, .payment-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 20px; /* Bo tròn viền mềm mại */
+    min-width: 140px; /* Đảm bảo các nút có độ rộng bằng nhau */
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* ==========================================================================
+   CSS CHO CỘT TRẠNG THÁI (Nền đặc - Solid style)
+   ========================================================================== */
+.status-paid {
+    background-color: #0b6655; /* Xanh lá đậm */
+    color: #2ecc71;
+}
+
+.status-pending {
+    background-color: #7d5004; /* Cam đất/nâu vàng */
+    color: #f1c40f;
+}
+
+.status-cancelled {
+    background-color: #721c24; /* Đỏ mận tối */
+    color: #f8d7da;
+}
+
+.status-refunded-status {
+    background-color: #1b4f72; /* Xanh dương tối */
+    color: #aed6f1;
+}
+
+.status-expired {
+    background-color: #2c3e50; /* Xám đen */
+    color: #bdc3c7;
+}
+
+.status-default {
+    background-color: #2d3748;
+    color: #a0aec0;
+}
+
+/* ==========================================================================
+   CSS CHO CỘT THANH TOÁN (Viền rỗng - Outline style)
+   ========================================================================== */
+.payment-paid {
+    background-color: transparent;
+    border: 1px solid #2ecc71; /* Viền xanh lá tươi */
+    color: #2ecc71;
+}
+
+.payment-unpaid {
+    background-color: transparent;
+    border: 1px solid #f1c40f; /* Viền vàng */
+    color: #f1c40f;
+}
+
+.payment-refunded {
+    background-color: transparent;
+    border: 1px solid #3498db; /* Viền xanh dương */
+    color: #3498db;
+}
+
+.payment-failed {
+    background-color: transparent;
+    border: 1px solid #e74c3c; /* Viền đỏ tươi */
+    color: #e74c3c;
+}
+
+.payment-default {
+    background-color: transparent;
+    border: 1px solid #718096;
+    color: #a0aec0;
 }
 </style>
 
