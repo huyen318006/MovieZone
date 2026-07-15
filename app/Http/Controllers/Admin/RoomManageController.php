@@ -475,22 +475,25 @@ class RoomManageController extends Controller
         $totalRows = max($totalRows, 3);
 
         $coupleCount = 1;
-        $vipCount = max(1, (int) round($totalRows * 0.55));
-        $standardCount = $totalRows - $vipCount - $coupleCount;
+        $remainingRows = $totalRows - $coupleCount;
 
-        if ($standardCount < 1) {
-            $standardCount = 1;
-            $vipCount = max(1, $totalRows - $standardCount - $coupleCount);
-        }
+        $vipCount = max(1, (int) round($remainingRows * 0.55));
+        $standardCount = $remainingRows - $vipCount;
+
+        $frontStandardCount = (int) ceil($standardCount / 2);
+        $backStandardCount = $standardCount - $frontStandardCount;
 
         $allRowLetters = array_map(
             fn ($n) => chr(64 + $n),
             range(1, $totalRows)
         );
 
-        $standardRows = array_slice($allRowLetters, 0, $standardCount);
-        $vipRows = array_slice($allRowLetters, $standardCount, $vipCount);
-        $coupleRows = array_slice($allRowLetters, $standardCount + $vipCount);
+        $frontStandardRows = array_slice($allRowLetters, 0, $frontStandardCount);
+        $vipRows = array_slice($allRowLetters, $frontStandardCount, $vipCount);
+        $backStandardRows = array_slice($allRowLetters, $frontStandardCount + $vipCount, $backStandardCount);
+        $coupleRows = array_slice($allRowLetters, $totalRows - $coupleCount, $coupleCount);
+
+        $standardRows = array_merge($frontStandardRows, $backStandardRows);
 
         return [
             'totalRows' => $totalRows,
