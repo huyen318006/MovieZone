@@ -17,16 +17,16 @@ class GenreSeeder extends Seeder
         Genre::query()->delete();
 
         $genres = [
-            'Action',
-            'Adventure',
-            'Comedy',
-            'Drama',
-            'Fantasy',
-            'Horror',
-            'Romance',
-            'Sci-Fi',
-            'Thriller',
-            'Animation'
+            'Hành động',
+            'Phiêu lưu',
+            'Hài',
+            'Chính kịch',
+            'Giả tưởng',
+            'Kinh dị',
+            'Lãng mạn',
+            'Khoa học viễn tưởng',
+            'Giật gân',
+            'Hoạt hình'
         ];
 
         foreach ($genres as $genre) {

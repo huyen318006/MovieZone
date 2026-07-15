@@ -134,7 +134,7 @@ class ApiChatbotController extends Controller
                 case 'FAQ':
                 default:
                     $context = "Thông tin chung rạp MovieZone:
-- Rạp mở cửa từ 8:00 sáng đến 23:00 tối mỗi ngày.
+- Rạp mở cửa từ 6:00 sáng đến 23:00 tối mỗi ngày.
 - Rạp có các loại ghế: Ghế thường, Ghế VIP, và Ghế Couple (ghế đôi).
 - Các phim đều có phụ đề tiếng Việt đối với phim nước ngoài.
 - Rạp tuân thủ quy định độ tuổi (C13, C16, C18) theo quy định của Cục Điện Ảnh. Khách hàng cần mang the CCCD/CMND khi xem phim giới hạn độ tuổi.

@@ -203,7 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const apiUrl = '{{ route("api.chatbot") }}';
     const csrfToken = '{{ csrf_token() }}';
     let pendingInputAction = null;
-
+//được kích hoạt khi bấm nút
     async function sendAction(action, value) {
         showLoading();
         try {
@@ -212,6 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
                 body: JSON.stringify({ action: action, value: value })
             });
+            //chuyển đổi kết quả JSON thành đối tượng JavaScript
             const data = await res.json();
             removeLoading();
             renderResponse(data);
