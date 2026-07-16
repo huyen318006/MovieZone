@@ -169,8 +169,6 @@ class BookingLookupController extends Controller
                 'id'            => $booking->showtime?->id,
                 'start_time'    => $booking->showtime?->start_time,
                 'end_time'      => $booking->showtime?->end_time,
-                'format'        => $booking->showtime?->format,
-                'language_type' => $booking->showtime?->language_type,
                 'status'        => $booking->showtime?->status,
                 'cancel_reason' => $booking->showtime?->cancel_reason,
             ],

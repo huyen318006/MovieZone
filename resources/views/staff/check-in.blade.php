@@ -789,6 +789,11 @@ function showBatchPanel(data) {
     const tickets = data.tickets || [];
     const scannedTicketCode = data.scanned_ticket_code || null;
 
+    // Lưu lại booking_code để có thể refresh sau khi check-in
+    if (booking?.booking_code) {
+        lastBatchBookingCode = booking.booking_code;
+    }
+
     const checkableTickets = data.can_checkin ? tickets.filter(t => t.can_checkin) : [];
     const headerClass = checkableTickets.length > 0 ? 'valid' : (tickets.length > 0 ? 'warning' : 'invalid');
     let headerText;
@@ -906,6 +911,8 @@ async function confirmCheckIn(ticketId) {
 
         if (data.success) {
             showSuccess(data.data);
+            // Refresh batch panel nếu đang hiển thị
+            refreshBatchPanel();
         } else {
             showError(data.error?.message || 'Check-in thất bại.');
         }
@@ -950,6 +957,8 @@ async function confirmBatch(bookingId) {
                 seat_code: `Thành công: ${d.checked_in}, Thất bại: ${d.failed}`,
                 checked_in_at: new Date().toLocaleString('vi-VN'),
             });
+            // Refresh batch panel để cập nhật trạng thái vé
+            refreshBatchPanel();
         } else {
             showError('Check-in hàng loạt thất bại.');
         }
@@ -959,6 +968,34 @@ async function confirmBatch(bookingId) {
     }
 
     btn.disabled = false;
+}
+
+// ══════ REFRESH BATCH PANEL ══════
+
+let lastBatchBookingCode = null;
+
+async function refreshBatchPanel() {
+    if (!lastBatchBookingCode) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/manual`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+            },
+            body: JSON.stringify({ code: lastBatchBookingCode, type: 'booking_code' }),
+        });
+
+        const data = await res.json();
+
+        if (data.tickets) {
+            showBatchPanel(data);
+        }
+    } catch (e) {
+        console.warn('Refresh batch panel failed:', e);
+    }
 }
 
 // ══════ UI HELPERS ══════
@@ -1100,27 +1137,9 @@ async function autoCheckIn(ticketId, ticketCode) {
         const data = await res.json();
 
         if (data.success) {
-            // Update the ticket row in the batch panel
-            const cb = document.querySelector(`.batch-ticket-cb[value="${ticketId}"]`);
-            if (cb) {
-                cb.checked = false;
-                cb.disabled = true;
-                const row = cb.closest('.ticket-row');
-                if (row) {
-                    row.style.opacity = '0.7';
-                    const badge = row.querySelector('.status-badge');
-                    if (badge) {
-                        badge.className = 'status-badge used';
-                        badge.textContent = 'USED';
-                    }
-                    // Add check-in time
-                    const timeSpan = document.createElement('span');
-                    timeSpan.style.cssText = 'font-size:11px; color:var(--staff-text-muted);';
-                    timeSpan.textContent = new Date().toLocaleString('vi-VN');
-                    badge.insertAdjacentElement('afterend', timeSpan);
-                }
-            }
             playBeepSuccess();
+            // Refresh lại toàn bộ batch panel từ server để đảm bảo đồng bộ
+            refreshBatchPanel();
         }
     } catch (e) {
         // Print still works, just skip auto check-in silently

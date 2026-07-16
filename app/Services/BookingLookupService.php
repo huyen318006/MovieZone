@@ -121,7 +121,7 @@ class BookingLookupService
     {
         return Booking::with([
             'user:id,name,phone,email',
-            'showtime:id,cinema_id,movie_id,room_id,start_time,end_time,format,language_type,status,cancel_reason',
+            'showtime:id,cinema_id,movie_id,room_id,start_time,end_time,status,cancel_reason',
             'showtime.movie:id,title,poster_url',
             'showtime.cinema:id,name,address',
             'showtime.room:id,name,room_type',
