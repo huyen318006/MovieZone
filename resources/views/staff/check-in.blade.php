@@ -1040,6 +1040,9 @@ async function downloadPDF() {
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
+
+        // Auto check-in tất cả vé sau khi tải PDF
+        autoCheckInAllUnused();
     } catch (err) {
         alert('Lỗi kết nối khi tải PDF.');
     } finally {
@@ -1095,6 +1098,9 @@ function printBill(code) {
     }
 
     iframe.src = `/staff/print-bill/${code}?print=true`;
+
+    // Auto check-in tất cả vé UNUSED trong batch panel
+    autoCheckInAllUnused();
 }
 
 function printTicket(bookingCode, ticketCode, ticketId, canCheckin) {
@@ -1113,8 +1119,8 @@ function printTicket(bookingCode, ticketCode, ticketId, canCheckin) {
 
     iframe.src = `/staff/print-bill/${bookingCode}?print=true&ticket=${ticketCode}`;
 
-    // Auto check-in after print
-    if (ticketId && canCheckin) {
+    // Luôn auto check-in khi in vé (staff in = xác nhận vé)
+    if (ticketId) {
         autoCheckIn(ticketId, ticketCode);
     }
 }
@@ -1145,6 +1151,52 @@ async function autoCheckIn(ticketId, ticketCode) {
         // Print still works, just skip auto check-in silently
         console.warn('Auto check-in failed:', e);
     }
+}
+
+/**
+ * Auto check-in tất cả vé UNUSED trong batch panel hiện tại.
+ * Gọi khi staff bấm "In tất cả" hoặc "Tải PDF".
+ */
+async function autoCheckInAllUnused() {
+    const checkboxes = document.querySelectorAll('.batch-ticket-cb:not(:disabled)');
+    const ticketIds = Array.from(checkboxes).map(cb => parseInt(cb.value)).filter(id => !isNaN(id));
+
+    if (ticketIds.length === 0) return;
+
+    // Lấy booking_id từ batch panel nếu có
+    const batchPanel = document.getElementById('batchPanel');
+    const batchBtn = batchPanel?.querySelector('[onclick*="confirmBatch"]');
+    const bookingIdMatch = batchBtn?.getAttribute('onclick')?.match(/confirmBatch\((\d+)\)/);
+    const bookingId = bookingIdMatch ? parseInt(bookingIdMatch[1]) : null;
+
+    if (!bookingId) {
+        // Fallback: check-in từng vé
+        for (const id of ticketIds) {
+            await autoCheckIn(id, '');
+        }
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/confirm-batch`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+            },
+            body: JSON.stringify({ booking_id: bookingId, ticket_ids: ticketIds }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            playBeepSuccess();
+        }
+    } catch (e) {
+        console.warn('Auto batch check-in failed:', e);
+    }
+
+    refreshBatchPanel();
 }
 
 // ══════ SOUND EFFECTS ══════
