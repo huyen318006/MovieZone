@@ -232,7 +232,8 @@ class SepayOrder extends Model
     public function generateTicketQrData(): string
     {
         $qrService = new \App\Services\QRCodeService();
-        return $qrService->generateQRContent($this->order_code);
+        $bookingCode = $this->booking ? $this->booking->booking_code : $this->getBookingInfo('booking_code', $this->order_code);
+        return $qrService->generateQRContent($bookingCode);
     }
 
     /**
