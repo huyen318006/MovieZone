@@ -19,7 +19,7 @@ class CheckInService
     /**
      * Cửa sổ check-in sớm (phút trước giờ chiếu).
      */
-    private const EARLY_CHECKIN_MINUTES = 30;
+    private const EARLY_CHECKIN_MINUTES = 1440; // Kéo dài thời gian check-in lên trước 24h (1 ngày)
 
     public function __construct(
         protected QRCodeService $qrCodeService,
