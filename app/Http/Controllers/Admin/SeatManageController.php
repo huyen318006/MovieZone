@@ -131,16 +131,22 @@ class SeatManageController extends Controller
 
         // COUPLE cố định 1 hàng cuối
         $coupleCount = 1;
+        $remainingRows = $totalRows - $coupleCount;
 
-        // VIP ~55% tổng hàng (nhiều hơn STANDARD, tối thiểu 1)
-        $vipCount = max(1, (int) round($totalRows * 0.55));
-        $standardCount = $totalRows - $vipCount - $coupleCount;
+        // VIP chiếm khoảng 55% số hàng còn lại và nằm ở giữa
+        $vipCount = max(1, (int) round($remainingRows * 0.55));
+        $standardCount = $remainingRows - $vipCount;
 
-        // Đảm bảo STANDARD ít nhất 1 hàng
-        if ($standardCount < 1) {
-            $standardCount = 1;
-            $vipCount = max(1, $totalRows - $standardCount - $coupleCount);
+        // Mặc định cố gắng đẩy 4 hàng đầu làm STANDARD (theo chuẩn rạp chiếu thường thấy)
+        // Nếu số lượng STANDARD quá lớn (>8 hàng), ta chia đôi.
+        if ($standardCount <= 8) {
+            $frontStandardCount = min($standardCount, 4);
+        } else {
+            $frontStandardCount = (int) ceil($standardCount / 2);
         }
+        $backStandardCount = $standardCount - $frontStandardCount;
+
+        
 
         // Gán chữ cái hàng
         $allRowLetters = array_map(
@@ -148,9 +154,12 @@ class SeatManageController extends Controller
             range(1, $totalRows)
         );
 
-        $standardRows = array_slice($allRowLetters, 0, $standardCount);
-        $vipRows = array_slice($allRowLetters, $standardCount, $vipCount);
-        $coupleRows = array_slice($allRowLetters, $standardCount + $vipCount);
+        $frontStandardRows = array_slice($allRowLetters, 0, $frontStandardCount);
+        $vipRows = array_slice($allRowLetters, $frontStandardCount, $vipCount);
+        $backStandardRows = array_slice($allRowLetters, $frontStandardCount + $vipCount, $backStandardCount);
+        $coupleRows = array_slice($allRowLetters, $totalRows - $coupleCount, $coupleCount);
+
+        $standardRows = array_merge($frontStandardRows, $backStandardRows);
 
         return [
             'totalRows' => $totalRows,
