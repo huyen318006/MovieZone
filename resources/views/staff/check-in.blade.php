@@ -789,6 +789,11 @@ function showBatchPanel(data) {
     const tickets = data.tickets || [];
     const scannedTicketCode = data.scanned_ticket_code || null;
 
+    // Lưu lại booking_code để có thể refresh sau khi check-in
+    if (booking?.booking_code) {
+        lastBatchBookingCode = booking.booking_code;
+    }
+
     const checkableTickets = data.can_checkin ? tickets.filter(t => t.can_checkin) : [];
     const headerClass = checkableTickets.length > 0 ? 'valid' : (tickets.length > 0 ? 'warning' : 'invalid');
     let headerText;
@@ -906,6 +911,8 @@ async function confirmCheckIn(ticketId) {
 
         if (data.success) {
             showSuccess(data.data);
+            // Refresh batch panel nếu đang hiển thị
+            refreshBatchPanel();
         } else {
             showError(data.error?.message || 'Check-in thất bại.');
         }
@@ -950,6 +957,8 @@ async function confirmBatch(bookingId) {
                 seat_code: `Thành công: ${d.checked_in}, Thất bại: ${d.failed}`,
                 checked_in_at: new Date().toLocaleString('vi-VN'),
             });
+            // Refresh batch panel để cập nhật trạng thái vé
+            refreshBatchPanel();
         } else {
             showError('Check-in hàng loạt thất bại.');
         }
@@ -959,6 +968,34 @@ async function confirmBatch(bookingId) {
     }
 
     btn.disabled = false;
+}
+
+// ══════ REFRESH BATCH PANEL ══════
+
+let lastBatchBookingCode = null;
+
+async function refreshBatchPanel() {
+    if (!lastBatchBookingCode) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/manual`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+            },
+            body: JSON.stringify({ code: lastBatchBookingCode, type: 'booking_code' }),
+        });
+
+        const data = await res.json();
+
+        if (data.tickets) {
+            showBatchPanel(data);
+        }
+    } catch (e) {
+        console.warn('Refresh batch panel failed:', e);
+    }
 }
 
 // ══════ UI HELPERS ══════
@@ -1003,6 +1040,9 @@ async function downloadPDF() {
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
+
+        // Auto check-in tất cả vé sau khi tải PDF
+        autoCheckInAllUnused();
     } catch (err) {
         alert('Lỗi kết nối khi tải PDF.');
     } finally {
@@ -1058,6 +1098,9 @@ function printBill(code) {
     }
 
     iframe.src = `/staff/print-bill/${code}?print=true`;
+
+    // Auto check-in tất cả vé UNUSED trong batch panel
+    autoCheckInAllUnused();
 }
 
 function printTicket(bookingCode, ticketCode, ticketId, canCheckin) {
@@ -1076,8 +1119,8 @@ function printTicket(bookingCode, ticketCode, ticketId, canCheckin) {
 
     iframe.src = `/staff/print-bill/${bookingCode}?print=true&ticket=${ticketCode}`;
 
-    // Auto check-in after print
-    if (ticketId && canCheckin) {
+    // Luôn auto check-in khi in vé (staff in = xác nhận vé)
+    if (ticketId) {
         autoCheckIn(ticketId, ticketCode);
     }
 }
@@ -1100,32 +1143,60 @@ async function autoCheckIn(ticketId, ticketCode) {
         const data = await res.json();
 
         if (data.success) {
-            // Update the ticket row in the batch panel
-            const cb = document.querySelector(`.batch-ticket-cb[value="${ticketId}"]`);
-            if (cb) {
-                cb.checked = false;
-                cb.disabled = true;
-                const row = cb.closest('.ticket-row');
-                if (row) {
-                    row.style.opacity = '0.7';
-                    const badge = row.querySelector('.status-badge');
-                    if (badge) {
-                        badge.className = 'status-badge used';
-                        badge.textContent = 'USED';
-                    }
-                    // Add check-in time
-                    const timeSpan = document.createElement('span');
-                    timeSpan.style.cssText = 'font-size:11px; color:var(--staff-text-muted);';
-                    timeSpan.textContent = new Date().toLocaleString('vi-VN');
-                    badge.insertAdjacentElement('afterend', timeSpan);
-                }
-            }
             playBeepSuccess();
+            // Refresh lại toàn bộ batch panel từ server để đảm bảo đồng bộ
+            refreshBatchPanel();
         }
     } catch (e) {
         // Print still works, just skip auto check-in silently
         console.warn('Auto check-in failed:', e);
     }
+}
+
+/**
+ * Auto check-in tất cả vé UNUSED trong batch panel hiện tại.
+ * Gọi khi staff bấm "In tất cả" hoặc "Tải PDF".
+ */
+async function autoCheckInAllUnused() {
+    const checkboxes = document.querySelectorAll('.batch-ticket-cb:not(:disabled)');
+    const ticketIds = Array.from(checkboxes).map(cb => parseInt(cb.value)).filter(id => !isNaN(id));
+
+    if (ticketIds.length === 0) return;
+
+    // Lấy booking_id từ batch panel nếu có
+    const batchPanel = document.getElementById('batchPanel');
+    const batchBtn = batchPanel?.querySelector('[onclick*="confirmBatch"]');
+    const bookingIdMatch = batchBtn?.getAttribute('onclick')?.match(/confirmBatch\((\d+)\)/);
+    const bookingId = bookingIdMatch ? parseInt(bookingIdMatch[1]) : null;
+
+    if (!bookingId) {
+        // Fallback: check-in từng vé
+        for (const id of ticketIds) {
+            await autoCheckIn(id, '');
+        }
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/confirm-batch`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': CSRF_TOKEN,
+            },
+            body: JSON.stringify({ booking_id: bookingId, ticket_ids: ticketIds }),
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            playBeepSuccess();
+        }
+    } catch (e) {
+        console.warn('Auto batch check-in failed:', e);
+    }
+
+    refreshBatchPanel();
 }
 
 // ══════ SOUND EFFECTS ══════

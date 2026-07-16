@@ -75,6 +75,9 @@ class DatabaseSeeder extends Seeder
     ReviewSeeder::class,
     ArticleSeeder::class,
     AuditLogSeeder::class,
+
+    // Demo testing
+    DemoBookingSeeder::class,
 ]);
     }
 }

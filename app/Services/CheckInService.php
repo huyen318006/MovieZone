@@ -19,7 +19,7 @@ class CheckInService
     /**
      * Cửa sổ check-in sớm (phút trước giờ chiếu).
      */
-    private const EARLY_CHECKIN_MINUTES = 30;
+    private const EARLY_CHECKIN_MINUTES = 1440; // Kéo dài thời gian check-in lên trước 24h (1 ngày)
 
     public function __construct(
         protected QRCodeService $qrCodeService,
@@ -276,7 +276,7 @@ class CheckInService
         $ticket = Ticket::with([
             'booking:id,booking_code,user_id,showtime_id,status,payment_status,final_amount',
             'booking.user:id,name',
-            'booking.showtime:id,cinema_id,room_id,movie_id,start_time,end_time,format,language_type,status',
+            'booking.showtime:id,cinema_id,room_id,movie_id,start_time,end_time,status',
             'booking.showtime.movie:id,title,poster_url,duration_minutes',
             'booking.showtime.cinema:id,name',
             'booking.showtime.room:id,name,room_type,status',
@@ -470,8 +470,6 @@ class CheckInService
             'showtime' => [
                 'start_time'    => $showtime?->start_time,
                 'end_time'      => $showtime?->end_time,
-                'format'        => $showtime?->format,
-                'language_type' => $showtime?->language_type,
             ],
             'cinema' => [
                 'name' => $showtime?->cinema?->name ?? 'N/A',
@@ -500,7 +498,6 @@ class CheckInService
             'room_type'      => $showtime?->room?->room_type,
             'start_time'     => $showtime?->start_time,
             'end_time'       => $showtime?->end_time,
-            'format'         => $showtime?->format,
         ];
     }
 

@@ -40,7 +40,7 @@
                     <tr>
                         <td style="padding: 0 30px 25px; text-align: center;">
                             <div style="display: inline-block; background: #ffffff; padding: 12px; border-radius: 12px;">
-                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($order->generateTicketQrData()) }}&color=0f172a&bgcolor=ffffff&margin=4"
+                                <img src="https://quickchart.io/qr?text={{ urlencode($order->generateTicketQrData()) }}&size=200&margin=2&dark=0f172a"
                                      alt="QR Code" width="200" height="200" style="display: block;">
                             </div>
                             <p style="color: #64748b; font-size: 12px; margin: 10px 0 0;">Quét mã QR để xem thông tin vé</p>
