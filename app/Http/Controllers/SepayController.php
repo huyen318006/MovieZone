@@ -55,6 +55,8 @@ class SepayController extends Controller
     /**
      * Trang hiển thị QR code + chờ thanh toán
      */
+
+    // payment là dành cho nạp tiền
     public function payment(string $orderCode)
     {
         $order = $this->sepayService->getOrderByCode($orderCode);

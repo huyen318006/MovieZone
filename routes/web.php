@@ -22,6 +22,7 @@ use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SepayController;
 use App\Http\Controllers\ShowtimeController;
+use App\Http\Controllers\staff\BookTicketsController;
 use App\Http\Controllers\Staff\StaffDashboardController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\VoucherController;
@@ -468,6 +469,15 @@ Route::middleware(['auth', 'staff.permission:booking.lookup'])
         Route::post('/api/issue-support/diagnose', [StaffIssueSupportController::class, 'diagnose'])
             ->name('api.issue-support.diagnose');
     });
+/* --------------------- UC-STAFF-05: BÁN VÉ ------------------ */
+Route::get('/staff/sell-tickets', [BookTicketsController::class, 'index'])->name('staff.sell-tickets');
+Route::get('/staff/sell-seat/{id}', [BookTicketsController::class, 'sell_seat'])->name('staff.sell-seat');
+//chọn ghế -> để  chuyển sang trang combo
+Route::get('/staff/sell-tickets/submitseat', [BookTicketsController::class, 'submitseat'])->name('staff.sell-tickets.submitseat');
+Route::post('/staff/sell-tickets/savecombo', [BookTicketsController::class, 'savecombo'])->name('staff.sell-tickets.savecombo');
+//List ra tất cả thông tin kèm theo thêm thông tin khách hàng đặt
+Route::get('/staff/sell-tickets/confirm', [BookTicketsController::class, 'confirm'])->name('staff.sell-tickets.confirm');
+
 
 
 /* --------------------- UC-ADM-06: Quản lý booking (ĐẶT VÉ) ------------------ */

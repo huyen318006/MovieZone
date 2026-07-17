@@ -101,7 +101,7 @@
             .staff-main { margin-left: 0; }
         }
 
-        @yield('styles')
+        @stack('styles')
     </style>
 </head>
 
@@ -136,6 +136,11 @@
             <a class="nav-link {{ Request::routeIs('staff.check-in') ? 'active' : '' }}"
                href="{{ route('staff.check-in') }}">
                 <i class="bi bi-qr-code-scan"></i> Check-in Vé
+            </a>
+
+            <a class="nav-link {{ Request::routeIs('staff.sell-tickets') ? 'active' : '' }}"
+               href="{{ route('staff.sell-tickets') }}">
+                <i class="bi bi-ticket-perforated"></i> Bán vé
             </a>
 
             <a class="nav-link {{ Request::routeIs('staff.issue-support') ? 'active' : '' }}"
