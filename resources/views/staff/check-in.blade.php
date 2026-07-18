@@ -3,7 +3,7 @@
 @section('title', 'Check-in Vé QR')
 @section('page-title', 'Check-in Vé QR')
 
-@section('styles')
+@push('styles')
 /* ══════ CHECK-IN PAGE ══════ */
 .checkin-grid {
     display: grid;
@@ -431,7 +431,7 @@
 @media (max-width: 1200px) {
     .checkin-grid { grid-template-columns: 1fr; }
 }
-@endsection
+@endpush
 
 @section('content')
 <div class="checkin-grid">

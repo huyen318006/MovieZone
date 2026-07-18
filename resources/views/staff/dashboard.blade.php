@@ -19,7 +19,7 @@
 </form>
 @endsection
 
-@section('styles')
+@push('styles')
 .staff-dashboard-hero {
     position: relative;
     overflow: hidden;
@@ -300,7 +300,7 @@
     .staff-quick-grid,
     .staff-metric-grid { grid-template-columns: 1fr; }
 }
-@endsection
+@endpush
 
 @section('content')
 @php
