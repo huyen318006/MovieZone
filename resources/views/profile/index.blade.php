@@ -11,7 +11,7 @@
             <i class="bi bi-house-door-fill"></i>
             <span>Trang chủ</span>
         </a>
-        <a href="{{ route('tickets') }}" class="action-btn action-btn-secondary">
+        <a href="{{ route('my-tickets.index') }}" class="action-btn action-btn-secondary">
             <i class="bi bi-receipt-cutoff"></i>
             <span>Lịch sử giao dịch</span>
         </a>

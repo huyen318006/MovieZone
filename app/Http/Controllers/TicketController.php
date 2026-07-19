@@ -21,7 +21,7 @@ class TicketController extends Controller
         ])
         ->where('user_id', Auth::id())
         ->latest()
-        ->get();
+        ->paginate(5);
 
         return view(
             'ticket.index',
@@ -50,5 +50,25 @@ class TicketController extends Controller
             'success' => true,
             'booking' => $booking,
         ]);
+    }
+    /**
+     * chi tiết 1 booking khách hàng
+     */
+    public function detail($id)
+    {
+        $booking = Booking::with([
+            'payment',
+            'tickets.bookingSeat',
+            'showtime.movie',
+            'showtime.room',
+            'showtime.cinema',
+            'bookingSeats',
+            'bookingCombos.combo',
+        ])
+        ->where('user_id', Auth::id())
+        ->findOrFail($id);
+
+        // Trả về file giao diện Blade của riêng bạn (ví dụ: resources/views/ticket/show.blade.php)
+        return view('ticket.detail', compact('booking'));
     }
 }
