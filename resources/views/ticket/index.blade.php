@@ -21,7 +21,7 @@
     <div class="history-card">
         <div class="card-header-title">
             <span>Danh sách giao dịch</span>
-            <span class="total-count">Tổng số: {{ $bookings->count() }}</span>
+            <span class="total-count">Tổng số: {{ $bookings->total() }}</span>
         </div>
 
         <table class="history-table">
@@ -30,23 +30,22 @@
                     <th>STT</th>
                     <th>Mã booking</th>
                     <th>Tên phim</th>
-                    <th>Ngôn ngữ</th>
-                    <th>Ngày chiếu</th>
-                    <th>Suất chiếu</th>
-                    <th>Phòng</th>
-                    <th>Số vé</th>
-                    <th>Số ghế</th>
-                    <th>Ngày đặt</th>
+                    <th>Lịch chiếu</th>
                     <th>Tổng tiền</th>
                     <th>Trạng thái đặt</th>
                     <th>Thanh toán</th>
+                    <th style="text-align: center;">Hành động</th>
                 </tr>
             </thead>
 
             <tbody>
-            @forelse($bookings as $key=>$booking)
+            @forelse($bookings as $key => $booking)
+                @php
+                    // Công thức tính STT liên tục tăng tiến qua các trang phân trang
+                    $stt = ($bookings->currentPage() - 1) * $bookings->perPage() + $loop->iteration;
+                @endphp
                 <tr>
-                    <td>{{ $key+1 }}</td>
+                    <td>{{ $stt }}</td>
                     <td>
                         <strong class="booking-code">{{ $booking->booking_code }}</strong>
                     </td>
@@ -58,61 +57,20 @@
                         </strong>
                     </td>
 
-                    {{-- ngôn ngữ --}}
+                    {{-- lịch chiếu gộp ngày & suất chiếu --}}
                     <td>
-                        @if($booking->showtime && $booking->showtime->movie)
-                            <span class="badge-status badge-count">
-                                {{ $booking->showtime->format }} {{ $booking->showtime->movie->language }}
-                            </span>
-                        @else
-                            <span class="text-soft">N/A</span>
-                        @endif
-                    </td>
-
-                    {{-- ngày chiếu --}}
-                    <td class="text-soft">
-                        {{ $booking->showtime ? $booking->showtime->start_time->format('d/m/Y') : 'N/A' }}
-                    </td>
-
-                    {{-- suất chiếu --}}
-                    <td class="text-highlight">
                         @if($booking->showtime)
-                            <strong>{{ $booking->showtime->start_time->format('H:i') }}</strong> 
-                            <span style="color: #64748b;">-</span> 
-                            <strong>{{ $booking->showtime->end_time->format('H:i') }}</strong>
+                            <div style="color: #ffffff; font-weight: 500;">
+                                {{ $booking->showtime->start_time->format('d/m/Y') }}
+                            </div>
+                            <div style="font-size: 13px; color: #94a3b8; margin-top: 2px;">
+                                <strong>{{ $booking->showtime->start_time->format('H:i') }}</strong> - <strong>{{ $booking->showtime->end_time->format('H:i') }}</strong>
+                            </div>
                         @else
                             <span class="text-soft">N/A</span>
-                        @endif
-                    </td>
-
-                    {{-- phòng chiếu --}}
-                    <td>
-                        <span class="badge-status badge-count">
-                            {{ $booking->showtime->room->name ?? 'N/A' }}
-                        </span>
-                    </td>
-
-                    {{-- slg vé --}}
-                    <td>
-                        <span class="badge-status badge-count">
-                            {{ $booking->bookingSeats ? $booking->bookingSeats->count() : 0 }} vé
-                        </span>
-                    </td>
-
-                    {{--Số ghế --}}
-                    <td style="color: #ffffff; font-weight: 600;">
-                        @if($booking->bookingSeats && $booking->bookingSeats->isNotEmpty())
-                            {{ $booking->bookingSeats->pluck('seat_code')->implode(', ') }}
-                        @else
-                            <span style="color: #64748b;">N/A</span>
                         @endif
                     </td>
                     
-                    {{--  ngày đặt --}}
-                    <td class="text-soft">
-                        {{ $booking->created_at->format('d/m/Y H:i') }}
-                    </td>
-
                     {{--  tổng tiền --}}
                     <td class="price">
                         {{ number_format($booking->final_amount) }} VNĐ
@@ -158,9 +116,17 @@
                                 <span class="payment-badge payment-default">{{ $booking->payment_status }}</span>
                         @endswitch
                     </td>
+
+                    {{-- Hành động chuyển hướng sang trang chi tiết --}}
+                    <td style="text-align: center;">
+                        <a href="{{ route('my-tickets.show', $booking->id) }}" class="btn-detail-custom" style="text-decoration: none;">
+                            <i class="bi bi-eye"></i> Chi tiết
+                        </a>
+                    </td>
+                </tr>
             @empty
                 <tr>
-                    <td colspan="13" class="empty-row">
+                    <td colspan="8" class="empty-row">
                         <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
                         Chưa có giao dịch nào được thực hiện
                     </td>
@@ -171,20 +137,9 @@
     </div>
 </div>
 
-{{-- MODAL CHI TIẾT VÉ --}}
-<div class="modal-overlay" id="detailModalOverlay" onclick="closeDetailModal(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <div class="modal-header-custom">
-            <h3><i class="bi bi-ticket-detailed"></i> Chi tiết giao dịch</h3>
-            <button class="modal-close" onclick="closeDetailModal()"><i class="bi bi-x-lg"></i></button>
-        </div>
-
-        <div class="modal-body-custom" id="detailModalBody">
-            <div class="loading-spinner">
-                <i class="bi bi-arrow-repeat spin"></i> Đang tải...
-            </div>
-        </div>
-    </div>
+{{-- phân trang --}}
+<div class="pagination-container">
+    {{ $bookings->links() }}
 </div>
 
 <style>
@@ -195,7 +150,7 @@ body {
 
 .ticket-history-container {
     max-width: 1500px;
-    margin: 50px auto 50px auto;
+    margin: 50px auto;
     padding: 0 20px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -229,24 +184,6 @@ body {
 
 .action-btn:hover {
     background: #2563eb;
-}
-
-/* --- TIÊU ĐỀ TRANG --- */
-.history-header {
-    margin-bottom: 25px;
-}
-
-.history-header h2 {
-    color: #ffffff;
-    font-size: 26px;
-    font-weight: 700;
-    margin: 0 0 6px 0;
-}
-
-.history-header p {
-    color: #94a3b8;
-    font-size: 14px;
-    margin: 0;
 }
 
 /* --- THIẾT KẾ KHỐI CARD & BẢNG --- */
@@ -316,78 +253,34 @@ body {
     color: #94a3b8;
 }
 
-.font-bold {
-    font-weight: 600;
-}
-
 .price {
     color: #38bdf8;
     font-weight: 700;
 }
 
-/* Badge trạng thái */
-.status {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.status-paid {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
-}
-
-.status-pending {
-    background: rgba(251, 191, 36, 0.15);
-    color: #fbbf24;
-}
-
-.status-cancelled {
-    background: rgba(239, 68, 68, 0.15);
-    color: #ef4444;
-}
-
-.status-expired {
-    background: rgba(107, 114, 128, 0.15);
-    color: #6b7280;
-}
-
-.status-refunded {
-    background: rgba(139, 92, 246, 0.15);
-    color: #8b5cf6;
-}
-
-.status-default {
-    background: rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-}
-
-/* Nút Chi tiết */
-.btn-detail {
-    background: rgba(59, 130, 246, 0.15);
-    color: #60a5fa;
-    border: 1px solid rgba(59, 130, 246, 0.3);
+/* --- NÚT CHI TIẾT CUSTOM --- */
+.btn-detail-custom {
+    background: rgba(13, 110, 253, 0.15);
+    color: #0d6efd;
+    border: 1px solid rgba(13, 110, 253, 0.4);
     padding: 6px 14px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
 }
 
-.btn-detail:hover {
-    background: rgba(59, 130, 246, 0.3);
-    border-color: #3b82f6;
+.btn-detail-custom:hover {
+    background: #0d6efd;
     color: #ffffff;
+    border-color: #0d6efd;
+    box-shadow: 0 0 10px rgba(13, 110, 253, 0.5);
 }
 
-/* Hàng trống */
 .empty-row {
     text-align: center;
     padding: 40px !important;
@@ -395,264 +288,7 @@ body {
     font-size: 14px;
 }
 
-/* --- MODAL OVERLAY --- */
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    z-index: 9999;
-    justify-content: center;
-    align-items: flex-start;
-    padding-top: 80px;
-    overflow-y: auto;
-}
-
-.modal-overlay.active {
-    display: flex;
-}
-
-.modal-content {
-    background: #111827;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    width: 100%;
-    max-width: 680px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    animation: slideIn 0.3s ease;
-    margin-bottom: 40px;
-}
-
-@keyframes slideIn {
-    from { opacity: 0; transform: translateY(-20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.modal-header-custom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.modal-header-custom h3 {
-    color: #ffffff;
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.modal-close {
-    background: rgba(255, 255, 255, 0.05);
-    border: none;
-    color: #94a3b8;
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-}
-
-.modal-close:hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: #f87171;
-}
-
-.modal-body-custom {
-    padding: 24px;
-    color: #e2e8f0;
-}
-
-/* Loading */
-.loading-spinner {
-    text-align: center;
-    padding: 40px;
-    color: #64748b;
-    font-size: 15px;
-}
-
-.spin {
-    display: inline-block;
-    animation: spinAnim 1s linear infinite;
-}
-
-@keyframes spinAnim {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* Detail sections */
-.detail-section {
-    margin-bottom: 20px;
-}
-
-.detail-section-title {
-    font-size: 13px;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.detail-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-
-.detail-item {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 12px 14px;
-}
-
-.detail-item .label {
-    font-size: 11px;
-    color: #64748b;
-    margin-bottom: 4px;
-}
-
-.detail-item .value {
-    font-size: 14px;
-    color: #f1f5f9;
-    font-weight: 500;
-}
-
-.detail-item .value.price-highlight {
-    color: #38bdf8;
-    font-weight: 700;
-}
-
-/* Seat list */
-.seat-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.seat-badge {
-    background: linear-gradient(135deg, #312e81, #4c1d95);
-    color: #c4b5fd;
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-}
-
-.seat-badge .seat-code {
-    color: #ffffff;
-    font-size: 15px;
-}
-
-.seat-badge .seat-price {
-    font-size: 11px;
-    color: #a78bfa;
-}
-
-/* Combo list */
-.combo-item {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 10px 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.combo-item .combo-name {
-    color: #e2e8f0;
-    font-weight: 500;
-}
-
-.combo-item .combo-qty {
-    color: #94a3b8;
-    font-size: 13px;
-}
-
-/* Ticket list */
-.ticket-item {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 10px 14px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.ticket-item .ticket-code {
-    font-family: monospace;
-    color: #fbbf24;
-    font-weight: 600;
-    font-size: 13px;
-}
-
-.ticket-item .ticket-seat {
-    color: #94a3b8;
-    font-size: 13px;
-}
-
-.ticket-item .ticket-status {
-    font-size: 11px;
-}
-
-/* Divider */
-.detail-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-    margin: 16px 0;
-}
-
-/* Responsive */
-@media(max-width: 768px) {
-    .ticket-history-container {
-        margin-top: 40px;
-    }
-    .profile-actions-wrapper {
-        justify-content: center;
-    }
-    .profile-actions {
-        width: 100%;
-    }
-    .action-btn {
-        flex: 1;
-        justify-content: center;
-    }
-    .history-table {
-        display: block;
-        overflow-x: auto;
-    }
-    .detail-grid {
-        grid-template-columns: 1fr;
-    }
-    .modal-content {
-        margin: 0 10px 40px 10px;
-    }
-}
-/* Style chung cho các Badge */
+/* Style cho Badges */
 .status-badge, .payment-badge {
     display: inline-flex;
     align-items: center;
@@ -660,202 +296,116 @@ body {
     padding: 6px 12px;
     font-size: 12px;
     font-weight: 600;
-    border-radius: 20px; /* Bo tròn viền mềm mại */
-    min-width: 140px; /* Đảm bảo các nút có độ rộng bằng nhau */
+    border-radius: 20px;
+    min-width: 140px;
     text-align: center;
-    line-height: 1.2;
 }
 
-/* ==========================================================================
-   CSS CHO CỘT TRẠNG THÁI (Nền đặc - Solid style)
-   ========================================================================== */
-.status-paid {
-    background-color: #0b6655; /* Xanh lá đậm */
-    color: #2ecc71;
+.status-paid { background-color: #0b6655; color: #2ecc71; }
+.status-pending { background-color: #7d5004; color: #f1c40f; }
+.status-cancelled { background-color: #721c24; color: #f8d7da; }
+.status-refunded-status { background-color: #1b4f72; color: #aed6f1; }
+.status-expired { background-color: #2c3e50; color: #bdc3c7; }
+.status-default { background-color: #2d3748; color: #a0aec0; }
+
+.payment-paid { border: 1px solid #2ecc71; color: #2ecc71; }
+.payment-unpaid { border: 1px solid #f1c40f; color: #f1c40f; }
+.payment-refunded { border: 1px solid #3498db; color: #3498db; }
+.payment-failed { border: 1px solid #e74c3c; color: #e74c3c; }
+.payment-default { border: 1px solid #718096; color: #a0aec0; }
+
+@media(max-width: 768px) {
+    .ticket-history-container { margin-top: 40px; }
+    .profile-actions-wrapper { justify-content: center; }
+    .profile-actions { width: 100%; }
+    .action-btn { flex: 1; justify-content: center; }
+    .history-table { display: block; overflow-x: auto; }
 }
 
-.status-pending {
-    background-color: #7d5004; /* Cam đất/nâu vàng */
-    color: #f1c40f;
+/* --- ĐỊNH DẠNG PHÂN TRANG (PAGINATION) --- */
+.pagination-container {
+    margin-top: 30px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
 }
 
-.status-cancelled {
-    background-color: #721c24; /* Đỏ mận tối */
-    color: #f8d7da;
+.pagination-container nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
 }
 
-.status-refunded-status {
-    background-color: #1b4f72; /* Xanh dương tối */
-    color: #aed6f1;
+/* Sửa lỗi text Showing bị tối màu đen */
+.pagination-container nav div:first-child,
+.pagination-container nav div:first-child *, 
+.pagination-container .text-muted,
+.pagination-container .text-muted * {
+    color: #ffffff !important; /* Giữ lại !important ở đây để thắng text-muted của bootstrap */
+    font-size: 14px !important;
+    font-weight: 500;
 }
 
-.status-expired {
-    background-color: #2c3e50; /* Xám đen */
-    color: #bdc3c7;
+.pagination-container nav div:first-child strong,
+.pagination-container nav div:first-child span {
+    color: #3b82f6 !important; 
+    font-weight: 700;
 }
 
-.status-default {
-    background-color: #2d3748;
-    color: #a0aec0;
+.pagination-container .pagination {
+    display: flex;
+    padding-left: 0;
+    list-style: none;
+    gap: 8px;
 }
 
-/* ==========================================================================
-   CSS CHO CỘT THANH TOÁN (Viền rỗng - Outline style)
-   ========================================================================== */
-.payment-paid {
-    background-color: transparent;
-    border: 1px solid #2ecc71; /* Viền xanh lá tươi */
-    color: #2ecc71;
+/* Định hình chung nút trang */
+.pagination-container .page-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #111827; 
+    border: 1px solid rgba(255, 255, 255, 0.15); 
+    color: #ffffff; 
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    text-decoration: none;
 }
 
-.payment-unpaid {
-    background-color: transparent;
-    border: 1px solid #f1c40f; /* Viền vàng */
-    color: #f1c40f;
+.pagination-container .page-link:hover {
+    background-color: #1f2937;
+    color: #3b82f6; 
+    border-color: #3b82f6;
 }
 
-.payment-refunded {
-    background-color: transparent;
-    border: 1px solid #3498db; /* Viền xanh dương */
-    color: #3498db;
+/* Trang hiện tại (Active) */
+.pagination-container .page-item.active .page-link {
+    background-color: #3b82f6; 
+    border-color: #3b82f6;
+    color: #ffffff; 
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.45); 
 }
 
-.payment-failed {
-    background-color: transparent;
-    border: 1px solid #e74c3c; /* Viền đỏ tươi */
-    color: #e74c3c;
+/* Ô bị vô hiệu hóa (Disabled) */
+.pagination-container .page-item.disabled .page-link {
+    background-color: rgba(17, 24, 39, 0.8); 
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    color: #4b5563;
+    cursor: not-allowed;
+    opacity: 0.6; 
 }
 
-.payment-default {
-    background-color: transparent;
-    border: 1px solid #718096;
-    color: #a0aec0;
+.pagination-container .page-link:focus {
+    box-shadow: none;
 }
 </style>
-
-<script>
-function showBookingDetail(id) {
-    const overlay = document.getElementById('detailModalOverlay');
-    const body = document.getElementById('detailModalBody');
-    overlay.classList.add('active');
-    body.innerHTML = '<div class="loading-spinner"><i class="bi bi-arrow-repeat spin"></i> Đang tải...</div>';
-
-    fetch(`/my-tickets/${id}`)
-        .then(res => res.json())
-        .then(res => {
-            if (!res.success) {
-                body.innerHTML = '<p style="color: #f87171;">Không thể tải dữ liệu.</p>';
-                return;
-            }
-            const b = res.booking;
-            const showtime = b.showtime;
-            const movie = showtime?.movie;
-            const room = showtime?.room;
-            const cinema = showtime?.cinema;
-            const payment = b.payment;
-            const seats = b.booking_seats || [];
-            const combos = b.booking_combos || [];
-            const tickets = b.tickets || [];
-
-            let html = '';
-
-            // Thông tin phim & suất chiếu
-            html += `<div class="detail-section">
-                <div class="detail-section-title"><i class="bi bi-film"></i> Thông tin suất chiếu</div>
-                <div class="detail-grid">
-                    <div class="detail-item"><div class="label">Phim</div><div class="value">${movie?.title || 'N/A'}</div></div>
-                    <div class="detail-item"><div class="label">Rạp</div><div class="value">${cinema?.name || 'N/A'}</div></div>
-                    <div class="detail-item"><div class="label">Phòng</div><div class="value">${room?.name || 'N/A'}</div></div>
-                    <div class="detail-item"><div class="label">Suất chiếu</div><div class="value">${showtime?.start_time ? formatDT(showtime.start_time) : 'N/A'}</div></div>
-                </div>
-            </div>`;
-
-            // Ghế đã đặt
-            if (seats.length > 0) {
-                html += `<div class="detail-divider"></div>
-                <div class="detail-section">
-                    <div class="detail-section-title"><i class="bi bi-grid-3x3-gap"></i> Ghế đã đặt (${seats.length})</div>
-                    <div class="seat-list">`;
-                seats.forEach(s => {
-                    const typeLabel = s.seat_type === 'VIP' ? '👑 VIP' : (s.seat_type === 'COUPLE' ? '💕 Couple' : '🎬 Thường');
-                    html += `<div class="seat-badge">
-                        <span class="seat-code">${s.seat_code}</span>
-                        <span class="seat-price">${typeLabel} — ${formatPrice(s.price)}</span>
-                    </div>`;
-                });
-                html += `</div></div>`;
-            }
-
-            // Combo
-            if (combos.length > 0) {
-                html += `<div class="detail-divider"></div>
-                <div class="detail-section">
-                    <div class="detail-section-title"><i class="bi bi-basket3"></i> Combo</div>`;
-                combos.forEach(c => {
-                    html += `<div class="combo-item">
-                        <span class="combo-name">${c.combo?.name || 'Combo'}</span>
-                        <span class="combo-qty">x${c.quantity} — ${formatPrice(c.total_price)}</span>
-                    </div>`;
-                });
-                html += `</div>`;
-            }
-
-            // Thanh toán
-            html += `<div class="detail-divider"></div>
-            <div class="detail-section">
-                <div class="detail-section-title"><i class="bi bi-credit-card"></i> Thanh toán</div>
-                <div class="detail-grid">
-                    <div class="detail-item"><div class="label">Tiền vé</div><div class="value">${formatPrice(b.total_ticket_amount)}</div></div>
-                    <div class="detail-item"><div class="label">Combo</div><div class="value">${formatPrice(b.total_combo_amount)}</div></div>
-                    <div class="detail-item"><div class="label">Giảm giá</div><div class="value" style="color:#10b981;">-${formatPrice(b.discount_amount)}</div></div>
-                    <div class="detail-item"><div class="label">Tổng cộng</div><div class="value price-highlight">${formatPrice(b.final_amount)}</div></div>
-                </div>
-            </div>`;
-
-            // Danh sách mã vé
-            if (tickets.length > 0) {
-                html += `<div class="detail-divider"></div>
-                <div class="detail-section">
-                    <div class="detail-section-title"><i class="bi bi-qr-code"></i> Mã vé (${tickets.length})</div>`;
-                tickets.forEach(t => {
-                    const statusCls = t.status === 'USED' ? 'status-paid' : (t.status === 'CANCELLED' ? 'status-cancelled' : 'status-pending');
-                    const seatCode = t.booking_seat?.seat_code || '';
-                    html += `<div class="ticket-item">
-                        <span class="ticket-code">${t.ticket_code}</span>
-                        <span class="ticket-seat">${seatCode}</span>
-                        <span class="ticket-status status ${statusCls}">${t.status}</span>
-                    </div>`;
-                });
-                html += `</div>`;
-            }
-
-            body.innerHTML = html;
-        })
-        .catch(err => {
-            body.innerHTML = '<p style="color: #f87171;">Lỗi kết nối. Vui lòng thử lại.</p>';
-        });
-}
-
-function closeDetailModal(event) {
-    if (event && event.target !== event.currentTarget) return;
-    document.getElementById('detailModalOverlay').classList.remove('active');
-}
-
-function formatDT(dt) {
-    if (!dt) return 'N/A';
-    const d = new Date(dt);
-    const pad = n => String(n).padStart(2, '0');
-    return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function formatPrice(val) {
-    if (!val && val !== 0) return '0 VNĐ';
-    return Number(val).toLocaleString('vi-VN') + ' VNĐ';
-}
-
-// Close with ESC key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeDetailModal();
-});
-</script>
 @endsection

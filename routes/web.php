@@ -154,8 +154,8 @@ Route::middleware('auth')->group(function () { // chưa đăng nhập thì khôn
 });
 // Vé đã mua
 Route::middleware('auth')->group(function () {
-    Route::get('/my-tickets', [TicketController::class, 'index'])->name('tickets');
-    Route::get('/my-tickets/{id}', [TicketController::class, 'show'])->name('tickets.show');
+    Route::get('/my-tickets', [TicketController::class, 'index'])->name('my-tickets.index');
+    Route::get('/my-tickets/{id}', [TicketController::class, 'detail'])->name('my-tickets.show');
 });
 
 
