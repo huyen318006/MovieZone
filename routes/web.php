@@ -298,7 +298,8 @@ Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(
     // Khóa/Mở khóa nhiều ghế (toggle)
     Route::post('/toggle-lock-many', [SeatManageController::class, 'toggleLockMany'])->name('toggle_lock_many');
 
-
+    // Đổi loại ghế hàng loạt theo hàng (VIP ↔ STANDARD ↔ COUPLE)
+    Route::post('/bulk-update-type', [SeatManageController::class, 'bulkUpdateType'])->name('bulk_update_type');
 
 });
 

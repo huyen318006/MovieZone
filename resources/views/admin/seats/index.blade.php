@@ -163,6 +163,9 @@
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkCreateModal">
                                 <i class="bi bi-plus-square me-1"></i> Tạo nhiều
                             </button>
+                            <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#bulkUpdateTypeModal">
+                                <i class="bi bi-arrow-left-right me-1"></i> Đổi loại ghế theo hàng
+                            </button>
                         </div>
                     </div>
                     <div class="mt-3">
@@ -426,6 +429,63 @@
                 </div>
             </div>
         </div>
+
+        {{-- Modal: Đổi loại ghế theo hàng --}}
+        <div class="modal fade" id="bulkUpdateTypeModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Đổi loại ghế theo hàng</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form action="{{ route('admin.seats.bulk_update_type') }}" method="POST" id="bulkUpdateTypeForm">
+                            @csrf
+                            <input type="hidden" name="room_id" value="{{ request('room_id') }}">
+
+                            <div class="mb-3">
+                                <label class="form-label">Hàng ghế cần đổi <span class="text-danger">*</span></label>
+                                <input type="text"
+                                       name="row_label"
+                                       id="bulkUpdateTypeRowInput"
+                                       class="form-control text-uppercase"
+                                       maxlength="1"
+                                       pattern="[A-Za-z]"
+                                       placeholder="VD: A, B, C..."
+                                       required>
+                                <div class="form-text">Nhập 1 chữ cái A–Z (viết hoa).</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Loại ghế mới <span class="text-danger">*</span></label>
+                                <select name="new_seat_type" class="form-select" id="bulkUpdateTypeSelect">
+                                    <option value="">-- Chọn loại ghế --</option>
+                                    <option value="STANDARD">STANDARD</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="COUPLE">COUPLE</option>
+                                </select>
+                                <div class="form-text">Giá ghế sẽ tự cập nhật theo loại ghế mới.</div>
+                            </div>
+
+                            <div class="alert alert-info py-2 mb-0" id="bulkUpdateTypeHint">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Hành động này sẽ đổi loại <strong>tất cả ghế</strong> trong hàng được chọn.
+                                Giá ghế sẽ tự động cập nhật theo loại mới. Thao tác này không thể hoàn tác.
+                            </div>
+
+                            <hr>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                <button type="submit" class="btn btn-info" id="bulkUpdateTypeSubmit" disabled>
+                                    <i class="bi bi-arrow-left-right me-1"></i> Xác nhận đổi loại
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
     @endif
 @endsection
 
@@ -593,6 +653,37 @@
 
             setBulkMode(false);
             updateBulkDeleteState();
+
+            // ── Bulk Update Type: enable submit only when both row + type selected ──
+            const bulkUpdateTypeRow = document.getElementById('bulkUpdateTypeRowInput');
+            const bulkUpdateTypeSelect = document.getElementById('bulkUpdateTypeSelect');
+            const bulkUpdateTypeSubmit = document.getElementById('bulkUpdateTypeSubmit');
+
+            function checkBulkUpdateTypeForm() {
+                const rowVal = bulkUpdateTypeRow ? bulkUpdateTypeRow.value.trim() : '';
+                const typeVal = bulkUpdateTypeSelect ? bulkUpdateTypeSelect.value : '';
+                if (bulkUpdateTypeSubmit) {
+                    bulkUpdateTypeSubmit.disabled = !(rowVal.length > 0 && typeVal.length > 0);
+                }
+            }
+
+            if (bulkUpdateTypeRow) {
+                bulkUpdateTypeRow.addEventListener('input', checkBulkUpdateTypeForm);
+                bulkUpdateTypeRow.addEventListener('change', checkBulkUpdateTypeForm);
+            }
+            if (bulkUpdateTypeSelect) {
+                bulkUpdateTypeSelect.addEventListener('change', checkBulkUpdateTypeForm);
+            }
+
+            // Reset form khi modal đóng
+            const bulkUpdateTypeModal = document.getElementById('bulkUpdateTypeModal');
+            if (bulkUpdateTypeModal) {
+                bulkUpdateTypeModal.addEventListener('hidden.bs.modal', function () {
+                    const form = document.getElementById('bulkUpdateTypeForm');
+                    if (form) form.reset();
+                    if (bulkUpdateTypeSubmit) bulkUpdateTypeSubmit.disabled = true;
+                });
+            }
         });
     </script>
 @endpush
