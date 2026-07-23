@@ -76,7 +76,7 @@
     @if (request('room_id'))
         <div class="col-12 mt-3">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Phòng</div>
                         <div class="fw-bold">
@@ -88,17 +88,36 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Tổng ghế</div>
                         <div class="fw-bold">{{ count($seatsGrouped->flatten()) }}</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Tình trạng</div>
                         <div class="fw-bold text-success">Đã cấu hình</div>
                     </div>
+                </div>
+                <div class="col-md-5">
+                    <form method="GET" action="{{ route('admin.seats.index') }}" id="showtimeFilterForm">
+                        <input type="hidden" name="room_id" value="{{ request('room_id') }}">
+                        <div class="panel panel-sm">
+                            <div class="text-muted small">Suất chiếu</div>
+                            <div class="fw-bold">
+                                <select name="showtime_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                                    <option value="">-- Trạng thái tĩnh --</option>
+                                    @foreach($showtimes as $st)
+                                        <option value="{{ $st->id }}" {{ $selectedShowtime && $selectedShowtime->id == $st->id ? 'selected' : '' }}>
+                                            {{ \Carbon\Carbon::parse($st->start_time)->format('H:i d/m') }} |
+                                            {{ $st->movie->title ?? 'N/A' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -176,6 +195,9 @@
                             <span class="legend-item"><span class="dot" style="background:#10b981"></span> DEMO</span>
                             <span class="legend-item"><span class="dot" style="background:#475569"></span> BLOCKED</span>
                             <span class="legend-item"><span class="dot" style="background:#ef4444"></span> BROKEN</span>
+                            @if($selectedShowtime)
+                            <span class="legend-item"><span class="dot" style="background:#22c55e"></span> Đã chọn suất: {{ \Carbon\Carbon::parse($selectedShowtime->start_time)->format('H:i d/m') }}</span>
+                            @endif
                         </div>
                     <div class="bulk-mode-hint d-none" id="bulkModeHint">
                         <i class="bi bi-info-circle me-1"></i>
@@ -245,6 +267,16 @@
                                                     <div class="seat-wrapper" data-seat-wrapper="{{ $seat->id }}">
                                                         <input type="checkbox" class="seat-checkbox visually-hidden" name="seat_ids[]" value="{{ $seat->id }}" form="bulkDeleteForm" aria-label="Chọn ghế {{ $seat->seat_code }}">
 
+                                                        @php
+                                                            $_dyn = $selectedShowtime && isset($seat->dynamic_status) ? $seat->dynamic_status : null;
+                                                            $_dynLabel = '';
+                                                            $_dynClass = '';
+                                                            if ($_dyn === 'AVAILABLE') { $_dynLabel = 'Trống'; $_dynClass = 'dyn-available'; }
+                                                            elseif ($_dyn === 'SOLD') { $_dynLabel = 'Đã bán'; $_dynClass = 'dyn-sold'; }
+                                                            elseif ($_dyn === 'HELD') { $_dynLabel = 'Đang giữ'; $_dynClass = 'dyn-held'; }
+                                                            elseif ($_dyn === 'BROKEN') { $_dynLabel = 'Hỏng'; $_dynClass = 'dyn-broken'; }
+                                                            elseif ($_dyn === 'BLOCKED' || $_dyn === 'LOCKED') { $_dynLabel = 'Khóa'; $_dynClass = 'dyn-locked'; }
+                                                        @endphp
                                                         <button type="button"
                                                                 class="seat-trigger"
                                                                 data-seat-id="{{ $seat->id }}"
@@ -257,8 +289,8 @@
                                                                 data-delete-url="{{ route('admin.seats.destroy', $seat->id) }}"
                                                                 data-is-locked="{{ $isLocked ? '1' : '0' }}"
                                                                 data-is-broken="{{ $seat->status === 'BROKEN' ? '1' : '0' }}"
-                                                                title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
-                                                            <span class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}">
+                                                                title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}{{ $_dyn ? ' · ' . $_dynLabel : '' }}">
+                                                            <span class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }} {{ $_dynClass }}">
                                                                 <strong>{{ $seat->seat_code }}</strong>
                                                                 <small>{{ $seat->seat_type }}</small>
                                                             </span>
@@ -1039,4 +1071,11 @@
             position: static;
         }
     }
+
+    /* ===== Dynamic status colors (giống bên customer) ===== */
+    .dyn-sold { background: linear-gradient(180deg, #fecaca 0%, #ef4444 100%) !important; }
+    .dyn-held { background: linear-gradient(180deg, #fde68a 0%, #f59e0b 100%) !important; }
+    .dyn-locked { background: linear-gradient(180deg, #94a3b8 0%, #475569 100%) !important; }
+    .dyn-broken { background: linear-gradient(180deg, #fecaca 0%, #ef4444 100%) !important; }
+
 </style>
