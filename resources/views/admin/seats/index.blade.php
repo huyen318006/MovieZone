@@ -76,7 +76,7 @@
     @if (request('room_id'))
         <div class="col-12 mt-3">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Phòng</div>
                         <div class="fw-bold">
@@ -88,17 +88,36 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Tổng ghế</div>
                         <div class="fw-bold">{{ count($seatsGrouped->flatten()) }}</div>
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-2">
                     <div class="panel panel-sm">
                         <div class="text-muted small">Tình trạng</div>
                         <div class="fw-bold text-success">Đã cấu hình</div>
                     </div>
+                </div>
+                <div class="col-md-5">
+                    <form method="GET" action="{{ route('admin.seats.index') }}" id="showtimeFilterForm">
+                        <input type="hidden" name="room_id" value="{{ request('room_id') }}">
+                        <div class="panel panel-sm">
+                            <div class="text-muted small">Suất chiếu</div>
+                            <div class="fw-bold">
+                                <select name="showtime_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                                    <option value="">-- Trạng thái tĩnh --</option>
+                                    @foreach($showtimes as $st)
+                                        <option value="{{ $st->id }}" {{ $selectedShowtime && $selectedShowtime->id == $st->id ? 'selected' : '' }}>
+                                            {{ \Carbon\Carbon::parse($st->start_time)->format('H:i d/m') }} |
+                                            {{ $st->movie->title ?? 'N/A' }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
 
@@ -163,6 +182,9 @@
                             <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#bulkCreateModal">
                                 <i class="bi bi-plus-square me-1"></i> Tạo nhiều
                             </button>
+                            <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#bulkUpdateTypeModal">
+                                <i class="bi bi-arrow-left-right me-1"></i> Đổi loại ghế theo hàng
+                            </button>
                         </div>
                     </div>
                     <div class="mt-3">
@@ -173,6 +195,9 @@
                             <span class="legend-item"><span class="dot" style="background:#10b981"></span> DEMO</span>
                             <span class="legend-item"><span class="dot" style="background:#475569"></span> BLOCKED</span>
                             <span class="legend-item"><span class="dot" style="background:#ef4444"></span> BROKEN</span>
+                            @if($selectedShowtime)
+                            <span class="legend-item"><span class="dot" style="background:#22c55e"></span> Đã chọn suất: {{ \Carbon\Carbon::parse($selectedShowtime->start_time)->format('H:i d/m') }}</span>
+                            @endif
                         </div>
                     <div class="bulk-mode-hint d-none" id="bulkModeHint">
                         <i class="bi bi-info-circle me-1"></i>
@@ -242,6 +267,16 @@
                                                     <div class="seat-wrapper" data-seat-wrapper="{{ $seat->id }}">
                                                         <input type="checkbox" class="seat-checkbox visually-hidden" name="seat_ids[]" value="{{ $seat->id }}" form="bulkDeleteForm" aria-label="Chọn ghế {{ $seat->seat_code }}">
 
+                                                        @php
+                                                            $_dyn = $selectedShowtime && isset($seat->dynamic_status) ? $seat->dynamic_status : null;
+                                                            $_dynLabel = '';
+                                                            $_dynClass = '';
+                                                            if ($_dyn === 'AVAILABLE') { $_dynLabel = 'Trống'; $_dynClass = 'dyn-available'; }
+                                                            elseif ($_dyn === 'SOLD') { $_dynLabel = 'Đã bán'; $_dynClass = 'dyn-sold'; }
+                                                            elseif ($_dyn === 'HELD') { $_dynLabel = 'Đang giữ'; $_dynClass = 'dyn-held'; }
+                                                            elseif ($_dyn === 'BROKEN') { $_dynLabel = 'Hỏng'; $_dynClass = 'dyn-broken'; }
+                                                            elseif ($_dyn === 'BLOCKED' || $_dyn === 'LOCKED') { $_dynLabel = 'Khóa'; $_dynClass = 'dyn-locked'; }
+                                                        @endphp
                                                         <button type="button"
                                                                 class="seat-trigger"
                                                                 data-seat-id="{{ $seat->id }}"
@@ -254,8 +289,8 @@
                                                                 data-delete-url="{{ route('admin.seats.destroy', $seat->id) }}"
                                                                 data-is-locked="{{ $isLocked ? '1' : '0' }}"
                                                                 data-is-broken="{{ $seat->status === 'BROKEN' ? '1' : '0' }}"
-                                                                title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}">
-                                                            <span class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }}">
+                                                                title="{{ $seat->seat_code }} · {{ number_format($seat->price) }}đ · {{ $seat->status }}{{ $_dyn ? ' · ' . $_dynLabel : '' }}">
+                                                            <span class="seat seat-{{ $seat->status === 'ACTIVE' ? $seat->seat_type : $seat->status }} {{ $_dynClass }}">
                                                                 <strong>{{ $seat->seat_code }}</strong>
                                                                 <small>{{ $seat->seat_type }}</small>
                                                             </span>
@@ -420,6 +455,63 @@
                             <div class="mt-3 d-flex justify-content-end gap-2">
                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                                 <button type="submit" class="btn btn-primary">Tạo ghế</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Modal: Đổi loại ghế theo hàng --}}
+        <div class="modal fade" id="bulkUpdateTypeModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Đổi loại ghế theo hàng</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form action="{{ route('admin.seats.bulk_update_type') }}" method="POST" id="bulkUpdateTypeForm">
+                            @csrf
+                            <input type="hidden" name="room_id" value="{{ request('room_id') }}">
+
+                            <div class="mb-3">
+                                <label class="form-label">Hàng ghế cần đổi <span class="text-danger">*</span></label>
+                                <input type="text"
+                                       name="row_label"
+                                       id="bulkUpdateTypeRowInput"
+                                       class="form-control text-uppercase"
+                                       maxlength="1"
+                                       pattern="[A-Za-z]"
+                                       placeholder="VD: A, B, C..."
+                                       required>
+                                <div class="form-text">Nhập 1 chữ cái A–Z (viết hoa).</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Loại ghế mới <span class="text-danger">*</span></label>
+                                <select name="new_seat_type" class="form-select" id="bulkUpdateTypeSelect">
+                                    <option value="">-- Chọn loại ghế --</option>
+                                    <option value="STANDARD">STANDARD</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="COUPLE">COUPLE</option>
+                                </select>
+                                <div class="form-text">Giá ghế sẽ tự cập nhật theo loại ghế mới.</div>
+                            </div>
+
+                            <div class="alert alert-info py-2 mb-0" id="bulkUpdateTypeHint">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Hành động này sẽ đổi loại <strong>tất cả ghế</strong> trong hàng được chọn.
+                                Giá ghế sẽ tự động cập nhật theo loại mới. Thao tác này không thể hoàn tác.
+                            </div>
+
+                            <hr>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                <button type="submit" class="btn btn-info" id="bulkUpdateTypeSubmit" disabled>
+                                    <i class="bi bi-arrow-left-right me-1"></i> Xác nhận đổi loại
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -593,6 +685,37 @@
 
             setBulkMode(false);
             updateBulkDeleteState();
+
+            // ── Bulk Update Type: enable submit only when both row + type selected ──
+            const bulkUpdateTypeRow = document.getElementById('bulkUpdateTypeRowInput');
+            const bulkUpdateTypeSelect = document.getElementById('bulkUpdateTypeSelect');
+            const bulkUpdateTypeSubmit = document.getElementById('bulkUpdateTypeSubmit');
+
+            function checkBulkUpdateTypeForm() {
+                const rowVal = bulkUpdateTypeRow ? bulkUpdateTypeRow.value.trim() : '';
+                const typeVal = bulkUpdateTypeSelect ? bulkUpdateTypeSelect.value : '';
+                if (bulkUpdateTypeSubmit) {
+                    bulkUpdateTypeSubmit.disabled = !(rowVal.length > 0 && typeVal.length > 0);
+                }
+            }
+
+            if (bulkUpdateTypeRow) {
+                bulkUpdateTypeRow.addEventListener('input', checkBulkUpdateTypeForm);
+                bulkUpdateTypeRow.addEventListener('change', checkBulkUpdateTypeForm);
+            }
+            if (bulkUpdateTypeSelect) {
+                bulkUpdateTypeSelect.addEventListener('change', checkBulkUpdateTypeForm);
+            }
+
+            // Reset form khi modal đóng
+            const bulkUpdateTypeModal = document.getElementById('bulkUpdateTypeModal');
+            if (bulkUpdateTypeModal) {
+                bulkUpdateTypeModal.addEventListener('hidden.bs.modal', function () {
+                    const form = document.getElementById('bulkUpdateTypeForm');
+                    if (form) form.reset();
+                    if (bulkUpdateTypeSubmit) bulkUpdateTypeSubmit.disabled = true;
+                });
+            }
         });
     </script>
 @endpush
@@ -948,4 +1071,11 @@
             position: static;
         }
     }
+
+    /* ===== Dynamic status colors (giống bên customer) ===== */
+    .dyn-sold { background: linear-gradient(180deg, #fecaca 0%, #ef4444 100%) !important; }
+    .dyn-held { background: linear-gradient(180deg, #fde68a 0%, #f59e0b 100%) !important; }
+    .dyn-locked { background: linear-gradient(180deg, #94a3b8 0%, #475569 100%) !important; }
+    .dyn-broken { background: linear-gradient(180deg, #fecaca 0%, #ef4444 100%) !important; }
+
 </style>

@@ -240,19 +240,96 @@ class SeatManageController extends Controller
         $selectedRoom = $request->filled('room_id') ? (int) $request->room_id : null;
 
         $seatsGrouped = [];
+        $showtimes = collect();
+        $selectedShowtime = null;
+
         if ($selectedRoom) {
             $seats = Seat::query()
                 ->where('room_id', $selectedRoom)
                 ->orderBy('row_label')
                 ->orderBy('seat_number')
                 ->get();
+
+            // Lấy danh sách suất chiếu sắp tới
+            $showtimes = Showtime::with('movie')
+                ->where('room_id', $selectedRoom)
+                ->where('start_time', '>', now())
+                ->where('status', '!=', 'CANCELLED')
+                ->orderBy('start_time')
+                ->get();
+
+            // Xác định suất chiếu được chọn
+            $hasShowtimeParam = $request->has('showtime_id') && $request->filled('showtime_id');
+            $selectedShowtime = null;
+
+            if ($hasShowtimeParam) {
+                $selectedShowtime = $showtimes->firstWhere('id', (int) $request->showtime_id);
+            } elseif (! $request->has('showtime_id')) {
+                // Chỉ tự chọn suất gần nhất khi người dùng chưa từng chọn suất chiếu nào
+                // (tức là không có param showtime_id trong URL)
+                if ($showtimes->isNotEmpty()) {
+                    $selectedShowtime = $showtimes->first();
+                }
+            }
+            // Nếu request có showtime_id nhưng rỗng (value="") → giữ nguyên null (trạng thái tĩnh)
+
+            // Map dynamic status nếu có suất chiếu
+            $dynamicStatuses = []; // seat_id => status
+            if ($selectedShowtime) {
+                $selectedShowtime->load(['showtimeSeats' => function ($q) {
+                    $q->with('seat');
+                }]);
+
+                $showtimeSeats = $selectedShowtime->showtimeSeats;
+                $showtimeSeatsBySeatId = $showtimeSeats->keyBy('seat_id');
+
+                // Lấy danh sách showtime_seat_id đã bán
+                $soldShowtimeSeatIds = DB::table('booking_seats')
+                    ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                    ->where('bookings.showtime_id', $selectedShowtime->id)
+                    ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                    ->pluck('booking_seats.showtime_seat_id');
+
+                // Lấy danh sách showtime_seat_id đang được giữ (từ cache)
+                $heldShowtimeSeatIds = $showtimeSeats->filter(function ($stSeat) use ($selectedShowtime) {
+                    $cacheKey = 'seat_held_'.$selectedShowtime->id.'_'.$stSeat->id;
+                    return Cache::has($cacheKey);
+                })->pluck('id');
+
+                foreach ($seats as $seat) {
+                    $showtimeSeat = $showtimeSeatsBySeatId->get($seat->id);
+                    if ($showtimeSeat) {
+                        $baseStatus = $seat->status ?? 'ACTIVE';
+
+                        if (in_array($baseStatus, ['BLOCKED', 'BROKEN'])) {
+                            $dynamicStatuses[$seat->id] = $baseStatus;
+                        } elseif ($soldShowtimeSeatIds->contains($showtimeSeat->id)) {
+                            $dynamicStatuses[$seat->id] = 'SOLD';
+                        } elseif ($heldShowtimeSeatIds->contains($showtimeSeat->id)) {
+                            $dynamicStatuses[$seat->id] = 'HELD';
+                        } else {
+                            $dynamicStatuses[$seat->id] = $showtimeSeat->status ?? 'AVAILABLE';
+                        }
+                    } else {
+                        $dynamicStatuses[$seat->id] = 'NOT_SYNCED';
+                    }
+                }
+            }
+
+            // Gán dynamic_status vào mỗi seat
+            foreach ($seats as $seat) {
+                $seat->dynamic_status = $dynamicStatuses[$seat->id] ?? null;
+            }
+
             $seatsGrouped = $seats->groupBy('row_label');
         }
 
         return view('admin.seats.index', compact(
             'rooms',
             'seatsGrouped',
-            'selectedRoom'
+            'selectedRoom',
+            'showtimes',
+            'selectedShowtime'
         ));
     }
 
@@ -707,6 +784,140 @@ class SeatManageController extends Controller
         return redirect()->route('admin.seats.index', [
             'room_id' => $validated['room_id'],
         ])->with('success', $successMessage);
+    }
+
+    /**
+     * Đổi loại ghế hàng loạt cho tất cả ghế trong 1 hàng (row_label).
+     *
+     * Yêu cầu:
+     *  - Phòng không được đang trong thời gian chiếu hoặc có booking (trừ CANCELLED/REFUNDED).
+     *  - Hàng ghế phải hợp lệ với loại ghế mới (dựa trên computeZones).
+     *  - Giá ghế tự động cập nhật theo seat_type mới từ bảng ticket_prices.
+     */
+    public function bulkUpdateType(Request $request)
+    {
+        $this->ensureAdminAccess();
+
+        // ── Bước 1: Validate ────────────────────────────────────────────────
+        $validated = $request->validate([
+            'room_id'       => 'required|exists:rooms,id',
+            'row_label'     => ['required', 'string', 'max:1', 'regex:/^[A-Z]$/'],
+            'new_seat_type' => 'required|in:STANDARD,VIP,COUPLE',
+        ], [
+            'row_label.required'       => 'Vui lòng nhập hàng ghế cần đổi loại.',
+            'row_label.regex'          => 'Hàng ghế chỉ được là chữ cái A-Z (viết hoa).',
+            'row_label.max'            => 'Hàng ghế chỉ 1 ký tự.',
+            'new_seat_type.required'   => 'Vui lòng chọn loại ghế mới.',
+            'new_seat_type.in'         => 'Loại ghế không hợp lệ. Chỉ chấp nhận: STANDARD, VIP, COUPLE.',
+        ]);
+
+        $roomId = (int) $validated['room_id'];
+        $rowLabel = strtoupper($validated['row_label']);
+        $newSeatType = $validated['new_seat_type'];
+
+        // ── Bước 2: Kiểm tra phòng ──────────────────────────────────────────
+        $room = Room::find($roomId);
+
+        if (! $room || $room->status !== 'ACTIVE') {
+            return back()
+                ->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.'])
+                ->withInput();
+        }
+
+        // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+        try {
+            $this->assertSeatRoomNotLockedForRealtime($room);
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['error' => $e->getMessage()])
+                ->withInput();
+        }
+
+        // ── Bước 3: Validate hàng ghế hợp lệ với loại ghế mới ──────────────
+        $zones = $this->computeZones($room);
+
+        // Kiểm tra row_label có vượt quá maxRow không
+        if (ord($rowLabel) > ord($zones['maxRow'])) {
+            return back()
+                ->withErrors(['error' => "Phòng {$room->name} chỉ có tối đa đến hàng {$zones['maxRow']}. Hàng {$rowLabel} không tồn tại trong phòng này."])
+                ->withInput();
+        }
+
+        // Xác định loại ghế được phép cho hàng này dựa trên zone
+        $expectedType = 'STANDARD';
+        if (in_array($rowLabel, $zones['vipRows'])) {
+            $expectedType = 'VIP';
+        } elseif (in_array($rowLabel, $zones['coupleRows'])) {
+            $expectedType = 'COUPLE';
+        }
+
+        // Cho phép nếu new_seat_type == expectedType (đổi đúng zone)
+        // HOẶC nếu hàng có ghế cũ khác loại — tức là đang sai zone, cho phép sửa về đúng zone
+        // Quy tắc: chỉ cho phép đổi SANG đúng zone của hàng đó.
+        if ($newSeatType !== $expectedType) {
+            $vipRange = implode(', ', $zones['vipRows']);
+            $coupleRange = implode(', ', $zones['coupleRows']);
+
+            return back()
+                ->withErrors(['error' => "Hàng {$rowLabel} thuộc vùng '{$expectedType}'. Chỉ được đổi sang loại '{$expectedType}'. (VIP: [{$vipRange}], COUPLE: [{$coupleRange}], còn lại: STANDARD)"])
+                ->withInput();
+        }
+
+        // ── Bước 4: Lấy tất cả ghế trong hàng ──────────────────────────────
+        $seats = Seat::query()
+            ->where('room_id', $roomId)
+            ->where('row_label', $rowLabel)
+            ->get();
+
+        if ($seats->isEmpty()) {
+            return back()
+                ->withErrors(['error' => "Hàng {$rowLabel} không có ghế nào trong phòng {$room->name}."])
+                ->withInput();
+        }
+
+        // ── Bước 5: Tính giá mới ────────────────────────────────────────────
+        $newPrice = $this->getSeatPriceFromTicketPrices($newSeatType, $roomId);
+        $oldType = $seats->first()->seat_type;
+
+        // ── Bước 6: Cập nhật trong transaction ──────────────────────────────
+        $updatedCount = 0;
+        $updatedCodes = [];
+
+        try {
+            DB::transaction(function () use ($seats, $newSeatType, $newPrice, &$updatedCount, &$updatedCodes) {
+                foreach ($seats as $seat) {
+                    $oldData = $seat->only(['seat_type', 'price']);
+
+                    $seat->update([
+                        'seat_type' => $newSeatType,
+                        'price' => $newPrice,
+                    ]);
+
+                    $updatedCodes[] = $seat->seat_code;
+
+                    // Ghi audit log cho từng ghế
+                    $this->writeAuditLog('seat.bulk_update_type', $seat, $oldData, [
+                        'seat_type' => $newSeatType,
+                        'price' => $newPrice,
+                    ]);
+
+                    $updatedCount++;
+                }
+            });
+        } catch (\Throwable $e) {
+            return back()
+                ->withErrors(['error' => 'Không thể cập nhật loại ghế. Lỗi: '.$e->getMessage()])
+                ->withInput();
+        }
+
+        // ── Bước 7: Đồng bộ showtime_seats ──────────────────────────────────
+        $this->ensureShowtimeSeatsForRoom($roomId);
+
+        // ── Bước 8: Kết quả ─────────────────────────────────────────────────
+        $updatedList = implode(', ', $updatedCodes);
+
+        return redirect()->route('admin.seats.index', ['room_id' => $roomId])
+            ->with('success', "✅ Đã đổi loại {$updatedCount} ghế hàng {$rowLabel} từ '{$oldType}' → '{$newSeatType}'. Ghế: {$updatedList}. Giá mới: ".number_format($newPrice)."đ/ghế.");
     }
 
     public function destroyMany(Request $request)
