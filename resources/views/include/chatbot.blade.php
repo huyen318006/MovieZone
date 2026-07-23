@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (data.type === 'movie_list' && data.data) renderMovieList(data.data);
         else if (data.type === 'movie_detail' && data.data) renderMovieDetail(data.data);
-        else if (data.type === 'showtime_list' && data.data) renderShowtimeList(data.data);
+        else if (data.type === 'showtime_list' && data.data) renderShowtimeList(data.data, data.movie_info || null);
 
         if (data.type === 'prompt_input' && data.input_action) {
             pendingInputAction = data.input_action;
@@ -270,10 +270,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? (movie.poster_url.startsWith('http') ? movie.poster_url : '/storage/' + movie.poster_url)
                 : 'https://via.placeholder.com/50x70/0d6efd/fff?text=🎬';
             const genres = movie.genres ? movie.genres.join(', ') : '';
+            const titleHtml = movie.detail_url
+                ? '<a href="' + movie.detail_url + '" target="_blank" style="color:#0d6efd;text-decoration:none;font-weight:600;">' + movie.title + ' 🔗</a>'
+                : '<span style="font-weight:600;">' + movie.title + '</span>';
             card.innerHTML =
                 '<img src="' + posterSrc + '" alt="' + movie.title + '" onerror="this.src=\'https://via.placeholder.com/50x70/0d6efd/fff?text=🎬\'">' +
                 '<div class="cb-movie-info">' +
-                    '<div class="cb-movie-title">' + movie.title + '</div>' +
+                    '<div class="cb-movie-title">' + titleHtml + '</div>' +
                     '<div class="cb-movie-meta">' +
                         (genres ? '🎭 ' + genres + '<br>' : '') +
                         (movie.duration_minutes ? '⏱️ ' + movie.duration_minutes + ' phút' : '') +
@@ -309,14 +312,39 @@ document.addEventListener('DOMContentLoaded', function() {
         html += '</div>';
         if (movie.description) html += '<div style="margin-top:6px;font-size:12px;color:#555;border-top:1px solid #eee;padding-top:6px;">📝 ' + movie.description + '</div>';
         if (movie.trailer_url) html += '<div style="margin-top:6px;"><a href="' + movie.trailer_url + '" target="_blank" style="color:#0d6efd;font-size:12px;">▶️ Xem trailer</a></div>';
+        if (movie.detail_url) html += '<div style="margin-top:10px;">' +
+            '<a href="' + movie.detail_url + '" target="_blank" ' +
+            'style="display:inline-block;background:#0d6efd;color:white;padding:6px 16px;border-radius:18px;font-size:12.5px;font-weight:600;text-decoration:none;">' +
+            '🎬 Xem trang phim đầy đủ</a></div>';
         container.innerHTML = html;
         messagesEl.appendChild(container);
     }
 
-    function renderShowtimeList(showtimes) {
+    function renderShowtimeList(showtimes, movieInfo) {
         const container = document.createElement('div');
         container.className = 'align-self-start';
         container.style.maxWidth = '95%';
+
+        // Hiển thị card phim nếu có movie_info
+        if (movieInfo && movieInfo.title) {
+            const posterSrc = movieInfo.poster_url
+                ? (movieInfo.poster_url.startsWith('http') ? movieInfo.poster_url : '/storage/' + movieInfo.poster_url)
+                : 'https://via.placeholder.com/40x55/0d6efd/fff?text=🎬';
+            const titleHtml = movieInfo.detail_url
+                ? '<a href="' + movieInfo.detail_url + '" target="_blank" style="color:#0d6efd;text-decoration:none;font-weight:600;">' + movieInfo.title + ' 🔗</a>'
+                : '<span style="font-weight:600;">' + movieInfo.title + '</span>';
+            const movieCard = document.createElement('div');
+            movieCard.className = 'cb-movie-card';
+            movieCard.style.marginBottom = '10px';
+            movieCard.innerHTML =
+                '<img src="' + posterSrc + '" alt="' + movieInfo.title + '" style="width:40px;height:55px;" onerror="this.src=\'https://via.placeholder.com/40x55/0d6efd/fff?text=🎬\'">' +
+                '<div class="cb-movie-info">' +
+                    '<div class="cb-movie-title">' + titleHtml + '</div>' +
+                    '<div class="cb-movie-meta" style="font-size:11px;color:#888;">🎬 Các suất chiếu bên dưới</div>' +
+                '</div>';
+            container.appendChild(movieCard);
+        }
+
         showtimes.forEach(function(st) {
             const item = document.createElement('div');
             item.className = 'cb-showtime-item';

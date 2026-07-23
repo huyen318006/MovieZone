@@ -117,6 +117,11 @@ class ShowtimeService
             'type' => 'showtime_list',
             'message' => "🕒 Lịch chiếu phim \"{$movie->title}\" - {$dateLabel}:",
             'data' => $data,
+            'movie_info' => [
+                'title'      => $movie->title,
+                'poster_url' => $movie->poster_url,
+                'detail_url' => route('movie.detail', $movie->slug),
+            ],
             'buttons' => [
                 ['label' => '📅 Chọn ngày khác', 'action' => 'showtime_for_movie', 'value' => $movieId],
                 ['label' => '🎬 Xem phim khác', 'action' => 'showtime_select_movie'],
