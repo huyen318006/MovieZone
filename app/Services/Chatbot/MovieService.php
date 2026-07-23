@@ -192,6 +192,8 @@ class MovieService
                 'rating' => $movie->rating,
                 'status' => $movie->status,
                 'release_date' => $movie->release_date,
+                'slug' => $movie->slug,
+                'detail_url' => route('movie.detail', $movie->slug),
             ],
             'buttons' => [
                 ['label' => '🕒 Xem lịch chiếu phim này', 'action' => 'showtime_for_movie', 'value' => $movie->id],
@@ -239,6 +241,8 @@ class MovieService
             'poster_url' => $movie->poster_url,
             'description' => \Str::limit($movie->description, 100),
             'rating' => $movie->rating,
+            'slug' => $movie->slug,
+            'detail_url' => route('movie.detail', $movie->slug),
         ];
     }
 
