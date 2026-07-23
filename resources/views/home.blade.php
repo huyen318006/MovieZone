@@ -5,66 +5,27 @@
 {{-- HERO SECTION --}}
 
 <section class="hero-slider">
+    @forelse($banners ?? [] as $index => $banner)
+        <div class="hero-slide {{ $index === 0 ? 'active' : '' }}">
+            <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}">
+            <div class="overlay"></div>
 
-    <div class="hero-slide active">
-        <img src="{{ asset('assets/hero/avatar2.jpg') }}">
-        <div class="overlay"></div>
+            <div class="hero-content">
+                <span class="badge">CHƯƠNG TRÌNH KHUYẾN MÃI</span>
+                <h1>{{ $banner->title }}</h1>
+                <p>
+                    Cập nhật các chương trình ưu đãi, sự kiện và phim hot nhất tại MovieZone.
+                </p>
 
-        <div class="hero-content">
-            <span class="badge">MOVIEZONE PREMIUM</span>
-            <h1>AVATAR:<br>THE WAY OF WATER</h1>
-            <p>
-                Đặt vé xem phim nhanh chóng,
-                lựa chọn ghế ngồi trực tuyến.
-            </p>
-
-            <div class="hero-buttons">
-                <a href="#" class="hero-btn-primary">Đặt Vé Ngay</a>
-                <a href="#" class="hero-btn-secondary">Xem Trailer</a>
+                @if($banner->link_url)
+                    <div class="hero-buttons">
+                        <a href="{{ $banner->link_url }}" class="hero-btn-primary">Xem Chi Tiết</a>
+                    </div>
+                @endif
             </div>
         </div>
-    </div>
-
-    <div class="hero-slide">
-    <img src="{{ asset('assets/hero/dune2.jpg') }}">
-    <div class="overlay"></div>
-
-    <div class="hero-content">
-        <span class="badge">NOW SHOWING</span>
-        <h1>DUNE<br>PART TWO</h1>
-
-        <p>
-            Hành trình của Paul Atreides tiếp tục trên hành tinh Arrakis,
-            nơi cuộc chiến giành quyền lực và vận mệnh của thiên hà bắt đầu.
-        </p>
-
-        <div class="hero-buttons">
-            <a href="#" class="hero-btn-primary">Đặt Vé Ngay</a>
-            <a href="#" class="hero-btn-secondary">Xem Trailer</a>
-        </div>
-    </div>
-    </div>
-
-    <div class="hero-slide">
-        <img src="{{ asset('assets/hero/oppenheimer.jpeg') }}">
-        <div class="overlay"></div>
-
-        <div class="hero-content">
-            <span class="badge">BLOCKBUSTER</span>
-            <h1>OPPENHEIMER</h1>
-
-            <p>
-                Câu chuyện về cha đẻ của bom nguyên tử với những quyết định
-                thay đổi lịch sử nhân loại và thế giới hiện đại.
-            </p>
-
-            <div class="hero-buttons">
-                <a href="#" class="hero-btn-primary">Đặt Vé Ngay</a>
-                <a href="#" class="hero-btn-secondary">Xem Trailer</a>
-            </div>
-        </div>
-    </div>
-
+    @empty
+    @endforelse
 </section>
 
 {{-- PHIM ĐANG CHIẾU --}}
@@ -140,6 +101,37 @@
     </aside>
 
 </section>
+
+{{--  BANNER GIỮA TRANG (HOME_MIDDLE)  --}}
+@php
+    $homeMiddleBanners = \App\Models\Banner::where('position', 'HOME_MIDDLE')
+        ->where('status', 'ACTIVE')
+        ->where(function ($q) {
+            $q->whereNull('start_date')->orWhere('start_date', '<=', now());
+        })
+        ->where(function ($q) {
+            $q->whereNull('end_date')->orWhere('end_date', '>=', now());
+        })
+        ->limit(1)
+        ->get();
+@endphp
+@if(isset($homeMiddleBanners) && $homeMiddleBanners->count() > 0)
+    <div class="container my-4">
+        <div class="middle-banner-wrapper" style="width: 100%; text-align: center; margin: 30px 0;">
+            @foreach($homeMiddleBanners as $banner)
+                <div class="banner-item mb-3">
+                    @if($banner->link_url)
+                        <a href="{{ $banner->link_url }}" target="_blank">
+                            <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}" style="width: 100%; max-height: 600px; object-fit: cover; border-radius: 12px;">
+                        </a>
+                    @else
+                        <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}" style="width: 100%; max-height: 600px; object-fit: cover; border-radius: 12px;">
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+@endif
 
 {{-- PHIM SẮP CHIẾU --}}
 

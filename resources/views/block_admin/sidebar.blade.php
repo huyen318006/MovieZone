@@ -85,7 +85,7 @@
             Bài viết
         </a>
 
-        <a class="nav-link" href="">
+        <a class="nav-link {{ Request::routeIs('admin.banners.*') ? 'active' : '' }}" href="{{ route('admin.banners.index') }}">
             <i class="bi bi-image"></i>
             Banner
         </a>
