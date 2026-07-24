@@ -30,13 +30,6 @@
                             <span class="fw-bold text-truncate d-block text-light">{{ Auth::user()->name }}</span>
                         </li>
 
-                        <li>
-                            <a href="#" class="dropdown-item py-2 d-flex align-items-center gap-2">
-                                <i class="bi bi-person fs-5 text-muted"></i>
-                                <span>Xem hồ sơ</span>
-                            </a>
-                        </li>
-
                         <li><hr class="dropdown-divider"></li>
 
                         <li>
