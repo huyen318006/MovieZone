@@ -14,7 +14,7 @@
         'total' => 0,
         'paid' => 0,
         'pending' => 0,
-        'cancelled' => 0,
+        'failed_payment' => 0,
         'expired' => 0,
         'success_rate' => 0,
     ];
@@ -238,8 +238,8 @@
         </div>
         <div class="col-6 col-lg-2">
             <div class="border rounded-3 p-3 h-100">
-                <div class="text-muted small">Đã hủy</div>
-                <div class="fs-4 fw-bold text-danger">{{ number_format($bookingStatusStats['cancelled'] ?? 0) }}</div>
+                <div class="text-muted small">Thanh toán thất bại</div>
+                <div class="fs-4 fw-bold text-danger">{{ number_format($bookingStatusStats['failed_payment'] ?? 0) }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-2">
