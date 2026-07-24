@@ -4,17 +4,31 @@
 @section('page-title', 'Staff Dashboard')
 
 @section('topbar-actions')
-<form method="GET" action="{{ route('staff.dashboard') }}" class="d-flex align-items-center gap-2">
+<form method="GET" action="{{ route('staff.dashboard') }}" class="d-flex flex-wrap align-items-center gap-2">
     <input type="date"
-           name="date"
-           value="{{ request('date', now()->toDateString()) }}"
+           name="start_date"
+           value="{{ request('start_date', now()->toDateString()) }}"
            class="form-control form-control-sm"
-           style="width: 150px;">
+           aria-label="Ngày bắt đầu"
+           style="width: 145px;">
+    <span class="text-white-50 small">đến</span>
+    <input type="date"
+           name="end_date"
+           value="{{ request('end_date', now()->toDateString()) }}"
+           class="form-control form-control-sm"
+           aria-label="Ngày kết thúc"
+           style="width: 145px;">
     <button type="submit" class="btn btn-sm btn-outline-light">
         <i class="bi bi-funnel me-1"></i> Lọc
     </button>
-    <a href="{{ route('staff.dashboard') }}" class="btn btn-sm btn-outline-light">
-        <i class="bi bi-arrow-clockwise"></i>
+    <a href="{{ route('staff.dashboard') }}" class="btn btn-sm btn-outline-light" title="Hôm nay">
+        Hôm nay
+    </a>
+    <a href="{{ route('staff.dashboard', ['start_date' => now()->subDays(6)->format('Y-m-d'), 'end_date' => now()->format('Y-m-d')]) }}" class="btn btn-sm btn-outline-light">
+        7 ngày
+    </a>
+    <a href="{{ route('staff.dashboard', ['start_date' => now()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->endOfMonth()->format('Y-m-d')]) }}" class="btn btn-sm btn-outline-light">
+        Tháng này
     </a>
 </form>
 @endsection
@@ -307,8 +321,17 @@
     $metrics = $dashboard['metrics'] ?? [];
     $recentCheckins = $dashboard['recent_checkins'] ?? collect();
     $recentCashPayments = $dashboard['recent_cash_payments'] ?? collect();
-    $dashboardDate = $dashboard['date'] ?? now();
+    $dashboardStartDate = $dashboard['start_date'] ?? now()->startOfDay();
+    $dashboardEndDate = $dashboard['end_date'] ?? now()->endOfDay();
+    $isSingleDay = $dashboardStartDate->isSameDay($dashboardEndDate);
 @endphp
+
+@if ($errors->any())
+    <div class="alert alert-danger border-0 shadow-sm mb-3">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        {{ $errors->first() }}
+    </div>
+@endif
 
 @if (!empty($dashboardError))
     <div class="alert alert-warning border-0 shadow-sm mb-3">
@@ -329,14 +352,18 @@
     </p>
     <div class="staff-dashboard-date">
         <i class="bi bi-calendar2-check"></i>
-        Dữ liệu ngày {{ $dashboardDate->format('d/m/Y') }}
+        @if ($isSingleDay)
+            Dữ liệu ngày {{ $dashboardStartDate->format('d/m/Y') }}
+        @else
+            Dữ liệu từ {{ $dashboardStartDate->format('d/m/Y') }} đến {{ $dashboardEndDate->format('d/m/Y') }}
+        @endif
     </div>
 </section>
 
 <div class="staff-metric-grid">
     <div class="staff-metric-card" style="--metric-bg:linear-gradient(135deg,#10b981,#059669);--metric-glow:rgba(16,185,129,.18);">
         <div class="metric-head">
-            <span>Vé check-in hôm nay</span>
+            <span>Vé đã check-in</span>
             <div class="metric-icon"><i class="bi bi-qr-code-scan"></i></div>
         </div>
         <strong>{{ number_format($metrics['checked_in_tickets'] ?? 0) }}</strong>
@@ -352,7 +379,7 @@
 
     <div class="staff-metric-card" style="--metric-bg:linear-gradient(135deg,#3b82f6,#2563eb);--metric-glow:rgba(59,130,246,.18);">
         <div class="metric-head">
-            <span>Booking mới hôm nay</span>
+            <span>Booking mới</span>
             <div class="metric-icon"><i class="bi bi-ticket-perforated"></i></div>
         </div>
         <strong>{{ number_format($metrics['new_bookings'] ?? 0) }}</strong>

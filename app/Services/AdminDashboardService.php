@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Booking;
-use App\Models\Cinema;
 use App\Models\Movie;
 use App\Models\Payment;
 use App\Models\ShowtimeSeat;
@@ -37,9 +36,6 @@ class AdminDashboardService
     public function filterOptions(): array
     {
         return [
-            'cinemas' => Cinema::query()
-                ->orderBy('name')
-                ->get(['id', 'name']),
             'movies' => Movie::query()
                 ->orderBy('title')
                 ->get(['id', 'title']),
@@ -94,7 +90,7 @@ class AdminDashboardService
                 'total' => 0,
                 'paid' => 0,
                 'pending' => 0,
-                'cancelled' => 0,
+                'failed_payment' => 0,
                 'expired' => 0,
                 'success_rate' => 0,
             ],
@@ -293,7 +289,7 @@ class AdminDashboardService
             ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
             ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
             ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
-            ->selectRaw("\n                COUNT(*) as total,\n                SUM(CASE WHEN bookings.status = 'PAID' OR bookings.payment_status = 'PAID' THEN 1 ELSE 0 END) as paid,\n                SUM(CASE WHEN bookings.status IN ('PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT') OR bookings.payment_status = 'UNPAID' THEN 1 ELSE 0 END) as pending,\n                SUM(CASE WHEN bookings.status = 'CANCELLED' THEN 1 ELSE 0 END) as cancelled,\n                SUM(CASE WHEN bookings.status = 'EXPIRED' THEN 1 ELSE 0 END) as expired\n            ")
+            ->selectRaw("\n                COUNT(*) as total,\n                SUM(CASE WHEN bookings.status = 'PAID' OR bookings.payment_status = 'PAID' THEN 1 ELSE 0 END) as paid,\n                SUM(CASE WHEN bookings.status IN ('PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT') OR bookings.payment_status = 'UNPAID' THEN 1 ELSE 0 END) as pending,\n                SUM(CASE WHEN bookings.payment_status = 'FAILED' THEN 1 ELSE 0 END) as failed_payment,\n                SUM(CASE WHEN bookings.status = 'EXPIRED' THEN 1 ELSE 0 END) as expired\n            ")
             ->first();
 
         $total = (int) ($rows->total ?? 0);
@@ -303,7 +299,7 @@ class AdminDashboardService
             'total' => $total,
             'paid' => $paid,
             'pending' => (int) ($rows->pending ?? 0),
-            'cancelled' => (int) ($rows->cancelled ?? 0),
+            'failed_payment' => (int) ($rows->failed_payment ?? 0),
             'expired' => (int) ($rows->expired ?? 0),
             'success_rate' => $total > 0 ? round(($paid / $total) * 100, 1) : 0,
         ];

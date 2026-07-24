@@ -11,29 +11,33 @@ use Illuminate\Support\Collection;
 
 class StaffDashboardService
 {
-    public function getDailyOverview(?Carbon $date = null): array
+    public function getOverview(?Carbon $startDate = null, ?Carbon $endDate = null): array
     {
-        $date ??= today();
-        $startOfDay = $date->copy()->startOfDay();
-        $endOfDay = $date->copy()->endOfDay();
+        $startDate = ($startDate ?? today())->copy()->startOfDay();
+        $endDate = ($endDate ?? $startDate)->copy()->endOfDay();
 
         return [
-            'date' => $date,
+            'start_date' => $startDate,
+            'end_date' => $endDate,
             'metrics' => [
-                'checked_in_tickets' => $this->checkedInTicketsCount($startOfDay, $endOfDay),
-                'pending_cash_bookings' => $this->pendingCashBookingsCount(),
-                'new_bookings' => $this->newBookingsCount($startOfDay, $endOfDay),
+                'checked_in_tickets' => $this->checkedInTicketsCount($startDate, $endDate),
+                'pending_cash_bookings' => $this->pendingCashBookingsCount($startDate, $endDate),
+                'new_bookings' => $this->newBookingsCount($startDate, $endDate),
                 'support_issues' => 0,
             ],
-            'recent_checkins' => $this->recentCheckins($startOfDay, $endOfDay),
-            'recent_cash_payments' => $this->recentCashPayments($startOfDay, $endOfDay),
+            'recent_checkins' => $this->recentCheckins($startDate, $endDate),
+            'recent_cash_payments' => $this->recentCashPayments($startDate, $endDate),
         ];
     }
 
-    public function emptyOverview(?Carbon $date = null): array
+    public function emptyOverview(?Carbon $startDate = null, ?Carbon $endDate = null): array
     {
+        $startDate = ($startDate ?? today())->copy()->startOfDay();
+        $endDate = ($endDate ?? $startDate)->copy()->endOfDay();
+
         return [
-            'date' => $date ?? today(),
+            'start_date' => $startDate,
+            'end_date' => $endDate,
             'metrics' => [
                 'checked_in_tickets' => 0,
                 'pending_cash_bookings' => 0,
@@ -58,10 +62,11 @@ class StaffDashboardService
             ->count();
     }
 
-    private function pendingCashBookingsCount(): int
+    private function pendingCashBookingsCount(Carbon $startDate, Carbon $endDate): int
     {
         return Booking::query()
             ->where('status', 'PENDING_CASH_PAYMENT')
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
     }
 
