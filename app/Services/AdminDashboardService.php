@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Booking;
-use App\Models\Cinema;
 use App\Models\Movie;
 use App\Models\Payment;
 use App\Models\ShowtimeSeat;
@@ -37,9 +36,6 @@ class AdminDashboardService
     public function filterOptions(): array
     {
         return [
-            'cinemas' => Cinema::query()
-                ->orderBy('name')
-                ->get(['id', 'name']),
             'movies' => Movie::query()
                 ->orderBy('title')
                 ->get(['id', 'title']),
