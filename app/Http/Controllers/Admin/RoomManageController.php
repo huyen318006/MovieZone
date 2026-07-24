@@ -12,6 +12,7 @@ use App\Models\ShowtimeSeat;
 use App\Models\TicketPrice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -210,16 +211,79 @@ class RoomManageController extends Controller
 
     /**
      * Xem sơ đồ ghế hiện tại của phòng.
+     * Hỗ trợ showtime_id để hiển thị trạng thái động (HELD/SOLD/...).
      */
-    public function seats(Room $room)
+    public function seats(Request $request, Room $room)
     {
         $room->load(['seats' => function ($q) {
             $q->orderBy('row_label')->orderBy('seat_number');
         }]);
 
+        // Lấy danh sách suất chiếu sắp tới
+        $showtimes = Showtime::with('movie')
+            ->where('room_id', $room->id)
+            ->where('start_time', '>', now())
+            ->where('status', '!=', 'CANCELLED')
+            ->orderBy('start_time')
+            ->get();
+
+        // Xác định suất chiếu được chọn
+        $selectedShowtime = null;
+        if ($request->filled('showtime_id')) {
+            $selectedShowtime = $showtimes->firstWhere('id', (int) $request->showtime_id);
+        }
+
+        // Map dynamic status nếu có suất chiếu
+        $dynamicStatuses = []; // seat_id => status
+        if ($selectedShowtime) {
+            $selectedShowtime->load(['showtimeSeats' => function ($q) {
+                $q->with('seat');
+            }]);
+
+            $showtimeSeats = $selectedShowtime->showtimeSeats;
+            $showtimeSeatsBySeatId = $showtimeSeats->keyBy('seat_id');
+
+            // Lấy danh sách showtime_seat_id đã bán
+            $soldShowtimeSeatIds = DB::table('booking_seats')
+                ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                ->where('bookings.showtime_id', $selectedShowtime->id)
+                ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                ->pluck('booking_seats.showtime_seat_id');
+
+            // Lấy danh sách showtime_seat_id đang được giữ (từ cache)
+            $heldShowtimeSeatIds = $showtimeSeats->filter(function ($stSeat) use ($selectedShowtime) {
+                $cacheKey = 'seat_held_'.$selectedShowtime->id.'_'.$stSeat->id;
+                return Cache::has($cacheKey);
+            })->pluck('id');
+
+            foreach ($room->seats as $seat) {
+                $showtimeSeat = $showtimeSeatsBySeatId->get($seat->id);
+                if ($showtimeSeat) {
+                    $baseStatus = $seat->status ?? 'ACTIVE';
+
+                    if (in_array($baseStatus, ['BLOCKED', 'BROKEN'])) {
+                        $dynamicStatuses[$seat->id] = $baseStatus;
+                    } elseif ($soldShowtimeSeatIds->contains($showtimeSeat->id)) {
+                        $dynamicStatuses[$seat->id] = 'SOLD';
+                    } elseif ($heldShowtimeSeatIds->contains($showtimeSeat->id)) {
+                        $dynamicStatuses[$seat->id] = 'HELD';
+                    } else {
+                        $dynamicStatuses[$seat->id] = $showtimeSeat->status ?? 'AVAILABLE';
+                    }
+                } else {
+                    $dynamicStatuses[$seat->id] = 'NOT_SYNCED';
+                }
+            }
+        }
+
+        // Gán dynamic_status vào mỗi seat
+        foreach ($room->seats as $seat) {
+            $seat->dynamic_status = $dynamicStatuses[$seat->id] ?? null;
+        }
+
         $seatRows = $room->seats->groupBy('row_label');
 
-        return view('admin.room.seats', compact('room', 'seatRows'));
+        return view('admin.room.seats', compact('room', 'seatRows', 'showtimes', 'selectedShowtime'));
     }
 
     /**
