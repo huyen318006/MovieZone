@@ -71,13 +71,9 @@
     </div>
 
     <div class="heading-actions">
-        <button class="btn btn-light" type="button">
+        <button class="btn btn-light" type="button" onclick="window.location.reload()">
             <i class="bi bi-arrow-clockwise"></i>
             Làm mới
-        </button>
-        <button class="btn btn-primary" type="button">
-            <i class="bi bi-download"></i>
-            Export
         </button>
     </div>
 
