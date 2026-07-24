@@ -49,7 +49,7 @@ class RoomManageController extends Controller
             });
         }
 
-        $rooms = $query->orderBy('name')
+        $rooms = $query->latest()
             ->paginate(10)
             ->appends($request->query());
 
