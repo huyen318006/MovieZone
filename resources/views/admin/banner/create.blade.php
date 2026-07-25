@@ -25,13 +25,6 @@
                 @csrf
 
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label for="title" class="form-label fw-semibold">Tiêu đề banner <span class="text-danger">*</span></label>
-                        <input type="text" name="title" id="title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" placeholder="Ví dụ: Banner phim Avatar 2, Khuyến mãi bắp nước...">
-                        @error('title')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
 
                     <div class="col-md-6">
                         <label for="image" class="form-label fw-semibold">Hình ảnh banner <span class="text-danger">*</span></label>
