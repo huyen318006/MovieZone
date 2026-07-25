@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AccountManageController;
 use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\BannerManageController;
 use App\Http\Controllers\Admin\BookingManageController;
 use App\Http\Controllers\Admin\RoomManageController;
 use App\Http\Controllers\Admin\ProductManageController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Staff\StaffDashboardController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\ChatbotController;
+use App\Models\Banner;
 use App\Models\Movie;
 use Illuminate\Support\Facades\Route;
 
@@ -42,10 +44,27 @@ use Illuminate\Support\Facades\Route;
 //     return view('home', compact('showingMovies'));
 // })->name('home');
 Route::get('/', function () {
+    $now = now();
+
+    // Lấy danh sách banner có trạng thái ACTIVE, vị trí HOME_TOP và còn thời hạn hiển thị
+    $banners = Banner::where('status', 'ACTIVE')
+        ->where(function ($q) {
+            $q->whereNull('position')->orWhere('position', 'HOME_TOP');
+        })
+        ->where(function ($q) use ($now) {
+            $q->whereNull('start_date')->orWhere('start_date', '<=', $now);
+        })
+        ->where(function ($q) use ($now) {
+            $q->whereNull('end_date')->orWhere('end_date', '>=', $now);
+        })
+        ->orderBy('created_at', 'desc')
+        ->limit(3)
+        ->get();
+
     $showingMovies = Movie::where('status', 'NOW_SHOWING')->get();
     $upcomingMovies = Movie::where('status', 'COMING_SOON')->get();
 
-    return view('home', compact('showingMovies', 'upcomingMovies'));
+    return view('home', compact('banners', 'showingMovies', 'upcomingMovies'));
 })->name('home');
 /* ------------ Đăng nhập / Đăng ký / forgot*------------------ */
 Route::controller(AuthController::class)->group(function () {
@@ -298,7 +317,8 @@ Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(
     // Khóa/Mở khóa nhiều ghế (toggle)
     Route::post('/toggle-lock-many', [SeatManageController::class, 'toggleLockMany'])->name('toggle_lock_many');
 
-
+    // Đổi loại ghế hàng loạt theo hàng (VIP ↔ STANDARD ↔ COUPLE)
+    Route::post('/bulk-update-type', [SeatManageController::class, 'bulkUpdateType'])->name('bulk_update_type');
 
 });
 
@@ -505,3 +525,13 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // Chatbot API (Menu-based - Giai đoạn 1)
 Route::post('/api/chatbot', ChatbotController::class)->name('api.chatbot');
 
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::resource('admin/banners', BannerManageController::class)->names([
+                'index' => 'admin.banners.index',
+                'create' => 'admin.banners.create',
+                'store' => 'admin.banners.store',
+                'edit' => 'admin.banners.edit',
+                'update' => 'admin.banners.update',
+                'destroy' => 'admin.banners.destroy',
+            ]);
+});

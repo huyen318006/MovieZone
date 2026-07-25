@@ -14,7 +14,7 @@
         'total' => 0,
         'paid' => 0,
         'pending' => 0,
-        'cancelled' => 0,
+        'failed_payment' => 0,
         'expired' => 0,
         'success_rate' => 0,
     ];
@@ -39,7 +39,7 @@
         'booking_with_combo_rate' => 0,
     ];
     $filters = $dashboard['filters'] ?? [];
-    $filterOptions = $filterOptions ?? ['cinemas' => collect(), 'movies' => collect()];
+    $filterOptions = $filterOptions ?? ['movies' => collect()];
     $startDateValue = isset($filters['start_date']) ? $filters['start_date']->format('Y-m-d') : request('start_date');
     $endDateValue = isset($filters['end_date']) ? $filters['end_date']->format('Y-m-d') : request('end_date');
 @endphp
@@ -71,13 +71,9 @@
     </div>
 
     <div class="heading-actions">
-        <button class="btn btn-light" type="button">
+        <button class="btn btn-light" type="button" onclick="window.location.reload()">
             <i class="bi bi-arrow-clockwise"></i>
             Làm mới
-        </button>
-        <button class="btn btn-primary" type="button">
-            <i class="bi bi-download"></i>
-            Export
         </button>
     </div>
 
@@ -85,26 +81,16 @@
 
 <section class="panel mb-4">
     <form method="GET" action="{{ route('admin.dashboard') }}" class="row g-3 align-items-end">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <label class="form-label fw-bold">Ngày bắt đầu</label>
             <input type="date" name="start_date" value="{{ $startDateValue }}" class="form-control">
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <label class="form-label fw-bold">Ngày kết thúc</label>
             <input type="date" name="end_date" value="{{ $endDateValue }}" class="form-control">
         </div>
-        <div class="col-md-3">
-            <label class="form-label fw-bold">Rạp</label>
-            <select name="cinema_id" class="form-select">
-                <option value="">Tất cả rạp</option>
-                @foreach ($filterOptions['cinemas'] as $cinema)
-                    <option value="{{ $cinema->id }}" @selected((string) ($filters['cinema_id'] ?? '') === (string) $cinema->id)>
-                        {{ $cinema->name }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
+
             <label class="form-label fw-bold">Phim</label>
             <select name="movie_id" class="form-select">
                 <option value="">Tất cả phim</option>
@@ -117,13 +103,13 @@
         </div>
         <div class="col-12 d-flex flex-wrap gap-2 justify-content-between align-items-center">
             <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('admin.dashboard', ['start_date' => now()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'cinema_id' => $filters['cinema_id'] ?? null, 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
+                <a href="{{ route('admin.dashboard', ['start_date' => now()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
                     Hôm nay
                 </a>
-                <a href="{{ route('admin.dashboard', ['start_date' => now()->subDays(6)->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'cinema_id' => $filters['cinema_id'] ?? null, 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
+                <a href="{{ route('admin.dashboard', ['start_date' => now()->subDays(6)->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
                     7 ngày gần nhất
                 </a>
-                <a href="{{ route('admin.dashboard', ['start_date' => now()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->endOfMonth()->format('Y-m-d'), 'cinema_id' => $filters['cinema_id'] ?? null, 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
+                <a href="{{ route('admin.dashboard', ['start_date' => now()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->endOfMonth()->format('Y-m-d'), 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
                     Tháng hiện tại
                 </a>
             </div>
@@ -252,8 +238,8 @@
         </div>
         <div class="col-6 col-lg-2">
             <div class="border rounded-3 p-3 h-100">
-                <div class="text-muted small">Đã hủy</div>
-                <div class="fs-4 fw-bold text-danger">{{ number_format($bookingStatusStats['cancelled'] ?? 0) }}</div>
+                <div class="text-muted small">Thanh toán thất bại</div>
+                <div class="fs-4 fw-bold text-danger">{{ number_format($bookingStatusStats['failed_payment'] ?? 0) }}</div>
             </div>
         </div>
         <div class="col-6 col-lg-2">

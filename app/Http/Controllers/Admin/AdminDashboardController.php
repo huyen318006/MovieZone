@@ -17,11 +17,9 @@ class AdminDashboardController extends Controller
         $validated = $request->validate([
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-            'cinema_id' => ['nullable', 'integer', 'exists:cinemas,id'],
             'movie_id' => ['nullable', 'integer', 'exists:movies,id'],
         ], [
             'end_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
-            'cinema_id.exists' => 'Rạp được chọn không tồn tại.',
             'movie_id.exists' => 'Phim được chọn không tồn tại.',
         ]);
 

@@ -72,9 +72,16 @@
                             @enderror
                         </div>
 
+                        @php
+                            $minReleaseDate = \Carbon\Carbon::now()->addDays(3)->format('Y-m-d');
+                        @endphp
                         <div class="col-md-3">
                             <label class="form-label">Ngày khởi chiếu</label>
+                            <small class="text-muted d-block mb-1">
+                                <i class="bi bi-info-circle"></i> Tối thiểu sau {{ \Carbon\Carbon::now()->addDays(3)->format('d/m/Y') }}
+                            </small>
                             <input type="date" name="release_date" id="release_date" class="form-control"
+                                min="{{ $minReleaseDate }}"
                                 value="{{ old('release_date') }}">
 
                             @error('release_date')

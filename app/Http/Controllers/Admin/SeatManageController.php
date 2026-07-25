@@ -21,19 +21,34 @@ class SeatManageController extends Controller
     private array $allowedStatuses = ['ACTIVE', 'BLOCKED', 'BROKEN'];
 
     /**
-     * Chặn thao tác ghế khi đã có suất chiếu bắt đầu hoặc có booking (trừ CANCELLED/REFUNDED).
+     * Chặn thao tác ghế khi:
+     *  - Suất chiếu đã bắt đầu hoặc sắp bắt đầu trong 30 phút
+     *  - Có booking không cancelled (trừ CANCELLED/REFUNDED)
      */
     private function assertSeatRoomNotLockedForRealtime(Room $room): void
     {
-        $hasStartedOrOpenShowtime = $room->showtimes()
+        // Suất chiếu đã bắt đầu
+        $hasStartedShowtime = $room->showtimes()
             ->where('start_time', '<=', now())
             ->where('status', '!=', 'CANCELLED')
             ->exists();
 
-        if ($hasStartedOrOpenShowtime) {
+        if ($hasStartedShowtime) {
             throw new \Exception('Phòng này đang trong thời gian chiếu (đã bắt đầu). Không thể chỉnh sửa ghế.');
         }
 
+        // Suất chiếu sắp bắt đầu trong 30 phút
+        $hasAboutToStartShowtime = $room->showtimes()
+            ->where('start_time', '>', now())
+            ->where('start_time', '<=', now()->addMinutes(30))
+            ->where('status', '!=', 'CANCELLED')
+            ->exists();
+
+        if ($hasAboutToStartShowtime) {
+            throw new \Exception('Phòng có suất chiếu sắp bắt đầu trong 30 phút. Không thể chỉnh sửa ghế lúc này.');
+        }
+
+        // Có booking không cancelled
         $hasNonCancelledBooking = Booking::query()
             ->whereIn('showtime_id', $room->showtimes()->pluck('id'))
             ->whereNotIn('status', ['CANCELLED', 'REFUNDED'])
@@ -49,6 +64,44 @@ class SeatManageController extends Controller
         $room = $seat->room;
         if ($room) {
             $this->assertSeatRoomNotLockedForRealtime($room);
+        }
+    }
+
+    /**
+     * Chặn thao tác trên ghế nếu ghế đang HELD (khách đang giữ) hoặc SOLD (đã bán) 
+     * trong bất kỳ suất chiếu tương lai nào.
+     */
+    private function assertSeatNotUsed(Seat $seat): void
+    {
+        // Kiểm tra trong showtime_seats của suất tương lai có status SOLD/HELD không
+        $hasActiveUsage = $seat->showtimeSeats()
+            ->whereHas('showtime', function ($q) {
+                $q->where('start_time', '>', now())
+                  ->where('status', '!=', 'CANCELLED');
+            })
+            ->whereIn('status', ['SOLD', 'HELD'])
+            ->exists();
+
+        if ($hasActiveUsage) {
+            throw new \Exception("Ghế {$seat->seat_code} đang được khách đặt/giữ cho suất chiếu sắp tới. Không thể thao tác.");
+        }
+
+        // Kiểm tra cache hold realtime (khách đang chọn ghế ngoài frontend)
+        $heldBySomeone = $seat->showtimeSeats()
+            ->whereHas('showtime', function ($q) {
+                $q->where('start_time', '>', now())
+                  ->where('status', '!=', 'CANCELLED');
+            })
+            ->get()
+            ->contains(function ($showtimeSeat) {
+                $heldBy = Cache::get(
+                    'seat_held_'.$showtimeSeat->showtime_id.'_'.$showtimeSeat->id
+                );
+                return $heldBy && $heldBy != Auth::id();
+            });
+
+        if ($heldBySomeone) {
+            throw new \Exception("Ghế {$seat->seat_code} đang được khách giữ (hold) trên hệ thống. Không thể thao tác.");
         }
     }
 
@@ -240,19 +293,89 @@ class SeatManageController extends Controller
         $selectedRoom = $request->filled('room_id') ? (int) $request->room_id : null;
 
         $seatsGrouped = [];
+        $showtimes = collect();
+        $selectedShowtime = null;
+
         if ($selectedRoom) {
             $seats = Seat::query()
                 ->where('room_id', $selectedRoom)
                 ->orderBy('row_label')
                 ->orderBy('seat_number')
                 ->get();
+
+            // Lấy danh sách suất chiếu sắp tới
+            $showtimes = Showtime::with('movie')
+                ->where('room_id', $selectedRoom)
+                ->where('start_time', '>', now())
+                ->where('status', '!=', 'CANCELLED')
+                ->orderBy('start_time')
+                ->get();
+
+// Xác định suất chiếu được chọn
+            // Chỉ set selectedShowtime khi người dùng CHỦ ĐỘNG chọn 1 suất từ dropdown
+            // Nếu không có param showtime_id hoặc showtime_id rỗng → trạng thái tĩnh (không auto-select)
+            $selectedShowtime = null;
+            if ($request->has('showtime_id') && $request->filled('showtime_id')) {
+                $selectedShowtime = $showtimes->firstWhere('id', (int) $request->showtime_id);
+            }
+
+            // Map dynamic status nếu có suất chiếu
+            $dynamicStatuses = []; // seat_id => status
+            if ($selectedShowtime) {
+                $selectedShowtime->load(['showtimeSeats' => function ($q) {
+                    $q->with('seat');
+                }]);
+
+                $showtimeSeats = $selectedShowtime->showtimeSeats;
+                $showtimeSeatsBySeatId = $showtimeSeats->keyBy('seat_id');
+
+                // Lấy danh sách showtime_seat_id đã bán
+                $soldShowtimeSeatIds = DB::table('booking_seats')
+                    ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                    ->where('bookings.showtime_id', $selectedShowtime->id)
+                    ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                    ->pluck('booking_seats.showtime_seat_id');
+
+                // Lấy danh sách showtime_seat_id đang được giữ (từ cache)
+                $heldShowtimeSeatIds = $showtimeSeats->filter(function ($stSeat) use ($selectedShowtime) {
+                    $cacheKey = 'seat_held_'.$selectedShowtime->id.'_'.$stSeat->id;
+                    return Cache::has($cacheKey);
+                })->pluck('id');
+
+                foreach ($seats as $seat) {
+                    $showtimeSeat = $showtimeSeatsBySeatId->get($seat->id);
+                    if ($showtimeSeat) {
+                        $baseStatus = $seat->status ?? 'ACTIVE';
+
+                        if (in_array($baseStatus, ['BLOCKED', 'BROKEN'])) {
+                            $dynamicStatuses[$seat->id] = $baseStatus;
+                        } elseif ($soldShowtimeSeatIds->contains($showtimeSeat->id)) {
+                            $dynamicStatuses[$seat->id] = 'SOLD';
+                        } elseif ($heldShowtimeSeatIds->contains($showtimeSeat->id)) {
+                            $dynamicStatuses[$seat->id] = 'HELD';
+                        } else {
+                            $dynamicStatuses[$seat->id] = $showtimeSeat->status ?? 'AVAILABLE';
+                        }
+                    } else {
+                        $dynamicStatuses[$seat->id] = 'NOT_SYNCED';
+                    }
+                }
+            }
+
+            // Gán dynamic_status vào mỗi seat
+            foreach ($seats as $seat) {
+                $seat->dynamic_status = $dynamicStatuses[$seat->id] ?? null;
+            }
+
             $seatsGrouped = $seats->groupBy('row_label');
         }
 
         return view('admin.seats.index', compact(
             'rooms',
             'seatsGrouped',
-            'selectedRoom'
+            'selectedRoom',
+            'showtimes',
+            'selectedShowtime'
         ));
     }
 
@@ -451,6 +574,21 @@ class SeatManageController extends Controller
         $this->ensureAdminAccess();
 
         $seat = Seat::findOrFail($id);
+
+        // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+        try {
+            $this->assertSeatNotLockedForRealtime($seat);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+
+        // Chặn khi ghế đang được khách đặt/giữ (SOLD/HELD)
+        try {
+            $this->assertSeatNotUsed($seat);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+
         $validated = $request->validate([
             'row_label' => 'required|string|max:10',
             'seat_number' => 'required|integer|min:1',
@@ -459,10 +597,39 @@ class SeatManageController extends Controller
             'status' => 'required|in:ACTIVE,LOCKED,BLOCKED,BROKEN',
         ]);
 
-        if ($validated['seat_type'] === 'VIP' && strtoupper($validated['row_label']) !== 'F') {
-            return back()
-                ->withErrors(['error' => 'Ghế VIP chỉ được phép ở hàng F theo cấu hình hệ thống.'])
-                ->withInput();
+        // Validate zone động giống store/storeBatch (bỏ qua DEMO)
+        if ($validated['seat_type'] !== 'DEMO') {
+            $room = $seat->room;
+            if ($room) {
+                $zones = $this->computeZones($room);
+                $rowLabelUpper = strtoupper($validated['row_label']);
+
+                if (ord($rowLabelUpper) > ord($zones['maxRow'])) {
+                    $vipRange = implode(', ', $zones['vipRows']);
+                    $coupleRange = implode(', ', $zones['coupleRows']);
+                    return back()
+                        ->withErrors(['error' => "Phòng {$room->name} chỉ có tối đa đến hàng {$zones['maxRow']}. "
+                                     ."Phân vùng: VIP [{$vipRange}], COUPLE [{$coupleRange}], còn lại là STANDARD."])
+                        ->withInput();
+                }
+
+                if (in_array($rowLabelUpper, $zones['vipRows'])) {
+                    $expectedType = 'VIP';
+                } elseif (in_array($rowLabelUpper, $zones['coupleRows'])) {
+                    $expectedType = 'COUPLE';
+                } else {
+                    $expectedType = 'STANDARD';
+                }
+
+                if ($validated['seat_type'] !== $expectedType) {
+                    $vipRange = implode(', ', $zones['vipRows']);
+                    $coupleRange = implode(', ', $zones['coupleRows']);
+                    return back()
+                        ->withErrors(['error' => "Hàng {$rowLabelUpper} chỉ được phép tạo ghế loại '{$expectedType}'. "
+                                     ."(VIP: [{$vipRange}] | COUPLE: [{$coupleRange}] | còn lại: STANDARD)"])
+                        ->withInput();
+                }
+            }
         }
 
         // Chuẩn hóa: database dùng BLOCKED, form có thể gửi LOCKED
@@ -709,6 +876,130 @@ class SeatManageController extends Controller
         ])->with('success', $successMessage);
     }
 
+    /**
+     * Đổi loại ghế hàng loạt cho tất cả ghế trong 1 hàng (row_label).
+     *
+     * Yêu cầu:
+     *  - Phòng không được đang trong thời gian chiếu hoặc có booking (trừ CANCELLED/REFUNDED).
+     *  - Hàng ghế phải hợp lệ với loại ghế mới (dựa trên computeZones).
+     *  - Giá ghế tự động cập nhật theo seat_type mới từ bảng ticket_prices.
+     */
+    public function bulkUpdateType(Request $request)
+    {
+        $this->ensureAdminAccess();
+
+        // ── Bước 1: Validate ────────────────────────────────────────────────
+        $validated = $request->validate([
+            'room_id'       => 'required|exists:rooms,id',
+            'row_label'     => ['required', 'string', 'max:1', 'regex:/^[A-Z]$/'],
+            'new_seat_type' => 'required|in:STANDARD,VIP,COUPLE',
+        ], [
+            'row_label.required'       => 'Vui lòng nhập hàng ghế cần đổi loại.',
+            'row_label.regex'          => 'Hàng ghế chỉ được là chữ cái A-Z (viết hoa).',
+            'row_label.max'            => 'Hàng ghế chỉ 1 ký tự.',
+            'new_seat_type.required'   => 'Vui lòng chọn loại ghế mới.',
+            'new_seat_type.in'         => 'Loại ghế không hợp lệ. Chỉ chấp nhận: STANDARD, VIP, COUPLE.',
+        ]);
+
+        $roomId = (int) $validated['room_id'];
+        $rowLabel = strtoupper($validated['row_label']);
+        $newSeatType = $validated['new_seat_type'];
+
+        // ── Bước 2: Kiểm tra phòng ──────────────────────────────────────────
+        $room = Room::find($roomId);
+
+        if (! $room || $room->status !== 'ACTIVE') {
+            return back()
+                ->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.'])
+                ->withInput();
+        }
+
+        // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+        try {
+            $this->assertSeatRoomNotLockedForRealtime($room);
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['error' => $e->getMessage()])
+                ->withInput();
+        }
+
+        // ── Bước 3: Validate hàng ghế tồn tại trong phòng ──────────────────
+        $zones = $this->computeZones($room);
+
+        if (ord($rowLabel) > ord($zones['maxRow'])) {
+            return back()
+                ->withErrors(['error' => "Phòng {$room->name} chỉ có tối đa đến hàng {$zones['maxRow']}. Hàng {$rowLabel} không tồn tại trong phòng này."])
+                ->withInput();
+        }
+
+        // ── Bước 4: Lấy tất cả ghế trong hàng ──────────────────────────────
+        $seats = Seat::query()
+            ->where('room_id', $roomId)
+            ->where('row_label', $rowLabel)
+            ->get();
+
+        if ($seats->isEmpty()) {
+            return back()
+                ->withErrors(['error' => "Hàng {$rowLabel} không có ghế nào trong phòng {$room->name}."])
+                ->withInput();
+        }
+
+        // Chặn nếu bất kỳ ghế nào trong hàng đang được khách đặt/giữ (SOLD/HELD)
+        foreach ($seats as $seat) {
+            try {
+                $this->assertSeatNotUsed($seat);
+            } catch (\Exception $e) {
+                return back()
+                    ->withErrors(['error' => "Hàng {$rowLabel} không thể đổi loại vì: ".$e->getMessage()])
+                    ->withInput();
+            }
+        }
+
+        // ── Bước 5: Tính giá mới ────────────────────────────────────────────
+        $newPrice = $this->getSeatPriceFromTicketPrices($newSeatType, $roomId);
+        $oldType = $seats->first()->seat_type;
+
+        // ── Bước 6: Cập nhật trong transaction ──────────────────────────────
+        $updatedCount = 0;
+        $updatedCodes = [];
+
+        try {
+            DB::transaction(function () use ($seats, $newSeatType, $newPrice, &$updatedCount, &$updatedCodes) {
+                foreach ($seats as $seat) {
+                    $oldData = $seat->only(['seat_type', 'price']);
+
+                    $seat->update([
+                        'seat_type' => $newSeatType,
+                        'price' => $newPrice,
+                    ]);
+
+                    $updatedCodes[] = $seat->seat_code;
+
+                    // Ghi audit log cho từng ghế
+                    $this->writeAuditLog('seat.bulk_update_type', $seat, $oldData, [
+                        'seat_type' => $newSeatType,
+                        'price' => $newPrice,
+                    ]);
+
+                    $updatedCount++;
+                }
+            });
+        } catch (\Throwable $e) {
+            return back()
+                ->withErrors(['error' => 'Không thể cập nhật loại ghế. Lỗi: '.$e->getMessage()])
+                ->withInput();
+        }
+
+        // ── Bước 7: Đồng bộ showtime_seats ──────────────────────────────────
+        $this->ensureShowtimeSeatsForRoom($roomId);
+
+        // ── Bước 8: Kết quả ─────────────────────────────────────────────────
+        $updatedList = implode(', ', $updatedCodes);
+
+        return redirect()->route('admin.seats.index', ['room_id' => $roomId])
+            ->with('success', "✅ Đã đổi loại {$updatedCount} ghế hàng {$rowLabel} từ '{$oldType}' → '{$newSeatType}'. Ghế: {$updatedList}. Giá mới: ".number_format($newPrice)."đ/ghế.");
+    }
+
     public function destroyMany(Request $request)
     {
         $this->ensureAdminAccess();
@@ -738,42 +1029,11 @@ class SeatManageController extends Controller
         foreach ($seatIds as $seatId) {
             $seat = Seat::withTrashed()->findOrFail($seatId);
 
-            // Chỉ chặn nếu ghế thực sự đã được khách/suất chiếu sử dụng.
-            // Fix: trước đây chặn dựa trên quan hệ showtime (có thể tồn tại do sync), khiến admin tưởng bị 'thuộc suất'
-            // dù thực tế chưa có HELD/SOLD.
-            // Ta chỉ chặn khi seat có showtime-seat thuộc suất tương lai và state là SOLD/HELD (đã được dùng).
-            $hasActiveUsage = $seat->showtimeSeats()
-                ->whereHas('showtime', function ($q) {
-                    $q->where('start_time', '>', now());
-                })
-                ->whereIn('status', ['SOLD', 'HELD'])
-                ->exists();
-
-            if ($hasActiveUsage) {
+            // Chặn nếu ghế đang được khách đặt/giữ (SOLD/HELD)
+            try {
+                $this->assertSeatNotUsed($seat);
+            } catch (\Exception $e) {
                 $blocked[] = $seat->seat_code;
-
-                continue;
-            }
-
-            // Fix thêm: khách đang "hold" theo realtime đang nằm trong Cache,
-            // trong khi showtime_seats.status có thể chưa kịp sync thành HELD.
-            // Nếu có cache seat_held_{showtime_id}_{showtime_seat_id} của user khác => chặn xóa.
-            $heldBySomeone = $seat->showtimeSeats()
-                ->whereHas('showtime', function ($q) {
-                    $q->where('start_time', '>', now());
-                })
-                ->get()
-                ->contains(function ($showtimeSeat) {
-                    $heldBy = Cache::get(
-                        'seat_held_'.$showtimeSeat->showtime_id.'_'.$showtimeSeat->id
-                    );
-
-                    return $heldBy && $heldBy != Auth::id();
-                });
-
-            if ($heldBySomeone) {
-                $blocked[] = $seat->seat_code;
-
                 continue;
             }
 
@@ -808,22 +1068,11 @@ class SeatManageController extends Controller
             return back()->withErrors(['error' => $e->getMessage()]);
         }
 
-        // Fix: Nếu ghế đang bị khách khác HOLD
-        $heldBySomeone = $seat->showtimeSeats()
-            ->whereHas('showtime', function ($q) {
-                $q->where('start_time', '>', now());
-            })
-            ->get()
-            ->contains(function ($showtimeSeat) {
-                $heldBy = Cache::get(
-                    'seat_held_'.$showtimeSeat->showtime_id.'_'.$showtimeSeat->id
-                );
-
-                return $heldBy && $heldBy != Auth::id();
-            });
-
-        if ($heldBySomeone) {
-            return back()->withErrors(['error' => "Ghế {$seat->seat_code} đang được khách giữ (hold), không thể khóa/mở khóa lúc này."]);
+        // Chặn khi ghế đang được khách đặt/giữ (SOLD/HELD)
+        try {
+            $this->assertSeatNotUsed($seat);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
 
         if ($seat->status === 'BROKEN') {
@@ -908,6 +1157,15 @@ class SeatManageController extends Controller
 
         $updatedCount = 0;
 
+        // Chặn nếu bất kỳ ghế nào đang được khách đặt/giữ
+        foreach ($seats as $seat) {
+            try {
+                $this->assertSeatNotUsed($seat);
+            } catch (\Exception $e) {
+                return back()->withErrors(['error' => "Ghế {$seat->seat_code}: ".$e->getMessage()]);
+            }
+        }
+
         DB::transaction(function () use ($seats, &$updatedCount) {
             foreach ($seats as $seat) {
                 if ($seat->status === 'BROKEN') {
@@ -971,6 +1229,13 @@ class SeatManageController extends Controller
         // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
         try {
             $this->assertSeatNotLockedForRealtime($seat);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+
+        // Chặn khi ghế đang được khách đặt/giữ (SOLD/HELD)
+        try {
+            $this->assertSeatNotUsed($seat);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
