@@ -652,7 +652,7 @@ class ShowtimeManageController extends Controller
                 'room_id' => $room->id,
                 'start_time' => $startTime,
                 'end_time' => $endTime,
-                'format' => $room->room_type,
+                // 'format' => $room->room_type,
             ]);
 
             // Bước 11: Ghi log thao tác Admin vào AuditLog
