@@ -17,10 +17,9 @@ class BannerSeeder extends Seeder
 
         Banner::insert([
             [
-                'title' => 'Summer Promotion',
-                'image_url' => 'banners/banner1.jpg',
-                'link_url' => 'https://moviezone.example.com/summer',
-                'position' => 'TOP',
+                'image_url' => 'banners/banner1.png',
+                'link_url' => 'http://127.0.0.1:8000/showtimes',
+                'position' => 'HOME_TOP',
                 'start_date' => now(),
                 'end_date' => now()->addMonth(),
                 'status' => 'ACTIVE',
@@ -28,10 +27,19 @@ class BannerSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'title' => 'Weekend Sale',
-                'image_url' => 'banners/banner2.jpg',
-                'link_url' => 'https://moviezone.example.com/weekend',
-                'position' => 'BOTTOM',
+                'image_url' => 'banners/banner2.png',
+                'link_url' => 'http://127.0.0.1:8000/news',
+                'position' => 'HOME_MIDDLE',
+                'start_date' => now()->addDays(1),
+                'end_date' => now()->addWeeks(2),
+                'status' => 'ACTIVE',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'image_url' => 'banners/banner3.png',
+                'link_url' => 'http://127.0.0.1:8000/movies',
+                'position' => 'HOME_MIDDLE',
                 'start_date' => now()->addDays(1),
                 'end_date' => now()->addWeeks(2),
                 'status' => 'ACTIVE',

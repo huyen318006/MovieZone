@@ -14,10 +14,6 @@ class BannerManageController extends Controller
     {
         $query = Banner::query();
 
-        if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->search . '%');
-        }
-
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -41,7 +37,6 @@ class BannerManageController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'title' => 'required|string|max:255',
             'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
             'link_url' => 'nullable|url|max:255',
             'position' => 'required|string|max:50',
@@ -49,7 +44,6 @@ class BannerManageController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'status' => 'required|in:ACTIVE,INACTIVE',
         ], [
-            'title.required' => 'Vui lòng nhập tiêu đề banner.',
             'image.required' => 'Vui lòng tải lên hình ảnh banner.',
             'image.image' => 'File tải lên phải là hình ảnh.',
             'image.max' => 'Kích thước ảnh tối đa là 4MB.',
@@ -63,7 +57,6 @@ class BannerManageController extends Controller
         }
 
         Banner::create([
-            'title' => $request->title,
             'image_url' => $imageUrl,
             'link_url' => $request->link_url,
             'position' => $request->position,
@@ -88,7 +81,6 @@ class BannerManageController extends Controller
         $banner = Banner::findOrFail($id);
 
         $request->validate([
-            'title' => 'required|string|max:255',
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
             'link_url' => 'nullable|url|max:255',
             'position' => 'required|string|max:50',
@@ -96,7 +88,6 @@ class BannerManageController extends Controller
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'status' => 'required|in:ACTIVE,INACTIVE',
         ], [
-            'title.required' => 'Vui lòng nhập tiêu đề banner.',
             'image.image' => 'File tải lên phải là hình ảnh.',
             'image.max' => 'Kích thước ảnh tối đa là 4MB.',
             'link_url.url' => 'Đường dẫn liên kết (Link URL) không đúng định dạng URL.',
@@ -114,7 +105,6 @@ class BannerManageController extends Controller
         }
 
         $banner->update([
-            'title' => $request->title,
             'image_url' => $imageUrl,
             'link_url' => $request->link_url,
             'position' => $request->position,

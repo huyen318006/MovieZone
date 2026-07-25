@@ -15,13 +15,14 @@ return new class extends Migration
 
             $table->id();
 
-            $table->string('title');
-
             $table->string('image_url');
 
             $table->string('link_url')->nullable();
 
-            $table->string('position');
+            $table->enum('position', [
+                'HOME_TOP',
+                'HOME_MIDDLE'
+            ])->default('HOME_TOP');
 
             $table->dateTime('start_date')->nullable();
 

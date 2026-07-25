@@ -31,12 +31,10 @@
         <div class="card-header bg-transparent d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div class="fw-semibold">Danh sách Banner</div>
             <form method="GET" action="{{ route('admin.banners.index') }}" class="d-flex gap-2 align-items-center">
-                <input type="text" name="search" class="form-control form-control-sm" style="width: 180px;" placeholder="Tìm tiêu đề..." value="{{ request('search') }}">
                 <select name="position" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                     <option value="">Tất cả vị trí</option>
                     <option value="HOME_TOP" {{ request('position') == 'HOME_TOP' ? 'selected' : '' }}>HOME_TOP (Trang chủ đầu)</option>
                     <option value="HOME_MIDDLE" {{ request('position') == 'HOME_MIDDLE' ? 'selected' : '' }}>HOME_MIDDLE (Trang chủ giữa)</option>
-                    <option value="MOVIE_DETAIL" {{ request('position') == 'MOVIE_DETAIL' ? 'selected' : '' }}>MOVIE_DETAIL (Chi tiết phim)</option>
                 </select>
                 <select name="status" class="form-select form-select-sm" style="width: 140px;" onchange="this.form.submit()">
                     <option value="">Tất cả trạng thái</option>
@@ -55,7 +53,6 @@
                         <tr>
                             <th style="width: 60px;">ID</th>
                             <th style="width: 150px;">Hình ảnh</th>
-                            <th>Tiêu đề banner</th>
                             <th>Vị trí</th>
                             <th>Hạn hiển thị (Bắt đầu - Kết thúc)</th>
                             <th>Trạng thái hiện tại</th>
@@ -80,14 +77,6 @@
                                         <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center" style="width: 120px; height: 60px;">
                                             <i class="bi bi-image fs-4"></i>
                                         </div>
-                                    @endif
-                                </td>
-                                <td>
-                                    <div class="fw-semibold">{{ $banner->title }}</div>
-                                    @if($banner->link_url)
-                                        <a href="{{ $banner->link_url }}" target="_blank" class="text-truncate d-inline-block text-muted" style="max-width: 200px; font-size: 0.8rem;">
-                                            <i class="bi bi-link-45deg"></i> Link URL
-                                        </a>
                                     @endif
                                 </td>
                                 <td>
@@ -125,9 +114,9 @@
                                 </td>
                                 <td>
                                     @if($banner->status === 'ACTIVE')
-                                        <span class="badge text-bg-success">Bật (ACTIVE)</span>
+                                        <span class="badge text-bg-success">Hoạt động</span>
                                     @else
-                                        <span class="badge text-bg-secondary">Tắt (INACTIVE)</span>
+                                        <span class="badge text-bg-secondary">Ngừng hoạt động</span>
                                     @endif
                                 </td>
                                 <td>

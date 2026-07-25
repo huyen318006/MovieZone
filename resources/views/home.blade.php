@@ -7,22 +7,13 @@
 <section class="hero-slider">
     @forelse($banners ?? [] as $index => $banner)
         <div class="hero-slide {{ $index === 0 ? 'active' : '' }}">
-            <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}">
-            <div class="overlay"></div>
-
-            <div class="hero-content">
-                <span class="badge">CHƯƠNG TRÌNH KHUYẾN MÃI</span>
-                <h1>{{ $banner->title }}</h1>
-                <p>
-                    Cập nhật các chương trình ưu đãi, sự kiện và phim hot nhất tại MovieZone.
-                </p>
-
-                @if($banner->link_url)
+            @if($banner->link_url)
                     <div class="hero-buttons">
-                        <a href="{{ $banner->link_url }}" class="hero-btn-primary">Xem Chi Tiết</a>
+                        <a href="{{ $banner->link_url }}">
+                            <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}" style="width: 100%; height: 100%;">
+                        </a>
                     </div>
                 @endif
-            </div>
         </div>
     @empty
     @endforelse
