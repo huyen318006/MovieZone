@@ -90,10 +90,12 @@
                                 </td>
                                 <td>{{ number_format($voucher->min_order_amount, 0, ',', '.') }} đ</td>
                                 <td>
-                                    @if($voucher->usage_limit > 0)
+                                    @if($voucher->usage_limit === -1)
+                                        <span class="text-muted">Không giới hạn</span>
+                                    @elseif($voucher->usage_limit > 0)
                                         {{ $voucher->usage_limit }} lần
                                     @else
-                                        <span class="text-muted">Không giới hạn</span>
+                                        <span class="text-danger">Không hợp lệ</span>
                                     @endif
                                     <br><small class="text-muted">Mỗi user: {{ $voucher->usage_per_user }} lần</small>
                                 </td>

@@ -52,7 +52,9 @@ class VoucherService
             $voucher->id
         )->count();
 
+        // usage_limit: -1 => unlimited, otherwise positive integer cap
         if (
+            $voucher->usage_limit !== -1 &&
             $voucher->usage_limit > 0 &&
             $totalUsage >= $voucher->usage_limit
         ) {

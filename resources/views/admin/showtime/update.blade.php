@@ -249,6 +249,36 @@ document.addEventListener('DOMContentLoaded', function() {
         return suggested;
     }
 
+    // Apply movie date window (release/end) to the selectDate input
+    function applyMovieDateWindow(movie) {
+        const dateInput = document.getElementById('selectDate');
+        const dateRangeHint = document.getElementById('dateRangeHint');
+        if (!dateInput) return;
+
+        const minDate = movie && movie.release_date ? movie.release_date : '';
+        const maxDate = movie && movie.end_date ? movie.end_date : '';
+
+        dateInput.min = minDate;
+        dateInput.max = maxDate;
+
+        if (dateRangeHint && movie) {
+            const label = movie.date_window_label || 'Chọn ngày trong khoảng phát hành phim.';
+            dateRangeHint.textContent = label;
+        }
+
+        // If current selected date is outside the window, reset it
+        if (dateInput.value) {
+            if ((minDate && dateInput.value < minDate) || (maxDate && dateInput.value > maxDate)) {
+                dateInput.value = '';
+                inputStartTime.value = '';
+                inputEndTime.value = '';
+                slotContainer.innerHTML = '';
+                slotPlaceholder.style.display = 'block';
+                btnSubmit.disabled = true;
+            }
+        }
+    }
+
     function renderSlots(slots) {
         slotContainer.innerHTML = '';
 
@@ -401,35 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
             roomPlaceholder.style.display = 'block';
             return;
         }
-
-            function applyMovieDateWindow(movie) {
-                const dateInput = document.getElementById('selectDate');
-                const dateRangeHint = document.getElementById('dateRangeHint');
-                if (!dateInput) return;
-
-                const minDate = movie && movie.release_date ? movie.release_date : '';
-                const maxDate = movie && movie.end_date ? movie.end_date : '';
-
-                dateInput.min = minDate;
-                dateInput.max = maxDate;
-
-                if (dateRangeHint && movie) {
-                    const label = movie.date_window_label || 'Chọn ngày trong khoảng phát hành phim.';
-                    dateRangeHint.textContent = label;
-                }
-
-                // If current selected date is outside the window, reset it
-                if (dateInput.value) {
-                    if ((minDate && dateInput.value < minDate) || (maxDate && dateInput.value > maxDate)) {
-                        dateInput.value = '';
-                        inputStartTime.value = '';
-                        inputEndTime.value = '';
-                        slotContainer.innerHTML = '';
-                        slotPlaceholder.style.display = 'block';
-                        btnSubmit.disabled = true;
-                    }
-                }
-            }
+ 
 
         roomPlaceholder.style.display = 'none';
         roomLoading.style.display = 'block';
@@ -554,6 +556,8 @@ document.addEventListener('DOMContentLoaded', function() {
         slotPlaceholder.style.display = 'block';
         btnSubmit.disabled = true;
 
+        // Apply movie date window (release/end) so date picker min/max follow the movie
+        fetchAndApplyMovieWindow(this.value);
         updateRoomsList();
     });
 
@@ -579,10 +583,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Apply window on initial load for the currently selected movie
-    document.addEventListener('DOMContentLoaded', function() {
-        const initialMovieId = selectMovie ? selectMovie.value : null;
-        if (initialMovieId) fetchAndApplyMovieWindow(initialMovieId);
-    });
+    const initialMovieId = selectMovie ? selectMovie.value : null;
+    if (initialMovieId) fetchAndApplyMovieWindow(initialMovieId);
 
     slotPlaceholder.style.display = 'block';
     updateRoomsList();

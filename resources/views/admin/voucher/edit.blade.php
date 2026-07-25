@@ -71,8 +71,8 @@
 
                     <div class="col-md-4">
                         <label for="usage_limit" class="form-label fw-semibold">Tổng lượt sử dụng tối đa <span class="text-danger">*</span></label>
-                        <input type="number" name="usage_limit" id="usage_limit" class="form-control @error('usage_limit') is-invalid @enderror" value="{{ old('usage_limit', $voucher->usage_limit) }}" min="0">
-                        <small class="text-muted">Tổng số lượt sử dụng tối đa từ 1 đến 10.000 lượt.</small>
+                        <input type="number" name="usage_limit" id="usage_limit" class="form-control @error('usage_limit') is-invalid @enderror" value="{{ old('usage_limit', $voucher->usage_limit) }}" min="-1">
+                        <small class="text-muted">Nhập -1 nếu không giới hạn (vô hạn). Giá trị 0 không hợp lệ; nếu voucher đã được sử dụng, giá trị mới phải là -1 hoặc >= số lượt đã dùng.</small>
                         @error('usage_limit')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror

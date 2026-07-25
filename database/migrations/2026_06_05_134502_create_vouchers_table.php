@@ -28,7 +28,8 @@ return new class extends Migration
 
             $table->decimal('min_order_amount', 12, 2)->default(0);
 
-            $table->integer('usage_limit')->default(0);
+            // usage_limit: -1 => unlimited, >=1 => limited
+            $table->integer('usage_limit')->default(-1);
 
             $table->integer('usage_per_user')->default(1);
 
