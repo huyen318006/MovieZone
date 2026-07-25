@@ -477,6 +477,10 @@ Route::get('/staff/sell-tickets/submitseat', [BookTicketsController::class, 'sub
 Route::post('/staff/sell-tickets/savecombo', [BookTicketsController::class, 'savecombo'])->name('staff.sell-tickets.savecombo');
 //List ra tất cả thông tin kèm theo thêm thông tin khách hàng đặt
 Route::get('/staff/sell-tickets/confirm', [BookTicketsController::class, 'confirm'])->name('staff.sell-tickets.confirm');
+// Checkout đặt vé hộ (Staff) → tạo Booking + SepayOrder
+Route::post('/staff/sell-tickets/checkout', [BookTicketsController::class, 'checkout'])->name('staff.sell-tickets.checkout');
+// Trang QR Payment cho Staff
+Route::get('/staff/sell-tickets/payment/{orderCode}', [BookTicketsController::class, 'payment'])->name('staff.sell-tickets.payment');
 
 
 

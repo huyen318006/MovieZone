@@ -175,8 +175,8 @@
                             chọn</span></div>
                     <div class="legend-item"><i class="fa-solid fa-couch" style="color: #ff9800;"></i><span>Đang giữ</span>
                     </div>
-                    <div class="legend-item"><i class="fa-solid fa-couch sold-seat" style="color: #dc3545;"></i><span>Đã
-                            bán</span></div>
+                    <div class="legend-item"><i class="fa-solid fa-couch sold-seat" style="color: #6b7280;"></i><span>Đã
+                            đặt</span></div>
                 </div>
             </div>
         </div>
@@ -197,7 +197,7 @@
         }
 
         .SOLD {
-            background-color: #dc3545 !important;
+            background-color: #6b7280 !important;
             color: white !important;
             cursor: not-allowed;
             opacity: 0.7;
@@ -295,7 +295,14 @@
         }
 
         /* Trạng thái đã bán / khóa cho block gộp */
-        .couple-seat-btn.SOLD,
+        .couple-seat-btn.SOLD {
+            background: #6b7280 !important;
+            border-color: #9ca3af !important;
+            opacity: 0.7;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
         .couple-seat-btn.HELD,
         .couple-seat-btn.BLOCKED,
         .couple-seat-btn.LOCKED {
@@ -306,7 +313,11 @@
             box-shadow: none !important;
         }
 
-        .couple-seat-btn.SOLD .couple-icon,
+        .couple-seat-btn.SOLD .couple-icon {
+            color: #d1d5db !important;
+            animation: none;
+        }
+
         .couple-seat-btn.HELD .couple-icon,
         .couple-seat-btn.BLOCKED .couple-icon,
         .couple-seat-btn.LOCKED .couple-icon {
@@ -567,7 +578,7 @@
             const btnPayment = document.getElementById('btnPayment');
 
             let timerInterval;
-            let secondsLeft = {{ $secondsLeft ?? 300 }};
+            let secondsLeft = Math.max(0, {{ $secondsLeft ?? 300 }});
 
             // 1. TỰ ĐỘNG KHÔI PHỤC GHẾ ĐANG CHỌN (Từ class HELD_BY_ME trên màn hình)
             document.querySelectorAll('.HELD_BY_ME').forEach(btn => {
@@ -591,28 +602,32 @@
                 updateSeatTimerDisplay();
                 timerInterval = setInterval(() => {
                     secondsLeft--;
-                    updateSeatTimerDisplay();
                     if (secondsLeft <= 0) {
+                        secondsLeft = 0;
                         clearInterval(timerInterval);
+                        updateSeatTimerDisplay();
                         // Hiển thị modal hết giờ
                         document.getElementById('seatExpiredOverlay').classList.add('show');
+                        return;
                     }
+                    updateSeatTimerDisplay();
                 }, 1000);
             }
 
             function updateSeatTimerDisplay() {
-                let m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
-                let s = (secondsLeft % 60).toString().padStart(2, '0');
+                const safe = Math.max(0, secondsLeft);
+                let m = Math.floor(safe / 60).toString().padStart(2, '0');
+                let s = (safe % 60).toString().padStart(2, '0');
                 document.getElementById('clock').textContent = m + ':' + s;
 
                 // Progress bar
-                const pct = (secondsLeft / 300) * 100;
+                const pct = (safe / 300) * 100;
                 const fillEl = document.getElementById('seatTimerProgressFill');
                 if (fillEl) fillEl.style.width = pct + '%';
 
                 // Danger mode khi còn < 60 giây
                 const timerBox = document.getElementById('timer-box');
-                if (secondsLeft <= 60 && timerBox) {
+                if (safe <= 60 && safe > 0 && timerBox) {
                     timerBox.classList.add('danger');
                 }
             }

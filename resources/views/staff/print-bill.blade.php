@@ -144,29 +144,12 @@
             font-weight: 800;
         }
 
-        /* QR Section */
-        .qr-section {
+        /* Ticket code section (replaced QR) */
+        .ticket-code-section {
             text-align: center;
-            padding: 12px 0;
+            padding: 10px 0;
             margin-top: 10px;
             border-top: 1px dashed #ccc;
-        }
-        .qr-section img {
-            width: 120px;
-            height: 120px;
-            display: block;
-            margin: 0 auto 6px;
-        }
-        .qr-section .qr-code-text {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 2px;
-        }
-        .qr-section .qr-hint {
-            font-size: 10px;
-            color: #888;
-            margin-top: 2px;
         }
 
         /* Transaction info */
