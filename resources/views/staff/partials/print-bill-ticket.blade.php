@@ -93,18 +93,11 @@
     <span>{{ number_format($seat->price ?? 0, 0, ',', '.') }}đ</span>
 </div>
 
-{{-- QR Code --}}
-<div class="qr-section">
-    @if($ticket->qr_code)
-        <img src="{{ asset('storage/' . $ticket->qr_code) }}"
-             alt="QR {{ $ticket->ticket_code }}"
-             onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($ticket->ticket_code) }}&color=0f172a&bgcolor=ffffff&margin=4'">
-    @else
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($ticket->ticket_code) }}&color=0f172a&bgcolor=ffffff&margin=4"
-             alt="QR {{ $ticket->ticket_code }}">
-    @endif
-    <div class="qr-code-text">{{ $ticket->ticket_code }}</div>
-    <div class="qr-hint">Ghế {{ $seat?->seat_code ?? 'N/A' }} • Đưa mã QR này cho nhân viên tại rạp</div>
+{{-- Mã vé (thay thế QR đã loại bỏ) --}}
+<div style="text-align: center; padding: 10px 0; margin-top: 10px; border-top: 1px dashed #ccc;">
+    <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Mã vé</div>
+    <div style="font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px;">{{ $ticket->ticket_code }}</div>
+    <div style="font-size: 10px; color: #888; margin-top: 2px;">Ghế {{ $seat?->seat_code ?? 'N/A' }}</div>
 </div>
 
 {{-- Transaction --}}

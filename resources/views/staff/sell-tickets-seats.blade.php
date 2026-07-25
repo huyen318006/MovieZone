@@ -156,7 +156,7 @@
                     <div class="legend-item"><i class="fa-solid fa-heart sweet-seat-icon"></i><span>Sweetbox</span></div>
                     <div class="legend-item"><i class="fa-solid fa-couch held-seat" style="color: #28a745;"></i><span>Đã chọn</span></div>
                     <div class="legend-item"><i class="fa-solid fa-couch" style="color: #ff9800;"></i><span>Đang giữ</span></div>
-                    <div class="legend-item"><i class="fa-solid fa-couch sold-seat" style="color: #dc3545;"></i><span>Đã bán</span></div>
+                    <div class="legend-item"><i class="fa-solid fa-couch sold-seat" style="color: #6b7280;"></i><span>Đã đặt</span></div>
                 </div>
             </div>
         </div>
@@ -371,7 +371,7 @@
     }
 
     .SOLD {
-        background-color: #dc3545 !important;
+        background-color: #6b7280 !important;
         color: white !important;
         cursor: not-allowed;
         opacity: 0.7;
@@ -461,7 +461,14 @@
         animation: none;
     }
 
-    .couple-seat-btn.SOLD,
+    .couple-seat-btn.SOLD {
+        background: #6b7280 !important;
+        border-color: #9ca3af !important;
+        opacity: 0.7;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
     .couple-seat-btn.HELD,
     .couple-seat-btn.BLOCKED,
     .couple-seat-btn.LOCKED {
@@ -472,7 +479,11 @@
         box-shadow: none !important;
     }
 
-    .couple-seat-btn.SOLD .couple-icon,
+    .couple-seat-btn.SOLD .couple-icon {
+        color: #d1d5db !important;
+        animation: none;
+    }
+
     .couple-seat-btn.HELD .couple-icon,
     .couple-seat-btn.BLOCKED .couple-icon,
     .couple-seat-btn.LOCKED .couple-icon {

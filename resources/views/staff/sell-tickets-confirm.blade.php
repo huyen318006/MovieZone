@@ -2,8 +2,7 @@
 
 @section('content')
 
-    {{-- COUNTDOWN TIMER 5 PHÚT --}}
-    @include('booking._countdown_timer', ['secondsLeft' => $secondsLeft ?? 300])
+
 
     <section class="confirm-page">
         <div class="confirm-container">
@@ -14,7 +13,7 @@
             </div>
 
             <!-- BẮT ĐẦU FORM BAO QUANH TOÀN BỘ THÔNG TIN -->
-            <form action="{{ route('booking.checkout') }}" method="POST">
+            <form action="{{ route('staff.sell-tickets.checkout') }}" method="POST">
                 @csrf
 
                 <div class="confirm-content">
@@ -93,6 +92,11 @@
                                     <label>Số điện thoại</label>
                                     <input type="text" name="customer_phone" class="form-control"
                                         placeholder="Nhập số điện thoại" required>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <label>Email nhận hóa đơn</label>
+                                    <input type="email" name="customer_email" class="form-control"
+                                        placeholder="Nhập email (không bắt buộc)">
                                 </div>
                             </div>
                         </div>

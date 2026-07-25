@@ -4,17 +4,23 @@ namespace App\Http\Controllers\staff;
 
 use App\Http\Controllers\Controller;
 use App\Models\Combo;
+use App\Models\SepayOrder;
+use App\Services\SepayService;
+use App\Services\TicketService;
 use Illuminate\Http\Request;
-use App\Models\Movie;
 use App\Models\Product;
 use App\Services\StaffBookingService as ServicesStaffBookingService;
-use App\Services\StaffBookingService\staffBooking;
-use StaffBookingService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 
 class BookTicketsController extends Controller
 {
-    public function __construct(private ServicesStaffBookingService $staffBookingService) {}
+    public function __construct(
+        private ServicesStaffBookingService $staffBookingService,
+        private SepayService $sepayService,
+    ) {}
+
     // hàm lấy ra film của hệ thống
     public function index()
     {
@@ -63,7 +69,6 @@ class BookTicketsController extends Controller
                 'seats'       => $request->input('seats'),
             ]
         ]);
-        // dd(session('booking'));
 
         $combo = Combo::all();
         $product = Product::all();
@@ -124,66 +129,221 @@ class BookTicketsController extends Controller
         return redirect()->route('staff.sell-tickets.confirm');
     }
 
-//hiển thị thông tin xác nhận đặt vé
-public function confirm()
-{
-    $booking = session('booking', []);
+    //hiển thị thông tin xác nhận đặt vé
+    public function confirm()
+    {
+        $booking = session('booking', []);
 
-    if (empty($booking)) {
-        return redirect()->route('staff.sell-tickets');
+        if (empty($booking)) {
+            return redirect()->route('staff.sell-tickets');
+        }
+
+        $movie_id   = $booking['movie_id'];
+        $movie_name = $booking['movie_name'];
+
+        $start_time = $booking['start_time'];
+        $end_time   = $booking['end_time'];
+
+        $room = $booking['room'];
+
+        $showtimeId = $booking['showtime_id'];
+
+        $seatIds = $booking['seats'] ?? [];
+
+        $seats = [];
+
+        if (!empty($seatIds)) {
+
+            $seats = \App\Models\ShowtimeSeat::with('seat:id,seat_code')
+                ->whereIn('id', $seatIds)
+                ->get(['id', 'seat_id', 'showtime_id', 'price'])
+                ->map(function ($ss) {
+
+                    return (object)[
+                        'id' => $ss->id,
+                        'seat_code' => $ss->seat->seat_code,
+                        'seat' => $ss->seat,
+                        'price' => $ss->price,
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
+        $combos = $booking['combos'] ?? [];
+        $products = $booking['products'] ?? [];
+
+        $showtime = \App\Models\Showtime::with(['movie', 'room'])
+            ->find($showtimeId);
+
+        return view(
+            'staff.sell-tickets-confirm',
+            compact(
+                'showtime',
+                'seats',
+                'combos',
+                'products',
+                'movie_name',
+                'movie_id',
+                'start_time',
+                'end_time',
+                'room'
+            )
+        );
     }
 
-    $movie_id   = $booking['movie_id'];
-    $movie_name = $booking['movie_name'];
+    /**
+     * Xử lý checkout đặt vé hộ (Staff).
+     *
+     * - Validate input
+     * - Gọi StaffBookingService::createBookingFromStaff()
+     * - ONLINE → redirect sang trang QR Payment
+     * - CASH → xác nhận thanh toán tiền mặt ngay + tạo vé
+     */
+    public function checkout(Request $request)
+    {
+        $request->validate([
+            'customer_name'  => 'required|string|max:255',
+            'customer_phone' => 'required|string|max:20',
+            'customer_email' => 'nullable|email|max:255',
+            'payment_method' => 'required|in:ONLINE,CASH',
+        ]);
 
-    $start_time = $booking['start_time'];
-    $end_time   = $booking['end_time'];
+        $booking = session('booking', []);
+        if (empty($booking) || empty($booking['seats'])) {
+            return redirect()->route('staff.sell-tickets')
+                ->with('error', 'Phiên đặt vé đã hết hạn. Vui lòng bắt đầu lại.');
+        }
 
-    $room = $booking['room'];
+        $result = $this->staffBookingService->createBookingFromStaff([
+            'showtime_id'    => $booking['showtime_id'],
+            'seats'          => $booking['seats'],
+            'combos'         => $booking['combos'] ?? [],
+            'products'       => $booking['products'] ?? [],
+            'customer_name'  => $request->customer_name,
+            'customer_phone' => $request->customer_phone,
+            'customer_email' => $request->customer_email ?? '',
+            'payment_method' => $request->payment_method,
+            'staff_user_id'  => auth()->id(),
+        ]);
 
-    $showtimeId = $booking['showtime_id'];
+        if (!$result['success']) {
+            return redirect()->route('staff.sell-tickets.confirm')
+                ->with('error', $result['message']);
+        }
 
-    $seatIds = $booking['seats'] ?? [];
+        // Xóa session booking sau khi tạo thành công
+        session()->forget('booking');
 
-    $seats = [];
+        $paymentMethod = $request->payment_method;
 
-    if (!empty($seatIds)) {
+        if ($paymentMethod === 'CASH') {
+            // Thanh toán tiền mặt → xác nhận ngay
+            return $this->confirmCashPayment($result['booking_code']);
+        }
 
-        $seats = \App\Models\ShowtimeSeat::with('seat:id,seat_code')
-            ->whereIn('id', $seatIds)
-            ->get(['id', 'seat_id', 'showtime_id', 'price'])
-            ->map(function ($ss) {
-
-                return (object)[
-                    'id' => $ss->id,
-                    'seat_code' => $ss->seat->seat_code,
-                    'seat' => $ss->seat,
-                    'price' => $ss->price,
-                ];
-            })
-            ->values()
-            ->all();
+        // Thanh toán ONLINE → chuyển sang trang QR Payment
+        return redirect()->route('staff.sell-tickets.payment', $result['order_code']);
     }
 
-    $combos = $booking['combos'] ?? [];
-    $products = $booking['products'] ?? [];
+    /**
+     * Trang QR Payment cho Staff.
+     * Tái sử dụng SepayService::generateQrUrl() và logic polling từ Customer.
+     */
+    public function payment(string $orderCode)
+    {
+        $order = $this->sepayService->getOrderByCode($orderCode);
 
-    $showtime = \App\Models\Showtime::with(['movie', 'room'])
-        ->find($showtimeId);
+        if (!$order) {
+            return redirect()->route('staff.sell-tickets')
+                ->with('error', 'Đơn hàng không tồn tại.');
+        }
 
-    return view(
-        'staff.sell-tickets-confirm',
-        compact(
-            'showtime',
-            'seats',
-            'combos',
-            'products',
-            'movie_name',
-            'movie_id',
-            'start_time',
-            'end_time',
-            'room'
-        )
-    );
+        // Nếu đã thanh toán → chuyển sang in hóa đơn
+        if ($order->isPaid()) {
+            $booking = $order->booking;
+            if ($booking) {
+                return redirect()->route('staff.print-bill', $booking->booking_code);
+            }
+            return redirect()->route('staff.sell-tickets')
+                ->with('success', 'Đơn hàng đã được thanh toán.');
+        }
+
+        // Nếu đã hết hạn
+        if ($order->isExpired()) {
+            $order->markAsExpired();
+            return redirect()->route('staff.sell-tickets')
+                ->with('error', 'Đơn hàng đã hết hạn. Vui lòng đặt vé lại.');
+        }
+
+        $qrUrl = $this->sepayService->generateQrUrl($order);
+        $bankCode = config('sepay.bank_code');
+        $bankAccount = config('sepay.bank_account');
+        $pollingInterval = config('sepay.polling_interval', 5000);
+
+        return view('staff.sell-tickets-payment', compact(
+            'order', 'qrUrl', 'bankCode', 'bankAccount', 'pollingInterval'
+        ));
+    }
+
+    /**
+     * Xác nhận thanh toán tiền mặt (CASH).
+     * Booking chuyển PAID ngay, sinh Tickets.
+     */
+    private function confirmCashPayment(string $bookingCode): \Illuminate\Http\RedirectResponse
+    {
+        try {
+            $booking = \App\Models\Booking::where('booking_code', $bookingCode)->firstOrFail();
+
+            DB::transaction(function () use ($booking) {
+                // Cập nhật trạng thái booking
+                $booking->update([
+                    'status'         => 'PAID',
+                    'payment_status' => 'PAID',
+                    'paid_at'        => now(),
+                ]);
+
+                // Tạo Payment record
+                \App\Models\Payment::create([
+                    'booking_id'     => $booking->id,
+                    'amount'         => $booking->final_amount,
+                    'payment_method' => 'CASH',
+                    'status'         => 'SUCCESS',
+                    'paid_at'        => now(),
+                ]);
+
+                // Cập nhật SepayOrder (nếu có)
+                $sepayOrder = SepayOrder::where('booking_id', $booking->id)->first();
+                if ($sepayOrder) {
+                    $sepayOrder->update([
+                        'status'         => 'paid',
+                        'paid_at'        => now(),
+                        'transaction_id' => 'CASH_' . time(),
+                    ]);
+                }
+
+                // Sinh Tickets
+                $ticketService = app(TicketService::class);
+                $ticketService->generateTicketsForBooking($booking);
+            });
+
+            Log::info('Staff cash payment confirmed', [
+                'booking_code' => $bookingCode,
+                'staff_id'     => auth()->id(),
+            ]);
+
+            return redirect()->route('staff.print-bill', $bookingCode)
+                ->with('success', 'Thanh toán tiền mặt thành công! Hóa đơn đã được tạo.');
+
+        } catch (\Exception $e) {
+            Log::error('Staff cash payment failed', [
+                'booking_code' => $bookingCode,
+                'error'        => $e->getMessage(),
+            ]);
+
+            return redirect()->route('staff.sell-tickets')
+                ->with('error', 'Lỗi xác nhận thanh toán: ' . $e->getMessage());
+        }
+    }
 }
-}
+

@@ -324,7 +324,7 @@
 
 <script>
 (function() {
-    let secondsLeft = {{ $secondsLeft ?? 300 }};
+    let secondsLeft = Math.max(0, {{ $secondsLeft ?? 300 }});
     const totalSeconds = 300; // 5 phút
     const clockEl = document.getElementById('countdownClock');
     const barEl = document.getElementById('bookingCountdownBar');
@@ -338,28 +338,31 @@
     function updateDisplay() {
         if (!clockEl || !fillEl) return;
 
-        const m = Math.floor(secondsLeft / 60).toString().padStart(2, '0');
-        const s = (secondsLeft % 60).toString().padStart(2, '0');
+        const safe = Math.max(0, secondsLeft);
+        const m = Math.floor(safe / 60).toString().padStart(2, '0');
+        const s = (safe % 60).toString().padStart(2, '0');
         clockEl.textContent = m + ':' + s;
 
         // Progress bar
-        const pct = (secondsLeft / totalSeconds) * 100;
+        const pct = (safe / totalSeconds) * 100;
         fillEl.style.width = pct + '%';
 
         // Danger mode khi còn < 60 giây
-        if (secondsLeft <= 60 && barEl) {
+        if (safe <= 60 && safe > 0 && barEl) {
             barEl.classList.add('danger');
         }
     }
 
     const interval = setInterval(function() {
         secondsLeft--;
-        updateDisplay();
-
         if (secondsLeft <= 0) {
+            secondsLeft = 0;
             clearInterval(interval);
+            updateDisplay();
             showExpiredModal();
+            return;
         }
+        updateDisplay();
     }, 1000);
 
     // Hiển thị ngay khi load
