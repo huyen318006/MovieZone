@@ -111,9 +111,9 @@
                         name="date"
                         class="form-control @error('date') is-invalid @enderror"
                         value="{{ old('date', optional($showtime->start_time)->format('Y-m-d')) }}"
-                        min="{{ now()->toDateString() }}"
                         required
                     >
+                    <div id="dateRangeHint" class="form-text text-muted small">Chọn ngày trong khoảng phát hành phim.</div>
                     @error('date')
                         <div class="text-danger mt-1 small">{{ $message }}</div>
                     @enderror
@@ -197,6 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const API_GET_ROOM_TIMELINE = '{{ route("admin.showtime.api.room_timeline") }}';
     const CSRF = '{{ csrf_token() }}';
     const showtimeId = '{{ $showtime->id }}';
+        const API_MOVIE_INFO = '{{ route("admin.showtime.api.movie_info") }}';
 
     const selectMovie = document.getElementById('selectMovie');
     const selectDate = document.getElementById('selectDate');
@@ -246,6 +247,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         return suggested;
+    }
+
+    // Apply movie date window (release/end) to the selectDate input
+    function applyMovieDateWindow(movie) {
+        const dateInput = document.getElementById('selectDate');
+        const dateRangeHint = document.getElementById('dateRangeHint');
+        if (!dateInput) return;
+
+        const minDate = movie && movie.release_date ? movie.release_date : '';
+        const maxDate = movie && movie.end_date ? movie.end_date : '';
+
+        dateInput.min = minDate;
+        dateInput.max = maxDate;
+
+        if (dateRangeHint && movie) {
+            const label = movie.date_window_label || 'Chọn ngày trong khoảng phát hành phim.';
+            dateRangeHint.textContent = label;
+        }
+
+        // If current selected date is outside the window, reset it
+        if (dateInput.value) {
+            if ((minDate && dateInput.value < minDate) || (maxDate && dateInput.value > maxDate)) {
+                dateInput.value = '';
+                inputStartTime.value = '';
+                inputEndTime.value = '';
+                slotContainer.innerHTML = '';
+                slotPlaceholder.style.display = 'block';
+                btnSubmit.disabled = true;
+            }
+        }
     }
 
     function renderSlots(slots) {
@@ -400,6 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
             roomPlaceholder.style.display = 'block';
             return;
         }
+ 
 
         roomPlaceholder.style.display = 'none';
         roomLoading.style.display = 'block';
@@ -524,8 +556,35 @@ document.addEventListener('DOMContentLoaded', function() {
         slotPlaceholder.style.display = 'block';
         btnSubmit.disabled = true;
 
+        // Apply movie date window (release/end) so date picker min/max follow the movie
+        fetchAndApplyMovieWindow(this.value);
         updateRoomsList();
     });
+
+    // When movie is selected (or on load), fetch its release/end dates to apply date window
+    function fetchAndApplyMovieWindow(movieId) {
+        if (!movieId) {
+            applyMovieDateWindow(null);
+            return;
+        }
+
+        fetch(API_MOVIE_INFO, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
+            body: JSON.stringify({ movie_id: movieId })
+        })
+        .then(r => r.json())
+        .then(data => {
+            applyMovieDateWindow(data.movie);
+        })
+        .catch(err => {
+            console.error('Lỗi lấy khoảng phát hành phim:', err);
+        });
+    }
+
+    // Apply window on initial load for the currently selected movie
+    const initialMovieId = selectMovie ? selectMovie.value : null;
+    if (initialMovieId) fetchAndApplyMovieWindow(initialMovieId);
 
     slotPlaceholder.style.display = 'block';
     updateRoomsList();

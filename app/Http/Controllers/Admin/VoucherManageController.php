@@ -75,22 +75,25 @@ class VoucherManageController extends Controller
 
         } else {
             // --- NHÁNH B: Voucher đã có người dùng → chỉ cho phép sửa trường an toàn ---
-            $validated = $request->validate([
+            $rules = [
                 'status'   => 'required|in:ACTIVE,DISABLED,EXPIRED',
                 'end_date' => ['required', 'date', 'after:' . $voucher->start_date->format('Y-m-d')],
-                // Giới hạn tổng lượt dùng chỉ được TĂNG, không được giảm xuống dưới số lượt đã dùng
-                'usage_limit' => [
-                    'required',
-                    'integer',
-                    "min:{$usageCount}",
-                    'max:1000000',
-                ],
+                'usage_limit' => ['required', 'integer', 'not_in:0', 'min:-1', 'max:1000000'],
                 'usage_per_user' => 'required|integer|min:1',
-            ], [
+            ];
+
+            $validated = $request->validate($rules, [
                 'end_date.after'  => 'Ngày kết thúc phải sau ngày bắt đầu.',
-                'usage_limit.min' => "Giới hạn tổng lượt dùng không được nhỏ hơn số lượt đã sử dụng thực tế ({$usageCount} lượt).",
-                'usage_limit.max' => 'Giới hạn tổng lượt dùng không được vượt quá 1.000.000.',
+                'usage_limit.min' => 'Giá trị tổng lượt sử dụng không hợp lệ.',
+                'usage_limit.max' => 'Giới hạn tổng lượt sử dụng không được vượt quá 1.000.000.',
             ]);
+
+            // Nếu voucher đã được sử dụng, ensure admin cannot reduce usage_limit below used count
+            if ((int) $validated['usage_limit'] !== -1 && (int) $validated['usage_limit'] < $usageCount) {
+                return back()
+                    ->withInput()
+                    ->with('error', "Giới hạn tổng lượt dùng không được nhỏ hơn số lượt đã sử dụng thực tế ({$usageCount} lượt).");
+            }
 
             $voucher->update($validated);
         }
@@ -142,7 +145,8 @@ class VoucherManageController extends Controller
             'usage_limit' => [
                 'required',
                 'integer',
-                'min:1',
+                'not_in:0',
+                'min:-1',
                 'max:10000',
             ],
 
@@ -186,7 +190,7 @@ class VoucherManageController extends Controller
 
             // Usage
             'usage_limit.required' => 'Vui lòng nhập tổng lượt sử dụng.',
-            'usage_limit.min' => 'Tổng lượt sử dụng tối thiểu là 1.',
+            'usage_limit.min' => 'Giá trị tổng lượt sử dụng không hợp lệ.',
             'usage_limit.max' => 'Tổng lượt sử dụng không được vượt quá 10.000 lượt.',
 
             'usage_per_user.required' => 'Vui lòng nhập số lượt sử dụng mỗi người.',

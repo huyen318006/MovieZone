@@ -157,6 +157,7 @@
                     <div class="col-12 col-md-6 col-lg-4">
                         <label class="form-label fw-semibold">Ngày chiếu <span class="text-danger">*</span></label>
                         <input type="date" id="selectDate" class="form-control" required>
+                        <div id="dateRangeHint" class="form-text text-muted">Chọn ngày trong khoảng phát hành phim.</div>
                     </div>
                 </div>
 
@@ -221,9 +222,8 @@
                 <small class="text-muted">Chọn một khung giờ trống khả dụng dưới đây. Hệ thống sẽ ngay lập tức xếp lịch và tạo suất chiếu.</small>
             </div>
             <div class="card-body p-4">
-                <!-- Hidden inputs to submit room_id and start_time -->
-                <input type="hidden" name="room_id" id="selectedRoomId">
-                <input type="hidden" name="start_time" id="hiddenStartTime">
+                <!-- Hidden input to submit multiple selected showtimes -->
+                <input type="hidden" name="selected_showtimes" id="selectedShowtimesInput" value="[]">
 
                 <!-- Loading indicator while scanning slots -->
                 <div id="slotsLoading" class="text-center py-5">
@@ -242,10 +242,19 @@
                     <!-- Renders dynamically -->
                 </div>
             </div>
-            <div class="card-footer bg-transparent d-flex justify-content-start gap-2">
-                <button type="button" class="btn btn-outline-secondary px-4" id="btnBack3">
-                    <i class="bi bi-arrow-left me-1"></i> Quay lại
-                </button>
+            <div class="card-footer bg-transparent d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                <div class="text-muted small">
+                    <i class="bi bi-list-check me-1"></i>
+                    Đã chọn <span id="selectedShowtimesCount" class="fw-semibold text-primary">0</span> suất chiếu
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary px-4" id="btnBack3">
+                        <i class="bi bi-arrow-left me-1"></i> Quay lại
+                    </button>
+                    <button type="submit" class="btn btn-primary px-4" id="btnCreateShowtimes" disabled>
+                        <i class="bi bi-calendar-plus me-1"></i> Tạo các suất đã chọn
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -352,13 +361,14 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentStep = 1;
     let selectedMovie = null;
     let selectedDate = null;
+    let selectedShowtimes = [];
 
     // ===== DOM REFERENCES =====
     const selectMovie = document.getElementById('selectMovie');
     const selectDate = document.getElementById('selectDate');
-    // const inputLanguageType = document.getElementById('inputLanguageType');
-    const selectedRoomInput = document.getElementById('selectedRoomId');
-    const hiddenStartTimeInput = document.getElementById('hiddenStartTime');
+    const selectedShowtimesInput = document.getElementById('selectedShowtimesInput');
+    const btnCreateShowtimes = document.getElementById('btnCreateShowtimes');
+    const selectedShowtimesCount = document.getElementById('selectedShowtimesCount');
     const showtimeForm = document.getElementById('showtimeForm');
 
     // ===== GO TO STEP =====
@@ -390,7 +400,11 @@ document.addEventListener('DOMContentLoaded', function() {
             movieInfoCard.style.display = 'none';
             btnNext1.disabled = true;
             selectedMovie = null;
-            inputLanguageType.value = '';
+            selectedShowtimes = [];
+            document.getElementById('dateRangeHint').textContent = 'Chọn ngày trong khoảng phát hành phim.';
+            document.getElementById('selectDate').min = '';
+            document.getElementById('selectDate').max = '';
+            updateSelectedShowtimesUI();
             return;
         }
 
@@ -420,6 +434,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.movie.release_date) releaseText += formatDate(data.movie.release_date);
             if (data.movie.end_date) releaseText += ' → ' + formatDate(data.movie.end_date);
             document.getElementById('movieRelease').textContent = releaseText || 'Chưa xác định';
+            const dateRangeHint = document.getElementById('dateRangeHint');
+            if (dateRangeHint) {
+                dateRangeHint.textContent = data.movie.date_window_label || 'Chọn ngày trong khoảng phát hành phim.';
+            }
+            applyMovieDateWindow(data.movie);
 
             // Tự động điền Ngôn ngữ gợi ý từ Phim
             // let defaultLanguageType = data.movie.language || '';
@@ -440,9 +459,53 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    function updateSelectedShowtimesUI() {
+        selectedShowtimesInput.value = JSON.stringify(selectedShowtimes);
+        selectedShowtimesCount.textContent = selectedShowtimes.length;
+        btnCreateShowtimes.disabled = selectedShowtimes.length === 0;
+    }
+
+    function applyMovieDateWindow(movie) {
+        const dateInput = document.getElementById('selectDate');
+        const dateRangeHint = document.getElementById('dateRangeHint');
+        if (!dateInput) return;
+
+        const minDate = movie && movie.release_date ? movie.release_date : '';
+        const maxDate = movie && movie.end_date ? movie.end_date : '';
+
+        dateInput.min = minDate;
+        dateInput.max = maxDate;
+
+        if (dateRangeHint && movie) {
+            dateRangeHint.textContent = movie.date_window_label || 'Chọn ngày trong khoảng phát hành phim.';
+        }
+
+        if (selectedDate) {
+            if ((minDate && selectedDate < minDate) || (maxDate && selectedDate > maxDate)) {
+                dateInput.value = '';
+                selectedDate = null;
+                document.getElementById('dateSummary').style.display = 'none';
+                document.getElementById('btnNext2').disabled = true;
+            }
+        }
+    }
+
+    function applySelectedSlotsState() {
+        document.querySelectorAll('.slot-btn').forEach(btn => {
+            const roomId = btn.dataset.roomId;
+            const startTime = btn.dataset.startTime;
+            const isSelected = selectedShowtimes.some(item => String(item.room_id) === String(roomId) && item.start_time === startTime);
+            btn.classList.toggle('btn-primary', isSelected);
+            btn.classList.toggle('btn-outline-primary', !isSelected);
+            btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+        });
+    }
+
     // ===== STEP 2: CHỌN NGÀY =====
     selectDate.addEventListener('change', function() {
         selectedDate = this.value;
+        selectedShowtimes = [];
+        updateSelectedShowtimesUI();
         const btnNext2 = document.getElementById('btnNext2');
         const dateSummary = document.getElementById('dateSummary');
 
@@ -551,6 +614,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             slotsContainer.innerHTML = html;
             slotsContainer.style.display = 'flex';
+            applySelectedSlotsState();
 
             // Nếu không có slot trống nào trong ngày trên tất cả các phòng
             if (totalAvailableSlotsCount === 0) {
@@ -562,12 +626,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 btn.addEventListener('click', function() {
                     const roomId = this.dataset.roomId;
                     const startTime = this.dataset.startTime;
+                    const existingIndex = selectedShowtimes.findIndex(item => String(item.room_id) === String(roomId) && item.start_time === startTime);
 
-                    selectedRoomInput.value = roomId;
-                    hiddenStartTimeInput.value = startTime;
+                    if (existingIndex >= 0) {
+                        selectedShowtimes.splice(existingIndex, 1);
+                    } else {
+                        selectedShowtimes.push({ room_id: Number(roomId), start_time: startTime });
+                    }
 
-                    // Submit form ngay lập tức!
-                    showtimeForm.submit();
+                    updateSelectedShowtimesUI();
+                    applySelectedSlotsState();
                 });
             });
         })
@@ -582,7 +650,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===== NAV BUTTON EVENTS =====
     document.getElementById('btnNext1').addEventListener('click', () => {
         goToStep(2);
-        selectDate.min = new Date().toISOString().split('T')[0];
+        // Do not override the movie-specific min/max date here.
+        // `applyMovieDateWindow` already sets `selectDate.min`/`max` when a movie is chosen.
     });
 
     document.getElementById('btnBack2').addEventListener('click', () => goToStep(1));
@@ -592,6 +661,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('btnBack3').addEventListener('click', () => goToStep(2));
+
+    showtimeForm.addEventListener('submit', function() {
+        updateSelectedShowtimesUI();
+    });
 
     // ===== UTILITY =====
     function formatDate(dateStr) {
