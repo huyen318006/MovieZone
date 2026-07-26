@@ -819,13 +819,7 @@ function showBatchPanel(data) {
             </span>
             <span class="status-badge ${t.status.toLowerCase()}">${t.status}</span>
             ${t.checked_in_at ? `<span style="font-size:11px; color:var(--staff-text-muted);">${formatDateTime(t.checked_in_at)}</span>` : ''}
-            <button onclick="event.stopPropagation(); printTicket('${booking?.booking_code}', '${t.ticket_code}', ${t.id}, ${canCheck})"
-                    style="background:transparent; border:1px solid var(--staff-border); color:var(--staff-text-muted); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:3px; flex-shrink:0; transition:all 0.2s;"
-                    onmouseover="this.style.borderColor='var(--staff-primary)';this.style.color='var(--staff-primary)'"
-                    onmouseout="this.style.borderColor='var(--staff-border)';this.style.color='var(--staff-text-muted)'"
-                    title="In & check-in vé ${t.seat_code}">
-                <i class="bi bi-printer"></i>
-            </button>
+
         </div>
     `}).join('');
 
@@ -1103,27 +1097,7 @@ function printBill(code) {
     autoCheckInAllUnused();
 }
 
-function printTicket(bookingCode, ticketCode, ticketId, canCheckin) {
-    if (!bookingCode || !ticketCode) return;
 
-    let iframe = document.getElementById('print-iframe-mz');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'print-iframe-mz';
-        iframe.style.position = 'absolute';
-        iframe.style.width = '0px';
-        iframe.style.height = '0px';
-        iframe.style.border = 'none';
-        document.body.appendChild(iframe);
-    }
-
-    iframe.src = `/staff/print-bill/${bookingCode}?print=true&ticket=${ticketCode}`;
-
-    // Luôn auto check-in khi in vé (staff in = xác nhận vé)
-    if (ticketId) {
-        autoCheckIn(ticketId, ticketCode);
-    }
-}
 
 async function autoCheckIn(ticketId, ticketCode) {
     try {
