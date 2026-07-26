@@ -14,25 +14,25 @@
                 </h2>
                 <p class="text-secondary mb-0 fs-14">Chọn phim và suất chiếu để tiến hành bán vé nhanh.</p>
             </div>
-            <div class="d-flex align-items-center gap-3">
-                <div class="modern-today-card">
-                    <i class="bi bi-calendar-event-fill text-danger"></i>
-                    <span>{{ now()->format('d/m/Y') }}</span>
-                </div>
-            </div>
+
         </div>
 
         <div class="modern-search-card mb-4">
-            <div class="input-group">
-                <span class="input-group-text border-0 bg-transparent ps-3">
-                    <i class="bi bi-search text-secondary"></i>
-                </span>
+           <!-- #region -->
+            <form action="{{ route('staff.sell-tickets') }}" method="GET" class="d-flex align-items-center gap-2 p-2">
                 <input
                     type="text"
-                    class="form-control border-0 shadow-none py-3"
-                    placeholder="Tìm kiếm phim nhanh..."
+                    name="search"
+                    class="form-control border-0 bg-transparent text-white"
+                    placeholder="Tìm kiếm phim..."
+                    value="{{ request('search') }}"
                 >
-            </div>
+                <button type="submit" class="btn btn-danger d-flex align-items-center gap-1">
+                    <i class="bi bi-search"></i>
+                    Tìm kiếm
+                </button>
+            </form>
+            <!-- #endregion -->
         </div>
 
         @if(empty($movies))
@@ -78,15 +78,21 @@
                                     <div class="row g-3">
                                         @foreach($movie['showtimes'] as $show)
                                             @php
-                                                $start = \Carbon\Carbon::parse($show['start_time'])->format('H:i');
-                                                $end = \Carbon\Carbon::parse($show['end_time'])->format('H:i');
+                                                $start = $show['start_time'];
+                                                $end = $show['end_time'];
                                                 $roomName = $show['room_name'] ?? ('Phòng '.$show['room_id']);
+                                                $showDate = $show['show_date'] ?? '';
                                             @endphp
                                             <div class="col-6 col-sm-4 col-md-3 col-lg-2">
                                                 <a
                                                     href="{{ route('staff.sell-seat',$show['showtime_id']) }}"
                                                     class="modern-showtime-card text-decoration-none"
                                                 >
+                                                    <div class="modern-showtime-date">
+                                                        <i class="bi bi-calendar3"></i>
+                                                        {{ $showDate }}
+                                                    </div>
+
                                                     <div class="modern-showtime-header">
                                                         <span class="modern-showtime-hour">{{ $start }}</span>
                                                         <span class="modern-showtime-end">~{{ $end }}</span>
@@ -218,12 +224,35 @@
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 8px !important;
-    padding: 12px 10px !important;
+    gap: 6px !important;
+    padding: 10px 10px !important;
     border-radius: 14px !important;
     background: rgba(255, 255, 255, 0.02) !important;
     border: 1px solid rgba(255, 255, 255, 0.06) !important;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.modern-showtime-date {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #fbbf24 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    background: rgba(251, 191, 36, 0.1) !important;
+    padding: 2px 10px !important;
+    border-radius: 20px !important;
+    white-space: nowrap !important;
+    margin-bottom: 2px !important;
+}
+
+.modern-showtime-date i {
+    font-size: 10px !important;
+}
+
+.modern-showtime-card:hover .modern-showtime-date {
+    color: #fff !important;
+    background: rgba(251, 191, 36, 0.25) !important;
 }
 
 .modern-showtime-header {

@@ -156,7 +156,8 @@
                     <div class="legend-item"><i class="fa-solid fa-heart sweet-seat-icon"></i><span>Sweetbox</span></div>
                     <div class="legend-item"><i class="fa-solid fa-couch held-seat" style="color: #28a745;"></i><span>Đã chọn</span></div>
                     <div class="legend-item"><i class="fa-solid fa-couch" style="color: #ff9800;"></i><span>Đang giữ</span></div>
-                    <div class="legend-item"><i class="fa-solid fa-couch sold-seat" style="color: #6b7280;"></i><span>Đã đặt</span></div>
+                    <!-- [FIX] Đã đổi chú thích từ "Đã đặt" → "Đã đặt / Đã khóa" vì SOLD, BLOCKED, LOCKED đều màu xám -->
+                    <div class="legend-item"><i class="fa-solid fa-couch" style="color: #6b7280;"></i><span>Đã đặt / Đã khóa</span></div>
                 </div>
             </div>
         </div>
@@ -370,16 +371,14 @@
         opacity: 0.7;
     }
 
-    .SOLD {
-        background-color: #6b7280 !important;
-        color: white !important;
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-
+    /* ========================================
+       === [FIX] SOLD, BLOCKED, LOCKED đều dùng màu xám giống nhau ===
+       === Đã sửa: gộp chung 3 trạng thái này thành 1 màu #6b7280, thay vì BLOCKED/LOCKED riêng #343a40 ===
+       ======================================== */
+    .SOLD,
     .BLOCKED,
     .LOCKED {
-        background-color: #343a40 !important;
+        background-color: #6b7280 !important;
         color: white !important;
         cursor: not-allowed;
         opacity: 0.7;
@@ -461,7 +460,11 @@
         animation: none;
     }
 
-    .couple-seat-btn.SOLD {
+    /* === [FIX] Couple SOLD/BLOCKED/LOCKED đều dùng màu xám #6b7280 ===
+       === Đã sửa: gộp BLOCKED/LOCKED vào chung với SOLD thay vì màu #343a40 riêng === */
+    .couple-seat-btn.SOLD,
+    .couple-seat-btn.BLOCKED,
+    .couple-seat-btn.LOCKED {
         background: #6b7280 !important;
         border-color: #9ca3af !important;
         opacity: 0.7;
@@ -469,9 +472,7 @@
         box-shadow: none !important;
     }
 
-    .couple-seat-btn.HELD,
-    .couple-seat-btn.BLOCKED,
-    .couple-seat-btn.LOCKED {
+    .couple-seat-btn.HELD {
         background: #343a40 !important;
         border-color: #495057 !important;
         opacity: 0.7;
@@ -479,14 +480,16 @@
         box-shadow: none !important;
     }
 
-    .couple-seat-btn.SOLD .couple-icon {
-        color: #d1d5db !important;
+    /* === [FIX] Couple icon cho SOLD/BLOCKED/LOCKED ===
+       === Đã sửa: gộp chung 3 trạng thái, icon màu #9ca3af === */
+    .couple-seat-btn.SOLD .couple-icon,
+    .couple-seat-btn.BLOCKED .couple-icon,
+    .couple-seat-btn.LOCKED .couple-icon {
+        color: #9ca3af !important;
         animation: none;
     }
 
-    .couple-seat-btn.HELD .couple-icon,
-    .couple-seat-btn.BLOCKED .couple-icon,
-    .couple-seat-btn.LOCKED .couple-icon {
+    .couple-seat-btn.HELD .couple-icon {
         color: #6c757d !important;
         animation: none;
     }
