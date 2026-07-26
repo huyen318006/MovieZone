@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sơ đồ Use Case - Hệ thống MovieZone</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f2f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #1a1a2e;
+            margin: 20px 0 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .diagram-wrapper {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+            padding: 30px;
+            margin-bottom: 30px;
+            overflow: auto;
+        }
+        .diagram-wrapper svg {
+            max-width: 100%;
+            height: auto;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin: 20px 0 30px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            color: #333;
+        }
+        .legend-color {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+        .legend-color.customer { background: #e3f2fd; border-color: #1976d2; }
+        .legend-color.staff { background: #e8f5e9; border-color: #388e3c; }
+        .legend-color.admin { background: #fce4ec; border-color: #d32f2f; }
+        .legend-color.include { background: #fff3e0; border-color: #f57c00; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        .stat-card .label {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .stat-card.customer .number { color: #1976d2; }
+        .stat-card.staff .number { color: #388e3c; }
+        .stat-card.admin .number { color: #d32f2f; }
+        .stat-card.total .number { color: #6a1b9a; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 SƠ ĐỒ USE CASE TỔNG QUAN</h1>
+        <p class="subtitle">Hệ thống đặt vé & quản lý rạp chiếu phim MovieZone</p>
+
+        <div class="stats">
+            <div class="stat-card customer">
+                <div class="number">23</div>
+                <div class="label">👤 Khách hàng (Customer)</div>
+            </div>
+            <div class="stat-card staff">
+                <div class="number">5</div>
+                <div class="label">🧑‍💼 Nhân viên (Staff)</div>
+            </div>
+            <div class="stat-card admin">
+                <div class="number">27</div>
+                <div class="label">🛡️ Quản trị viên (Admin)</div>
+            </div>
+            <div class="stat-card total">
+                <div class="number">~55</div>
+                <div class="label">📊 Tổng số Use Case</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color customer"></div>
+                <span>Khách hàng (Customer)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color staff"></div>
+                <span>Nhân viên (Staff)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color admin"></div>
+                <span>Quản trị viên (Admin)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color include"></div>
+                <span>«include» Luồng đặt vé</span>
+            </div>
+        </div>
+
+        <div class="diagram-wrapper">
+            <pre class="mermaid" style="text-align: center;">
+flowchart TB
+    %% ===== TÁC NHÂN =====
+    C(("👤 Khách hàng<br/>Customer"))
+    S(("🧑‍💼 Nhân viên<br/>Staff"))
+    A(("🛡️ Quản trị viên<br/>Admin"))
+    Sys(("⚙️ Hệ thống"))
+
+    subgraph KHACHHANG["👤 KHÁCH HÀNG (23 Use Cases)"]
+        direction TB
+        C01["UC-01 Đăng ký tài khoản"]
+        C02["UC-02 Đăng nhập (Email + Google)"]
+        C03["UC-03 Đăng xuất"]
+        C04["UC-04 Quên mật khẩu"]
+        C05["UC-05 Đặt lại mật khẩu"]
+        C06["UC-06 Xem/Sửa hồ sơ + Đổi MK"]
+        C07["UC-07 Xem danh sách phim (lọc)"]
+        C08["UC-08 Xem chi tiết phim"]
+        C09["UC-09 Xem lịch chiếu"]
+        C10["UC-10 Chọn suất chiếu"]
+        C11["UC-11 Chatbot hỗ trợ (Gemini AI)"]
+        C12["UC-12 Chọn ghế (giữ 5 phút)"]
+        C13["UC-13 Chọn Combo"]
+        C14["UC-14 Áp dụng Voucher"]
+        C15["UC-15 Xác nhận đặt vé"]
+        C16["UC-16 Thanh toán QR Online"]
+        C17["UC-17 Xem vé đã mua"]
+        C18["UC-18 Đánh giá phim (Rating+Comment)"]
+        C19["UC-19 Sửa/Xóa đánh giá"]
+        C20["UC-20 Xem số dư Coin"]
+        C21["UC-21 Điểm danh hàng ngày (Streak)"]
+        C22["UC-22 Xem khuyến mãi"]
+        C23["UC-23 Xem tin tức"]
+    end
+
+    subgraph NHANVIEN["🧑‍💼 NHÂN VIÊN (5 Use Cases)"]
+        direction TB
+        S01["UC-S01 Dashboard Staff"]
+        S02["UC-S02 Check-in vé QR<br/>(Quét QR/Manual/Batch/In hóa đơn)"]
+        S03["UC-S03 Tra cứu Booking/Vé<br/>(Mã/Email/Phone/Ticket code)"]
+        S04["UC-S04 Hỗ trợ sự cố đặt vé"]
+        S05["UC-S05 Bán vé tại quầy<br/>(Chọn ghế → Combo → Thanh toán)"]
+    end
+
+    subgraph QUANTRI["🛡️ QUẢN TRỊ VIÊN (27 Use Cases)"]
+        direction TB
+        A01["UC-A01 Dashboard Admin (thống kê)"]
+        A02["UC-A02 Quản lý Phim<br/>(CRUD + Ngừng chiếu + Khôi phục)"]
+        A03["UC-A03 Quản lý Phòng chiếu<br/>(CRUD + Ẩn/Khôi phục)"]
+        A04["UC-A04 Quản lý Ghế<br/>(CRUD + Khóa + Thêm Batch + Đổi loại)"]
+        A05["UC-A05 Quản lý Suất chiếu<br/>(Wizard 3 bước + Hủy + Chi tiết)"]
+        A06["UC-A06 Quản lý Booking<br/>(DS + Chi tiết + Hủy/Giải phóng ghế)"]
+        A07["UC-A07 Quản lý Tài khoản<br/>(CRUD + Khóa/Mở + Phân quyền)"]
+        A08["UC-A08 Quản lý Sản phẩm (CRUD)"]
+        A09["UC-A09 Quản lý Combo (CRUD)"]
+        A10["UC-A10 Quản lý Voucher (CRUD)"]
+        A11["UC-A11 Quản lý Khuyến mãi (CRUD)"]
+        A12["UC-A12 Quản lý Banner (CRUD)"]
+    end
+
+    %% === LUỒNG INCLUDE (ĐẶT VÉ) ===
+    C10 -.->|«include»| C12
+    C12 -.->|«include»| C13
+    C13 -.->|«include»| C14
+    C14 -.->|«include»| C15
+    C15 -.->|«include»| C16
+
+    S05 -.->|«include»| C12
+    S05 -.->|«include»| C13
+    S05 -.->|«include»| C15
+    S05 -.->|«include»| C16
+
+    %% === KẾT NỐI ===
+    C --> C01 & C02 & C03 & C04 & C05 & C06
+    C --> C07 & C08 & C09 & C10 & C11
+    C --> C17 & C18 & C19
+    C --> C20 & C21 & C22 & C23
+
+    S --> S01 & S02 & S03 & S04 & S05
+
+    A --> A01 & A02 & A03 & A04 & A05 & A06 & A07
+    A --> A08 & A09 & A10 & A11 & A12
+            </pre>
+        </div>
+
+        <div class="diagram-wrapper">
+            <pre class="mermaid" style="text-align: center;">
+graph LR
+    subgraph Actors["🎭 TÁC NHÂN"]
+        C[("👤 Khách hàng<br/>Customer")]
+        S[("🧑‍💼 Nhân viên<br/>Staff")]
+        A[("🛡️ Quản trị viên<br/>Admin")]
+    end
+
+    subgraph System["🏢 HỆ THỐNG MOVIEZONE"]
+        direction TB
+        M1["1️⃣ Quản lý tài khoản<br/>Đăng ký, ĐN (Email+Google), Quên MK, Hồ sơ"]
+        M2["2️⃣ Đặt vé xem phim<br/>Chọn ghế → Combo → Voucher → Thanh toán QR"]
+        M3["3️⃣ Quản lý vé & Đánh giá<br/>Xem vé đã mua, Rating/Review phim"]
+        M4["4️⃣ Điểm thưởng & Khuyến mãi<br/>Coin, Daily Checkin, KM, Tin tức"]
+        M5["5️⃣ Chatbot hỗ trợ (Menu-based + Gemini AI)"]
+        M6["6️⃣ Check-in vé QR<br/>Quét QR, Manual, Batch, In hóa đơn"]
+        M7["7️⃣ Tra cứu Booking/Vé<br/>Mã booking, email, phone, ticket code"]
+        M8["8️⃣ Hỗ trợ sự cố đặt vé<br/>Chẩn đoán QR lỗi, Booking lỗi"]
+        M9["9️⃣ Bán vé tại quầy<br/>Nhập tay, Thanh toán Online/Tiền mặt"]
+        M10["🔟 Dashboard (Staff) - Thống kê ca làm việc"]
+        M11["1️⃣1️⃣ Dashboard Admin - Thống kê tổng quan"]
+        M12["1️⃣2️⃣ Quản lý Phim<br/>CRUD + Ngừng/Khôi phục + Email thông báo"]
+        M13["1️⃣3️⃣ Quản lý Phòng chiếu & Ghế<br/>CRUD + Khóa/Batch/Đổi loại"]
+        M14["1️⃣4️⃣ Quản lý Suất chiếu<br/>Wizard 3 bước + Hủy + Thông báo"]
+        M15["1️⃣5️⃣ Quản lý Booking<br/>Xem chi tiết + Hủy + Check-in hỗ trợ"]
+        M16["1️⃣6️⃣ Quản lý Tài khoản<br/>CRUD + Khóa/Mở + Phân quyền"]
+        M17["1️⃣7️⃣ Quản lý SP/Combo/Voucher/KM/Banner<br/>CRUD toàn bộ"]
+    end
+
+    C --> M1 & M2 & M3 & M4 & M5
+    S --> M6 & M7 & M8 & M9 & M10
+    S -.->|Bán vé| M2
+    A --> M11 & M12 & M13 & M14 & M15 & M16 & M17
+            </pre>
+        </div>
+
+        <div style="text-align: center; color: #666; font-size: 13px; padding: 20px;">
+            Sơ đồ use case tổng quan - Hệ thống MovieZone © 2026
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'base',
+            themeVariables: {
+                background: '#ffffff',
+                primaryColor: '#fff',
+                primaryTextColor: '#333',
+                primaryBorderColor: '#333',
+                lineColor: '#666',
+                secondaryColor: '#f8f9fa',
+                tertiaryColor: '#e9ecef',
+                fontSize: '13px',
+                fontFamily: 'Segoe UI, sans-serif'
+            },
+            flowchart: {
+                htmlLabels: true,
+                curve: 'basis',
+                padding: 20,
+                nodeSpacing: 50,
+                rankSpacing: 80
+            }
+        });
+    </script>
+</body>
+</html>
+

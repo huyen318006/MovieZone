@@ -22,9 +22,10 @@ class BookTicketsController extends Controller
     ) {}
 
     // hàm lấy ra film của hệ thống
-    public function index()
+    public function index(Request $request)
     {
-        $movies = $this->staffBookingService->getMovies();
+
+        $movies = $this->staffBookingService->getMovies($request->input('search'));
         return view('staff.sell-tickets', compact('movies'));
     }
 

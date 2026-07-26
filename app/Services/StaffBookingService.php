@@ -21,9 +21,41 @@ class StaffBookingService
     public function __construct() {}
 
     // Lấy danh sách phim có suất chiếu sắp tới, kèm danh sách suất chiếu
-    public function getMovies()
+    public function getMovies($keyword)
     {
+
         $time_now = Carbon::now();
+
+        //kiểm tra keyword
+        if(!empty($keyword)){
+            //truy vấn
+            $showtime = DB::table('showtimes')->leftJoin('movies', 'showtimes.movie_id', '=', 'movies.id')
+                ->leftJoin('rooms', 'showtimes.room_id', '=', 'rooms.id')
+                ->select(
+                    'showtimes.id',
+                    'movies.id as movie_id',           // ← sửa ở đây
+                    'movies.title as movie_title',
+                    'movies.poster_url as movie_poster',
+                    'movies.duration_minutes as movie_duration',
+
+
+                    'showtimes.room_id',
+                    'showtimes.start_time',
+                    'showtimes.end_time',
+                    'showtimes.status',
+
+                    //
+                    'rooms.name as room_name',
+
+
+                )
+                ->where('showtimes.start_time', '>=', $time_now)   // chỉ lấy suất chiếu chưa chiếu
+                ->where('showtimes.status', 'OPEN')
+                ->where('movies.title', 'like', '%' . $keyword . '%') // lọc theo keyword
+                ->orderBy('movies.title')
+                ->orderBy('showtimes.start_time')
+                ->get();
+        }else{
         //truy vấn
         $showtime = DB::table('showtimes')->leftJoin('movies', 'showtimes.movie_id', '=', 'movies.id')
         ->leftJoin('rooms', 'showtimes.room_id', '=', 'rooms.id')
@@ -50,6 +82,7 @@ class StaffBookingService
             ->orderBy('movies.title')
             ->orderBy('showtimes.start_time')
             ->get();
+        }
 
 
         //gộp movie ==
@@ -70,7 +103,7 @@ class StaffBookingService
                     'showtimes' => [], //tạo khung suất chiếu rỗng
                 ];
             };
-            // SỬA LỖI CARBON TẠI ĐÂY: Parse chuỗi thời gian từ DB thành Object Carbon trước, sau đó mới format sang chuỗi
+
             $startTimeCarbon = Carbon::parse($row->start_time);
             $endTimeCarbon = Carbon::parse($row->end_time);
 
@@ -81,6 +114,8 @@ class StaffBookingService
                 'room_name' => $row->room_name,
                 'start_time' => $startTimeCarbon->format('H:i'),
                 'end_time' => $endTimeCarbon->format('H:i'),
+                'show_date' => $startTimeCarbon->format('d/m/Y'),
+                'show_date_short' => $startTimeCarbon->format('D, d/m'),
                 'status' => $row->status,
 
             ];
