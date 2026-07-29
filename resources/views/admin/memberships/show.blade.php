@@ -4,6 +4,20 @@
 
 @section('content')
 <div class="container-fluid py-4">
+    <!-- Flash Messages -->
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border-0 rounded-3 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <!-- Header & Back Button -->
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
@@ -215,6 +229,52 @@
                     <span class="text-muted small">Khách hàng chưa có lịch sử biến động Coin nào</span>
                 </div>
             @endif
+        </div>
+    </div>
+</div>
+
+<!-- Modal Điều Chỉnh Coin Thủ Công -->
+<div class="modal fade" id="adjustCoinModal" tabindex="-1" aria-labelledby="adjustCoinModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold text-white" id="adjustCoinModalLabel">
+                    <i class="bi bi-sliders text-warning me-2"></i>Điều Chỉnh Coin Khách Hàng
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('admin.memberships.adjust_coin', $customer->id) }}" method="POST">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Loại hành động</label>
+                        <select name="action_type" class="form-select bg-dark text-white border-secondary" required>
+                            <option value="ADD">➕ Cộng Coin thưởng</option>
+                            <option value="DEDUCT">➖ Trừ Coin</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Số Coin điều chỉnh</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-secondary border-secondary text-white">🪙</span>
+                            <input type="number" name="amount" class="form-control bg-dark text-white border-secondary" min="1" placeholder="Nhập số Coin (vd: 500)..." required>
+                        </div>
+                        <div class="form-text text-muted">Số dư hiện tại của khách: <strong class="text-warning">{{ number_format($customer->coin?->balance ?? 0) }} Coin</strong></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Lý do điều chỉnh (Bắt buộc - Audit Log)</label>
+                        <textarea name="reason" class="form-control bg-dark text-white border-secondary" rows="3" placeholder="Nhập lý do chi tiết (Ví dụ: Thưởng sự kiện, Bồi hoàn sự cố...)" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-warning fw-bold">
+                        <i class="bi bi-check-circle me-1"></i> Xác Nhận Điều Chỉnh
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
