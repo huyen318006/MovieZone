@@ -7,12 +7,12 @@
     <h2>Chỉnh sửa thông tin cá nhân</h2>
     <div class="profile-actions">
 
-        <a href="{{ route('profile') }}" class="action-btn">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('profile') }}" class="action-btn">
             <i class="bi bi-house-door-fill"></i>
             <span>Hồ sơ cá nhân</span>
         </a>
 
-        <a href="{{ route('my-tickets.index') }}" class="action-btn action-btn-secondary">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('my-tickets.index') }}" class="action-btn action-btn-secondary">
             <i class="bi bi-receipt-cutoff"></i>
             <span>Lịch sử giao dịch</span>
         </a>
@@ -39,7 +39,7 @@
         </div>
     @endif
 
-    <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
+    <form action="{{ \App\Helpers\TabAuthHelper::route('profile.update') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="form-group">
             <label>Họ tên</label>
@@ -73,7 +73,7 @@
     <h3>Đổi mật khẩu</h3>
 
 
-    <form action="{{ route('profile.password.change') }}" method="POST">
+    <form action="{{ \App\Helpers\TabAuthHelper::route('profile.password.change') }}" method="POST">
         @csrf
         @method('PUT')
 

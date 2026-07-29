@@ -780,7 +780,7 @@ class BookingController extends Controller
         if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT'])) {
             $booking->update([
                 'status' => 'CANCELLED',
-                'payment_status' => 'CANCELLED',
+                'payment_status' => $booking->payment_status === 'PAID' ? 'REFUNDED' : 'FAILED',
             ]);
 
             // Giải phóng ghế trong cache (nếu còn held)

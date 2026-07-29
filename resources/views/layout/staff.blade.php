@@ -156,8 +156,7 @@
                 <div class="user-name">{{ auth()->user()->name ?? 'Staff' }}</div>
                 <div class="user-role">Staff</div>
             </div>
-            <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" style="margin:0;">
-                @csrf
+            <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" style="margin:0;">
                 <button type="submit" class="btn btn-sm" style="color: var(--staff-text-muted); padding: 4px 8px;" title="Đăng xuất">
                     <i class="bi bi-box-arrow-right"></i>
                 </button>

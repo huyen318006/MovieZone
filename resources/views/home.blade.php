@@ -36,7 +36,7 @@
         </div>
 
         <div class="movie-row">
-@foreach($showingMovies as $m)            
+@foreach($showingMovies as $m)
     <div class="movie-card">
 
         <img src="{{ $m->poster_url ? asset('assets/' . $m->poster_url) : asset('assets/hero/avatar.jpg') }}" alt="{{ $m->title }}">
@@ -49,7 +49,7 @@
         </div>
 
         <a
-            href="{{ route('movie.detail', $m->slug) }}"
+            href="{{ \App\Helpers\TabAuthHelper::route('movie.detail', $m->slug) }}"
             class="book-btn">
 
             Chi Tiết

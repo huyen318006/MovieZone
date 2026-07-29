@@ -33,8 +33,7 @@
                         <li><hr class="dropdown-divider"></li>
 
                         <li>
-                            <form action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" method="POST" class="d-inline">
-                                @csrf
+                            <form action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" method="GET" class="d-inline">
                                 <button type="submit" class="dropdown-item text-danger py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent">
                                     <i class="bi bi-box-arrow-right fs-5"></i>
                                     <span>Đăng xuất</span>

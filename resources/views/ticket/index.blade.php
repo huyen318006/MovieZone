@@ -7,11 +7,11 @@
 
     <div class="profile-actions-wrapper">
         <div class="profile-actions">
-            <a href="{{ route('home') }}" class="action-btn">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('home') }}" class="action-btn">
                 <i class="bi bi-house-door-fill"></i>
                 <span>Trang chủ</span>
             </a>
-            <a href="{{ route('profile') }}" class="action-btn">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('profile') }}" class="action-btn">
                 <i class="bi bi-person-badge-fill"></i>
                 <span>Hồ sơ cá nhân</span>
             </a>
@@ -71,7 +71,7 @@
                             <span class="text-soft">N/A</span>
                         @endif
                     </td>
-                    
+
                     {{--  tổng tiền --}}
                     <td class="price">
                         {{ number_format($booking->final_amount) }} VNĐ
@@ -365,7 +365,7 @@ body {
 
 /* Sửa lỗi text Showing bị tối màu đen */
 .pagination-container nav div:first-child,
-.pagination-container nav div:first-child *, 
+.pagination-container nav div:first-child *,
 .pagination-container .text-muted,
 .pagination-container .text-muted * {
     color: #ffffff !important; /* Giữ lại !important ở đây để thắng text-muted của bootstrap */
@@ -375,7 +375,7 @@ body {
 
 .pagination-container nav div:first-child strong,
 .pagination-container nav div:first-child span {
-    color: #3b82f6 !important; 
+    color: #3b82f6 !important;
     font-weight: 700;
 }
 
@@ -391,9 +391,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #111827; 
-    border: 1px solid rgba(255, 255, 255, 0.15); 
-    color: #ffffff; 
+    background-color: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
     min-width: 40px;
     height: 40px;
     padding: 0 12px;
@@ -406,25 +406,25 @@ body {
 
 .pagination-container .page-link:hover {
     background-color: #1f2937;
-    color: #3b82f6; 
+    color: #3b82f6;
     border-color: #3b82f6;
 }
 
 /* Trang hiện tại (Active) */
 .pagination-container .page-item.active .page-link {
-    background-color: #3b82f6; 
+    background-color: #3b82f6;
     border-color: #3b82f6;
-    color: #ffffff; 
-    box-shadow: 0 0 12px rgba(59, 130, 246, 0.45); 
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.45);
 }
 
 /* Ô bị vô hiệu hóa (Disabled) */
 .pagination-container .page-item.disabled .page-link {
-    background-color: rgba(17, 24, 39, 0.8); 
-    border: 1px solid rgba(255, 255, 255, 0.1); 
+    background-color: rgba(17, 24, 39, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     color: #4b5563;
     cursor: not-allowed;
-    opacity: 0.6; 
+    opacity: 0.6;
 }
 
 .pagination-container .page-link:focus {

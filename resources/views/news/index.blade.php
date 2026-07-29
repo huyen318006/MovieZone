@@ -60,7 +60,7 @@
                                     </p>
                                 </div>
 
-                                <a href="{{ route('news.detail', $article->slug) }}" class="fw-bold d-inline-flex align-items-center mt-auto" style="color: var(--primary); text-decoration: none; transition: 0.3s;" onmouseover="this.style.color='#5f8ff7'; this.querySelector('i').style.transform='translateX(5px)';" onmouseout="this.style.color='var(--primary)'; this.querySelector('i').style.transform='translateX(0)';">
+                                <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" class="fw-bold d-inline-flex align-items-center mt-auto" style="color: var(--primary); text-decoration: none; transition: 0.3s;" onmouseover="this.style.color='#5f8ff7'; this.querySelector('i').style.transform='translateX(5px)';" onmouseout="this.style.color='var(--primary)'; this.querySelector('i').style.transform='translateX(0)';">
                                     Đọc tiếp <i class="bi bi-arrow-right ms-2" style="transition: transform 0.2s ease;"></i>
                                 </a>
                             </div>

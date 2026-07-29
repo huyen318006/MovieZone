@@ -6,6 +6,7 @@ use App\Models\Movie;
 use App\Models\Showtime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use App\Helpers\TabAuthHelper;
 
 class ShowtimeController extends Controller
 {
@@ -89,6 +90,6 @@ class ShowtimeController extends Controller
                 ->with('error', 'Suất chiếu không còn khả dụng');
         }
 
-        return redirect()->route('booking.seat', ['showtime_id' => $showtime->id]);
+        return redirect(TabAuthHelper::route('booking.seat', ['showtime_id' => $showtime->id]));
     }
 }

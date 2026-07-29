@@ -191,7 +191,7 @@
 
             {{-- Action Buttons --}}
             <div class="bill-actions-mz">
-                <a href="{{ route('home') }}" class="bill-btn-primary" id="btn-home">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('home') }}" class="bill-btn-primary" id="btn-home">
                     <i class="fa-solid fa-house"></i> Về Trang Chủ
                 </a>
             </div>

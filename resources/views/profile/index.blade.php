@@ -5,17 +5,17 @@
 
     <div class="profile-container">
     <h2>Hồ sơ cá nhân</h2>
-    
+
     <div class="profile-actions">
-        <a href="{{ route('home') }}" class="action-btn">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('home') }}" class="action-btn">
             <i class="bi bi-house-door-fill"></i>
             <span>Trang chủ</span>
         </a>
-        <a href="{{ route('membership.index') }}" class="action-btn action-btn-secondary" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #fbbf24;">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('membership.index') }}" class="action-btn action-btn-secondary" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #fbbf24;">
             <i class="bi bi-shield-check"></i>
             <span>Membership</span>
         </a>
-        <a href="{{ route('my-tickets.index') }}" class="action-btn action-btn-secondary">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('my-tickets.index') }}" class="action-btn action-btn-secondary">
             <i class="bi bi-receipt-cutoff"></i>
             <span>Lịch sử giao dịch</span>
         </a>
@@ -33,7 +33,7 @@
         @php
             $lvlName = strtoupper(auth()->user()->membership?->level?->name ?? 'BRONZE');
         @endphp
-        <a href="{{ route('membership.index') }}" class="user-badge text-decoration-none fw-bold" style="background: linear-gradient(135deg, #b45309, #d97706); color: #ffffff;">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('membership.index') }}" class="user-badge text-decoration-none fw-bold" style="background: linear-gradient(135deg, #b45309, #d97706); color: #ffffff;">
             <i class="bi bi-gem me-1"></i> HẠNG {{ $lvlName }}
         </a>
     </div>
@@ -59,7 +59,7 @@
         </div>
     </div>
 
-    <a href="{{ route('profile.edit') }}" class="btn-submit text-center-btn">
+    <a href="{{ \App\Helpers\TabAuthHelper::route('profile.edit') }}" class="btn-submit text-center-btn">
         <i class="bi bi-pencil-square"></i> Chỉnh sửa hồ sơ cá nhân
     </a>
 </div>
@@ -71,7 +71,7 @@
     font-family: 'Inter', sans-serif;
     max-width: 600px;
     background: #09090b; /* Đen kịt nền sâu cực chất */
-    color: #f4f4f5; 
+    color: #f4f4f5;
     padding: 35px;
     border-radius: 16px;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
@@ -119,7 +119,7 @@
     width: 100%;
 }
 .action-btn {
-    text-decoration: none !important; 
+    text-decoration: none !important;
     color: #ffffff !important;
     background: #1e293b;
     padding: 10px 16px;
@@ -224,14 +224,14 @@
     margin-bottom: 8px;
     font-size: 14px;
     font-weight: 500;
-    color: #94a3b8; 
+    color: #94a3b8;
 }
 .profile-container input[type="text"],
 .profile-container input[type="email"],
 .profile-container input[type="password"] {
     width: 100%;
     padding: 12px 16px;
-    background: #111827; 
+    background: #111827;
     border: 1px solid #374151;
     border-radius: 8px;
     color: #ffffff;
@@ -241,7 +241,7 @@
 }
 .profile-container input:focus {
     outline: none;
-    border-color: #2563eb; 
+    border-color: #2563eb;
     background: #1f2937;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
@@ -319,12 +319,12 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    color: #4b5563; 
+    color: #4b5563;
     transition: color 0.2s;
     user-select: none;
 }
 .toggle-password:hover {
-    color: #3b82f6; 
+    color: #3b82f6;
 }
 .toggle-password svg {
     width: 20px;
