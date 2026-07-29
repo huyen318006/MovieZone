@@ -19,8 +19,8 @@ class UserRoleSeeder extends Seeder
         $userRoles = [
             ['user_id' => 1, 'role_id' => 1, 'assigned_at' => now()], // ADMIN
             ['user_id' => 2, 'role_id' => 1, 'assigned_at' => now()], // ADMIN
-            ['user_id' => 3, 'role_id' => 2, 'assigned_at' => now()], // STAFF
-            ['user_id' => 4, 'role_id' => 1, 'assigned_at' => now()], // CUSTOMER
+            ['user_id' => 3, 'role_id' => 3, 'assigned_at' => now()], // CUSTOMER (customer@moviezone.com)
+            ['user_id' => 4, 'role_id' => 3, 'assigned_at' => now()], // CUSTOMER (nguyenhungpro2k6@gmail.com)
         ];
 
         UserRole::insert($userRoles);
