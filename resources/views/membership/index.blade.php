@@ -112,6 +112,35 @@
         border-color: #22c55e;
     }
 
+    /* Voucher Cards Styling */
+    .voucher-card {
+        background: #1e293b !important;
+        border: 1px dashed #475569 !important;
+        border-radius: 18px;
+        padding: 20px;
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .voucher-card:hover {
+        border-color: #f59e0b !important;
+        transform: translateY(-2px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .voucher-code-pill {
+        font-family: monospace;
+        font-size: 16px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        color: #fbbf24 !important;
+        background: rgba(245, 158, 11, 0.15);
+        padding: 4px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        display: inline-block;
+    }
+
     /* 5 Tier Cards Grid */
     .tier-card {
         background: #1e293b !important;
@@ -154,6 +183,20 @@
 
 <div class="membership-wrapper py-5">
     <div class="container">
+        <!-- Flash Alert Messages -->
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show rounded-4 mb-4" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger alert-dismissible fade show rounded-4 mb-4" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         <!-- Hero Header -->
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
             <div>
@@ -296,6 +339,67 @@
                     </div>
                 @endfor
             </div>
+        </div>
+
+        <!-- Customer Voucher Wallet Section (Commit 3.2) -->
+        <div class="mb-5">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <h3 class="fw-bold mb-1 text-white"><i class="bi bi-ticket-perforated-fill text-warning me-2"></i>Kho Voucher Cá Nhân</h3>
+                    <p class="small mb-0" style="color: #cbd5e1 !important;">Mã giảm giá và ưu đãi độc quyền sẵn sàng sử dụng khi mua vé</p>
+                </div>
+            </div>
+
+            @if(isset($vouchers) && $vouchers->isNotEmpty())
+                <div class="row g-3">
+                    @foreach($vouchers as $v)
+                        <div class="col-md-6 col-lg-4">
+                            <div class="voucher-card h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <span class="voucher-code-pill">{{ $v->code }}</span>
+                                        @if($v->status_state === 'AVAILABLE')
+                                            @if(!is_null($v->days_remaining) && $v->days_remaining <= 3)
+                                                <span class="badge bg-danger">🔥 Sắp hết hạn (Còn {{ $v->days_remaining }} ngày)</span>
+                                            @else
+                                                <span class="badge bg-success">Chưa dùng</span>
+                                            @endif
+                                        @elseif($v->status_state === 'USED')
+                                            <span class="badge bg-secondary">Đã sử dụng</span>
+                                        @else
+                                            <span class="badge bg-danger">Hết hạn</span>
+                                        @endif
+                                    </div>
+
+                                    <h5 class="fw-bold text-white mb-2">
+                                        @if($v->discount_type === 'percent')
+                                            Giảm {{ number_format($v->discount_value, 0) }}% tổng hóa đơn
+                                        @else
+                                            Giảm {{ number_format($v->discount_value, 0) }}đ khi mua vé
+                                        @endif
+                                    </h5>
+
+                                    <p class="small mb-2" style="color: #cbd5e1 !important;">
+                                        Áp dụng cho đơn từ {{ number_format($v->min_order_amount ?? 0) }}đ
+                                    </p>
+                                </div>
+
+                                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                                    <span class="small" style="color: #94a3b8 !important;">
+                                        <i class="bi bi-clock me-1"></i> HSD: {{ $v->end_date ? $v->end_date->format('d/m/Y') : 'Vô thời hạn' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="membership-box text-center py-5">
+                    <i class="bi bi-ticket-perforated fs-1 text-white-50 d-block mb-3"></i>
+                    <h5 class="fw-bold text-white">Bạn chưa có Voucher nào trong kho</h5>
+                    <p class="small mb-0" style="color: #cbd5e1 !important;">Theo dõi các chương trình khuyến mãi của MovieZone để nhận ưu đãi nhé!</p>
+                </div>
+            @endif
         </div>
 
         <!-- Tiers & Perks List (Commit 2.3) -->
