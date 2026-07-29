@@ -67,19 +67,33 @@
                 </div>
             </div>
 
-            {{-- 2. Ghế đã đặt --}}
-            @if($booking->bookingSeats && $booking->bookingSeats->isNotEmpty())
+            {{-- chi tiết booking --}}
+            @if($booking->tickets && $booking->tickets->isNotEmpty())
                 <div class="detail-divider"></div>
                 <div class="detail-section">
-                    <div class="detail-section-title"><i class="bi bi-grid-3x3-gap"></i> Ghế đã đặt ({{ $booking->bookingSeats->count() }})</div>
-                    <div class="seat-list">
-                        @foreach($booking->bookingSeats as $seat)
-                            @php 
-                                $typeLabel = $seat->seat_type === 'VIP' ? '👑 VIP' : ($seat->seat_type === 'COUPLE' ? '💕 Couple' : '🎬 Thường');
-                            @endphp
-                            <div class="seat-badge">
-                                <span class="seat-code">{{ $seat->seat_code }}</span>
-                                <span class="seat-price">{{ $typeLabel }} — {{ number_format($seat->price) }} VNĐ</span>
+                    <div class="detail-section-title"><i class="bi bi-qr-code-scan"></i> Danh sách vé điện tử ({{ $booking->tickets->count() }})</div>
+                    <div class="ticket-list-wrapper">
+                        @foreach($booking->tickets as $ticket)
+                            <div class="ticket-status-item">
+                                <div class="ticket-info-left">
+                                    <div class="ticket-code-label">Mã vé: <strong>{{ $ticket->ticket_code }}</strong></div>
+                                    <div class="ticket-seat-label">Ghế: <span class="seat-highlight">{{ $ticket->bookingSeat->seat_code ?? 'N/A' }}</span></div>
+                                    @if($ticket->status === 'USED' && $ticket->checked_in_at)
+                                        <div class="ticket-checkin-info">
+                                            <i class="bi bi-check-square-fill text-success"></i> Check-in: 
+                                            {{ \Carbon\Carbon::parse($ticket->checked_in_at)->format('H:i:s d/m/Y') }}
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="ticket-info-right">
+                                    @if($ticket->status === 'USED')
+                                        <span class="badge-status-ticket used"><i class="bi bi-check-circle-fill"></i> Đã sử dụng</span>
+                                    @elseif($ticket->status === 'UNUSED')
+                                        <span class="badge-status-ticket unused"><i class="bi bi-ticket-perforated-fill"></i> Chưa sử dụng</span>
+                                    @else
+                                        <span class="badge-status-ticket cancelled"><i class="bi bi-x-circle-fill"></i> Đã hủy</span>
+                                    @endif
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -349,6 +363,90 @@ body {
 .combo-item .combo-qty {
     color: #94a3b8;
     font-size: 13px;
+}
+.ticket-list-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ticket-status-item {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.ticket-status-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.ticket-info-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ticket-code-label {
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+.ticket-code-label strong {
+    color: #ffffff;
+}
+
+.ticket-seat-label {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.seat-highlight {
+    color: #38bdf8;
+    font-weight: 600;
+}
+
+.badge-status-ticket {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.badge-status-ticket.unused {
+    background-color: rgba(46, 204, 113, 0.15);
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.badge-status-ticket.used {
+    background-color: rgba(241, 196, 15, 0.15);
+    color: #f1c40f;
+    border: 1px solid rgba(241, 196, 15, 0.3);
+}
+
+.badge-status-ticket.cancelled {
+    background-color: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.ticket-checkin-info {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 @media(max-width: 768px) {

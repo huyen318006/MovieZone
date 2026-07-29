@@ -34,6 +34,7 @@
                     <th>Tổng tiền</th>
                     <th>Trạng thái đặt</th>
                     <th>Thanh toán</th>
+                    <th>Trạng thái vé</th>
                     <th style="text-align: center;">Hành động</th>
                 </tr>
             </thead>
@@ -117,6 +118,28 @@
                         @endswitch
                     </td>
 
+                    {{-- trạng thái vé check-in --}}
+                    <td>
+                        @php
+                            // Tổng số vé và số vé đã sử dụng trong đơn
+                            $totalTickets = $booking->tickets->count();
+                            $usedTickets = $booking->tickets->where('status', 'USED')->count();
+                        @endphp
+                        @if($booking->status == 'PAID')
+                            @if($totalTickets > 0 && $usedTickets == $totalTickets)
+                                <span class="status-badge status-pending">Đã dùng ({{ $usedTickets }}/{{ $totalTickets }})</span>
+                            @elseif($usedTickets > 0)
+                                <span class="status-badge status-pending">Đã dùng {{ $usedTickets }}/{{ $totalTickets }} vé</span>
+                            @else
+                                <span class="status-badge status-paid">Chưa sử dụng (0/{{ $totalTickets }})</span>
+                            @endif
+                        @elseif($booking->status == 'CANCELLED')
+                            <span class="status-badge status-cancelled">Đã hủy</span>
+                        @else
+                            <span class="status-badge status-expired">Chưa xuất vé</span>
+                        @endif
+                    </td>
+
                     {{-- Hành động chuyển hướng sang trang chi tiết --}}
                     <td style="text-align: center;">
                         <a href="{{ route('my-tickets.show', $booking->id) }}" class="btn-detail-custom" style="text-decoration: none;">
@@ -126,7 +149,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="8" class="empty-row">
+                    <td colspan="9" class="empty-row">
                         <i class="bi bi-inbox" style="font-size: 24px; display: block; margin-bottom: 8px;"></i>
                         Chưa có giao dịch nào được thực hiện
                     </td>

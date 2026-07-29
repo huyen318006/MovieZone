@@ -12,7 +12,7 @@
             <span>Hồ sơ cá nhân</span>
         </a>
 
-        <a href="{{ route('tickets') }}" class="action-btn action-btn-secondary">
+        <a href="{{ route('my-tickets.index') }}" class="action-btn action-btn-secondary">
             <i class="bi bi-receipt-cutoff"></i>
             <span>Lịch sử giao dịch</span>
         </a>
@@ -30,7 +30,7 @@
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
-    
+
     @if($errors->any())
         <div class="alert alert-danger">
             @foreach ($errors->all() as $error)
@@ -38,7 +38,7 @@
             @endforeach
         </div>
     @endif
-    
+
     <form action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
         @csrf
         <div class="form-group">
@@ -116,7 +116,7 @@
     // Khởi tạo ban đầu hiển thị mắt đóng (mật khẩu đang ẩn)
     document.querySelectorAll('.toggle-password').forEach(span => {
         span.innerHTML = eyeCloseIcon;
-        
+
         span.addEventListener('click', function() {
             const input = this.parentElement.querySelector('input');
             if (input.type === 'password') {
@@ -137,15 +137,15 @@
     margin: 150px auto 0px auto;
     font-family: 'Inter', sans-serif;
     max-width: 650px;
-    background: #18181b; 
-    color: #f4f4f5; 
+    background: #18181b;
+    color: #f4f4f5;
     padding: 40px;
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 1px solid #27272a; 
+    border: 1px solid #27272a;
 }
 
-.profile-container h2, 
+.profile-container h2,
 .profile-container h3 {
     font-weight: 600;
     letter-spacing: -0.5px;
@@ -156,7 +156,7 @@
     color: #ffffff;
     font-size: 24px;
     margin-bottom: 25px;
-    border-left: 4px solid #3b82f6; 
+    border-left: 4px solid #3b82f6;
     padding-left: 12px;
 }
 
@@ -177,7 +177,7 @@
     height: 130px;
     border-radius: 50%;
     object-fit: cover;
-    border: 3px solid #2563eb; 
+    border: 3px solid #2563eb;
     box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
     transition: transform 0.3s ease;
 }
@@ -195,7 +195,7 @@
     margin-bottom: 8px;
     font-size: 14px;
     font-weight: 500;
-    color: #94a3b8; 
+    color: #94a3b8;
 }
 
 .profile-container input[type="text"],
@@ -203,7 +203,7 @@
 .profile-container input[type="password"] {
     width: 100%;
     padding: 12px 16px;
-    background: #1e293b; 
+    background: #1e293b;
     border: 1px solid #3f3f46;
     border-radius: 8px;
     color: #ffffff;
@@ -214,7 +214,7 @@
 
 .profile-container input:focus {
     outline: none;
-    border-color: #3b82f6; 
+    border-color: #3b82f6;
     background: #202023;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
@@ -240,7 +240,7 @@
 
 .btn-submit {
     width: 100%;
-    background: #2563eb; 
+    background: #2563eb;
     color: #ffffff;
     border: none;
     padding: 14px 20px;
@@ -292,13 +292,13 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    color: #64748b; 
+    color: #64748b;
     transition: color 0.2s;
     user-select: none;
 }
 
 .toggle-password:hover {
-    color: #f4f4f5; 
+    color: #f4f4f5;
 }
 
 .toggle-password svg {
@@ -324,11 +324,11 @@
     border: 1px solid rgba(239, 68, 68, 0.2);
 }
 .action-btn {
-    text-decoration: none !important; 
-    color: #ffffff !important;       
+    text-decoration: none !important;
+    color: #ffffff !important;
 }
 .action-btn i .action-btn span{
-    color: inherit; 
+    color: inherit;
     text-decoration: none;
 }
 .action-btn i{
@@ -337,7 +337,7 @@
 .profile-actions{
     display: flex;
     justify-content: space-between;
-    align-items: center;            
+    align-items: center;
     width: 100%;
 }
 </style>

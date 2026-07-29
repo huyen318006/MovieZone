@@ -48,7 +48,7 @@
                     <span>{{ Auth::user()->name }}</span>
                 </div>
                 <div class="dropdown-content">
-                    <a href="profile" class="dropdown-item">
+                    <a href="{{ route('profile') }}" class="dropdown-item">
                         <i class="bi bi-person"></i>
                         <span>Xem hồ sơ</span>
                     </a>
