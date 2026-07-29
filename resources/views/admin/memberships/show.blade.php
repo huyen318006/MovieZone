@@ -26,7 +26,7 @@
             </h3>
             <p class="text-muted small mb-0">Xem thông tin hạng, số dư coin và nhật ký giao dịch mua vé của khách hàng</p>
         </div>
-        <a href="{{ route('admin.memberships.index') }}" class="btn btn-outline-light rounded-pill px-4">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.index') }}" class="btn btn-outline-light rounded-pill px-4">
             <i class="bi bi-arrow-left me-1"></i> Quay lại danh sách
         </a>
     </div>
@@ -291,8 +291,9 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('admin.memberships.adjust_coin', $customer->id) }}" method="POST">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.adjust_coin', $customer->id) }}" method="POST">
                 @csrf
+                <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label text-muted small fw-bold">Loại hành động</label>

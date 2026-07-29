@@ -204,10 +204,10 @@
                 <p class="mb-0" style="color: #cbd5e1 !important;">Quản lý hạng thành viên, theo dõi tích điểm và hưởng ưu đãi độc quyền</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ route('membership.history') }}" class="btn btn-outline-warning rounded-pill px-4 fw-bold">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('membership.history') }}" class="btn btn-outline-warning rounded-pill px-4 fw-bold">
                     <i class="bi bi-clock-history me-1"></i> Lịch sử Coin
                 </a>
-                <a href="{{ route('profile') }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('profile') }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
                     <i class="bi bi-person me-1"></i> Hồ sơ
                 </a>
             </div>
@@ -278,8 +278,12 @@
                             </p>
                         @endif
 
+                        <div class="d-flex justify-content-between align-items-center mb-1 small fw-bold">
+                            <span class="text-white-50">Tiến độ thăng hạng:</span>
+                            <span class="text-warning fw-bold">{{ $progress }}%</span>
+                        </div>
                         <div class="custom-progress-bar mb-2">
-                            <div class="custom-progress-fill" style="width: {{ $progress }}%;"></div>
+                            <div class="custom-progress-fill" style="width: {{ max(4, $progress) }}%;"></div>
                         </div>
                     </div>
 
@@ -301,8 +305,9 @@
 
                 <div>
                     @if(!$checkedToday)
-                        <form action="{{ route('coin.checkin', $user->id) }}" method="POST">
+                        <form action="{{ \App\Helpers\TabAuthHelper::route('coin.checkin', $user->id) }}" method="POST">
                             @csrf
+                            <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
                             <input type="hidden" name="reward_coin" value="{{ $todayReward }}">
                             <input type="hidden" name="todayStep" value="{{ $todayStep }}">
                             <input type="hidden" name="checkin_date" value="{{ date('Y-m-d') }}">
@@ -395,7 +400,7 @@
                                     </span>
 
                                     @if($v->status_state === 'AVAILABLE')
-                                        <a href="{{ route('showtimes') }}" class="btn btn-sm btn-warning rounded-pill px-3 fw-bold">
+                                        <a href="{{ \App\Helpers\TabAuthHelper::route('showtimes') }}" class="btn btn-sm btn-warning rounded-pill px-3 fw-bold">
                                             Dùng ngay <i class="bi bi-arrow-right-short me-0"></i>
                                         </a>
                                     @elseif($v->status_state === 'USED')

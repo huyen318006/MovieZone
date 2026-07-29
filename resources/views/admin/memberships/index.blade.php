@@ -25,8 +25,9 @@
             <p class="text-muted small mb-0">Danh sách tài khoản khách hàng, mốc hạng thành viên, số dư Coin và tổng chi tiêu</p>
         </div>
         <div>
-            <form action="{{ route('admin.memberships.scan_expired') }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn quét kiểm tra và hạ hạng các tài khoản quá hạn duy trì 6 tháng không?')">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.scan_expired') }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn quét kiểm tra và hạ hạng các tài khoản quá hạn duy trì 6 tháng không?')">
                 @csrf
+                <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
                 <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm">
                     <i class="bi bi-arrow-repeat me-1"></i> ⚡ Quét Hạ Hạng Tự Động (6 Tháng)
                 </button>
@@ -37,7 +38,8 @@
     <!-- Filter Card -->
     <div class="card bg-dark text-white border-secondary mb-4 shadow-sm">
         <div class="card-body">
-            <form action="{{ route('admin.memberships.index') }}" method="GET" class="row g-3 align-items-center">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.index') }}" method="GET" class="row g-3 align-items-center">
+                <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
                 <div class="col-md-5">
                     <div class="input-group">
                         <span class="input-group-text bg-secondary text-white border-secondary"><i class="bi bi-search"></i></span>
@@ -61,7 +63,7 @@
                         <i class="bi bi-funnel-fill me-1"></i> Lọc dữ liệu
                     </button>
                     @if(!empty($search) || !empty($levelId))
-                        <a href="{{ route('admin.memberships.index') }}" class="btn btn-outline-light" title="Đặt lại bộ lọc">
+                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.index') }}" class="btn btn-outline-light" title="Đặt lại bộ lọc">
                             <i class="bi bi-arrow-counterclockwise"></i>
                         </a>
                     @endif
@@ -130,7 +132,7 @@
                                         <span class="small text-muted">{{ $cust->created_at ? $cust->created_at->format('d/m/Y') : 'N/A' }}</span>
                                     </td>
                                     <td class="text-end pe-4">
-                                        <a href="{{ route('admin.memberships.show', $cust->id) }}" class="btn btn-sm btn-outline-info rounded-pill px-3">
+                                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.show', $cust->id) }}" class="btn btn-sm btn-outline-info rounded-pill px-3">
                                             <i class="bi bi-eye me-1"></i> Chi tiết
                                         </a>
                                     </td>

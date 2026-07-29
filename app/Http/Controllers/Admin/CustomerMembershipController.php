@@ -71,7 +71,8 @@ class CustomerMembershipController extends Controller
         $bookings = Booking::where('user_id', $customer->id)
             ->where('status', 'PAID')
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         // Lịch sử biến động Coin (Lịch sử tích/trừ điểm)
         $pointTransactions = PointTransaction::where('user_id', $customer->id)
@@ -108,7 +109,8 @@ class CustomerMembershipController extends Controller
 
         try {
             $customer = User::findOrFail($id);
-            $adminUserId = Auth::id();
+            $adminUser = \App\Helpers\TabAuthHelper::currentUser() ?? Auth::user();
+            $adminUserId = $adminUser ? $adminUser->id : Auth::id();
 
             $membershipService->adjustCoinManually(
                 $customer,

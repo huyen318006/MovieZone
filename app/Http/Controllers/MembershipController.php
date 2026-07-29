@@ -16,7 +16,7 @@ class MembershipController extends Controller
 {
     public function index(MembershipService $membershipService)
     {
-        $user = Auth::user();
+        $user = \App\Helpers\TabAuthHelper::currentUser() ?? Auth::user();
         $userMembership = $membershipService->ensureMembership($user);
 
         // Nạp thông tin level hiện tại và balance coin
@@ -66,11 +66,9 @@ class MembershipController extends Controller
         $nextLevel = $levels->where('min_points', '>', $coins)->first();
 
         // Tính số coin còn thiếu và phần trăm tiến độ
-        if ($nextLevel) {
-            $pointsNeeded = $nextLevel->min_points - $coins;
-            $prevMinPoints = $currentLevel ? $currentLevel->min_points : 0;
-            $range = max(1, $nextLevel->min_points - $prevMinPoints);
-            $progress = min(100, max(0, round((($coins - $prevMinPoints) / $range) * 100)));
+        if ($nextLevel && $nextLevel->min_points > 0) {
+            $pointsNeeded = max(0, $nextLevel->min_points - $coins);
+            $progress = min(100, max(0, round(($coins / $nextLevel->min_points) * 100)));
         } else {
             $pointsNeeded = 0;
             $progress = 100;
@@ -102,12 +100,13 @@ class MembershipController extends Controller
      */
     public function history()
     {
-        $user = Auth::user();
+        $user = \App\Helpers\TabAuthHelper::currentUser() ?? Auth::user();
 
         $transactions = PointTransaction::with('booking')
             ->where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return view('membership.history', compact('user', 'transactions'));
     }

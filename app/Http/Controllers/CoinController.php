@@ -59,7 +59,7 @@ class CoinController extends Controller
 
     public function checkin(Request $request, $id)
     {
-        $user = $request->user();
+        $user = \App\Helpers\TabAuthHelper::currentUser() ?? $request->user() ?? Auth::user();
         if (!$user || $user->id != (int) $id) {
             abort(403);
         }
@@ -107,7 +107,7 @@ class CoinController extends Controller
 
         //ghi lại audit
         DB::table('audit_logs')->insert([
-            'user_id'     => auth()->id(),
+            'user_id'     => $user->id,
             'action'      => 'checkin_daily',
             'entity_name' => 'users',
             'entity_id'   => $id,
