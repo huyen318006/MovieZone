@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\UserMembership;
 use App\Services\MembershipService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CustomerMembershipController extends Controller
 {
@@ -77,5 +78,45 @@ class CustomerMembershipController extends Controller
             ->get();
 
         return view('admin.memberships.show', compact('customer', 'bookings', 'pointTransactions'));
+    }
+
+    /**
+     * Admin điều chỉnh Coin thủ công cho khách hàng
+     */
+    public function adjustCoin(Request $request, $id, MembershipService $membershipService)
+    {
+        $request->validate([
+            'action_type' => 'required|in:ADD,DEDUCT',
+            'amount'      => 'required|integer|min:1',
+            'reason'      => 'required|string|max:255',
+        ], [
+            'action_type.required' => 'Vui lòng chọn loại điều chỉnh (Cộng hoặc Trừ).',
+            'action_type.in'       => 'Loại điều chỉnh không hợp lệ.',
+            'amount.required'      => 'Vui lòng nhập số Coin.',
+            'amount.integer'       => 'Số Coin phải là số nguyên.',
+            'amount.min'           => 'Số Coin phải lớn hơn 0.',
+            'reason.required'      => 'Vui lòng nhập lý do điều chỉnh bắt buộc.',
+            'reason.max'           => 'Lý do tối đa 255 ký tự.',
+        ]);
+
+        try {
+            $customer = User::findOrFail($id);
+            $adminUserId = Auth::id();
+
+            $membershipService->adjustCoinManually(
+                $customer,
+                (int) $request->amount,
+                $request->action_type,
+                $request->reason,
+                $adminUserId
+            );
+
+            $actionText = ($request->action_type === 'ADD') ? 'Cộng' : 'Trừ';
+            return redirect()->back()->with('success', "Đã {$actionText} " . number_format($request->amount) . " Coin cho khách hàng thành công!");
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
     }
 }

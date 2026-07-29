@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\Coin;
 use App\Models\MembershipLevel;
@@ -42,6 +43,57 @@ class MembershipService
                 'updated_at' => now(),
             ]
         );
+    }
+
+    /**
+     * Admin điều chỉnh Coin thủ công (Cộng / Trừ) kèm lý do và ghi nhận Audit Log.
+     */
+    public function adjustCoinManually(User $targetUser, int $amount, string $actionType, string $reason, int $adminUserId): PointTransaction
+    {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Số Coin điều chỉnh phải lớn hơn 0.');
+        }
+
+        $coin = Coin::firstOrCreate(['user_id' => $targetUser->id], ['balance' => 0]);
+        $oldBalance = $coin->balance;
+
+        if ($actionType === 'DEDUCT' && $amount > $oldBalance) {
+            throw new \InvalidArgumentException("Số Coin muốn trừ (" . number_format($amount) . ") vượt quá số dư hiện tại (" . number_format($oldBalance) . ") của khách hàng.");
+        }
+
+        $delta = ($actionType === 'ADD') ? $amount : -$amount;
+        $newBalance = $oldBalance + $delta;
+
+        return DB::transaction(function () use ($targetUser, $coin, $oldBalance, $newBalance, $delta, $actionType, $amount, $reason, $adminUserId) {
+            // 1. Cập nhật số dư Coin
+            $coin->balance = $newBalance;
+            $coin->save();
+
+            // 2. Ghi nhật ký PointTransaction
+            $transaction = PointTransaction::create([
+                'user_id'    => $targetUser->id,
+                'booking_id' => null,
+                'points'     => $delta,
+                'type'       => 'ADJUST',
+                'created_at' => now(),
+            ]);
+
+            // 3. Ghi Audit Log cho hệ thống Admin
+            AuditLog::create([
+                'user_id'     => $adminUserId,
+                'action'      => 'ADJUST_COIN',
+                'entity_name' => 'UserCoin',
+                'entity_id'   => $targetUser->id,
+                'old_value'   => (string) $oldBalance,
+                'new_value'   => (string) $newBalance . " (Lý do: {$reason})",
+                'created_at'  => now(),
+            ]);
+
+            // 4. Tính toán lại Hạng của khách hàng
+            $this->recalculateLevel($targetUser->id, "Admin điều chỉnh Coin thủ công ({$actionType} {$amount} Coin). Lý do: {$reason}");
+
+            return $transaction;
+        });
     }
 
     /**

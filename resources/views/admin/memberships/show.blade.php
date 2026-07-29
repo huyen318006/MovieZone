@@ -50,12 +50,12 @@
                     <div class="row g-3 pt-3 border-top border-secondary small">
                         <div class="col-6">
                             <span class="text-muted d-block mb-1">Ngày đăng ký</span>
-                            <strong class="text-white">{{ $customer->created_at ? $customer->created_at->format('d/m/Y') : 'N/A' }}</strong>
+                            <strong class="text-white">{{ $customer->created_at ? \Illuminate\Support\Carbon::parse($customer->created_at)->format('d/m/Y') : 'N/A' }}</strong>
                         </div>
                         <div class="col-6">
                             <span class="text-muted d-block mb-1">Hạn duy trì hạng</span>
                             @if(!empty($customer->membership?->level_expired_at))
-                                <strong class="text-info">{{ $customer->membership->level_expired_at->format('d/m/Y') }}</strong>
+                                <strong class="text-info">{{ \Illuminate\Support\Carbon::parse($customer->membership->level_expired_at)->format('d/m/Y') }}</strong>
                             @else
                                 <strong class="text-white">Thành viên chính thức</strong>
                             @endif
@@ -132,7 +132,13 @@
                                         <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i> Đã thanh toán</span>
                                     </td>
                                     <td class="small text-muted">
-                                        {{ $b->paid_at ? $b->paid_at->format('H:i - d/m/Y') : ($b->created_at ? $b->created_at->format('H:i - d/m/Y') : 'N/A') }}
+                                        @if(!empty($b->paid_at))
+                                            {{ \Illuminate\Support\Carbon::parse($b->paid_at)->format('H:i - d/m/Y') }}
+                                        @elseif(!empty($b->created_at))
+                                            {{ \Illuminate\Support\Carbon::parse($b->created_at)->format('H:i - d/m/Y') }}
+                                        @else
+                                            N/A
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
