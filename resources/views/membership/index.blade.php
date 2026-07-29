@@ -341,7 +341,7 @@
             </div>
         </div>
 
-        <!-- Customer Voucher Wallet Section (Commit 3.2) -->
+        <!-- Customer Voucher Wallet Section (Commit 3.2 & 3.3) -->
         <div class="mb-5">
             <div class="d-flex align-items-center justify-content-between mb-4">
                 <div>
@@ -384,10 +384,20 @@
                                     </p>
                                 </div>
 
-                                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between">
+                                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex align-items-center justify-content-between gap-2">
                                     <span class="small" style="color: #94a3b8 !important;">
                                         <i class="bi bi-clock me-1"></i> HSD: {{ $v->end_date ? $v->end_date->format('d/m/Y') : 'Vô thời hạn' }}
                                     </span>
+
+                                    @if($v->status_state === 'AVAILABLE')
+                                        <a href="{{ route('showtimes') }}" class="btn btn-sm btn-warning rounded-pill px-3 fw-bold">
+                                            Dùng ngay <i class="bi bi-arrow-right-short me-0"></i>
+                                        </a>
+                                    @elseif($v->status_state === 'USED')
+                                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" disabled>Đã dùng</button>
+                                    @else
+                                        <button class="btn btn-sm btn-outline-danger rounded-pill px-3" disabled>Đã hết hạn</button>
+                                    @endif
                                 </div>
                             </div>
                         </div>
