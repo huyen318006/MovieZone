@@ -203,9 +203,14 @@
                 <h1 class="fw-bold mb-1 text-white"><i class="bi bi-shield-check text-warning me-2"></i>Thành Viên MovieZone</h1>
                 <p class="mb-0" style="color: #cbd5e1 !important;">Quản lý hạng thành viên, theo dõi tích điểm và hưởng ưu đãi độc quyền</p>
             </div>
-            <a href="{{ route('profile') }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
-                <i class="bi bi-person me-1"></i> Hồ sơ
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('membership.history') }}" class="btn btn-outline-warning rounded-pill px-4 fw-bold">
+                    <i class="bi bi-clock-history me-1"></i> Lịch sử Coin
+                </a>
+                <a href="{{ route('profile') }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
+                    <i class="bi bi-person me-1"></i> Hồ sơ
+                </a>
+            </div>
         </div>
 
         @php
