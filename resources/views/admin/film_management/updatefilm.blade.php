@@ -4,7 +4,7 @@
 
 @section('content')
 
-    <form method="POST" action="{{ route('update.film', $movie_id->id) }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('update.film', ['id' => $movie_id->id]) }}" enctype="multipart/form-data">
 
         @csrf
 
@@ -376,7 +376,7 @@
 
         {{-- ACTIONS --}}
         <div class="d-flex justify-content-end gap-2 mt-4">
-            <a href="{{ route('admin.film') }}" class="btn btn-outline-secondary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.film') }}" class="btn btn-outline-secondary">
                 Quay lại
             </a>
             <button type="submit" class="btn btn-primary">
@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = true;
 
         try {
-            const res = await fetch("{{ route('admin.movies.check-slots') }}", {
+            const res = await fetch("{{ \App\Helpers\TabAuthHelper::route('admin.movies.check-slots') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

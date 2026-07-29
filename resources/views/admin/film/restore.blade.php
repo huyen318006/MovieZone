@@ -45,13 +45,13 @@
                     </div>
                 </div>
 
-                <form action="{{ route('confirm.recovery', $movie->id) }}" method="POST">
+                <form action="{{ \App\Helpers\TabAuthHelper::route('confirm.recovery', ['id' => $movie->id]) }}" method="POST">
                     @csrf
                     @method('POST')
                     <input type="hidden" name="toggle_action" value="resume">
 
                     <div class="d-flex gap-2 justify-content-end">
-                        <a href="{{ route('admin.film') }}" class="btn btn-outline-secondary">
+                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.film') }}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> Quay lại
                         </a>
                         <button type="submit" class="btn btn-success">

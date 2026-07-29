@@ -4,7 +4,8 @@
 @section('page-title', 'Staff Dashboard')
 
 @section('topbar-actions')
-<form method="GET" action="{{ route('staff.dashboard') }}" class="d-flex flex-wrap align-items-center gap-2">
+<form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('staff.dashboard') }}" class="d-flex flex-wrap align-items-center gap-2">
+    <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
     <input type="date"
            name="start_date"
            value="{{ request('start_date', now()->toDateString()) }}"
@@ -21,13 +22,13 @@
     <button type="submit" class="btn btn-sm btn-outline-light">
         <i class="bi bi-funnel me-1"></i> Lọc
     </button>
-    <a href="{{ route('staff.dashboard') }}" class="btn btn-sm btn-outline-light" title="Hôm nay">
+    <a href="{{ \App\Helpers\TabAuthHelper::route('staff.dashboard') }}" class="btn btn-sm btn-outline-light" title="Hôm nay">
         Hôm nay
     </a>
-    <a href="{{ route('staff.dashboard', ['start_date' => now()->subDays(6)->format('Y-m-d'), 'end_date' => now()->format('Y-m-d')]) }}" class="btn btn-sm btn-outline-light">
+    <a href="{{ \App\Helpers\TabAuthHelper::route('staff.dashboard', ['start_date' => now()->subDays(6)->format('Y-m-d'), 'end_date' => now()->format('Y-m-d')]) }}" class="btn btn-sm btn-outline-light">
         7 ngày
     </a>
-    <a href="{{ route('staff.dashboard', ['start_date' => now()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->endOfMonth()->format('Y-m-d')]) }}" class="btn btn-sm btn-outline-light">
+    <a href="{{ \App\Helpers\TabAuthHelper::route('staff.dashboard', ['start_date' => now()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->endOfMonth()->format('Y-m-d')]) }}" class="btn btn-sm btn-outline-light">
         Tháng này
     </a>
 </form>
@@ -395,7 +396,7 @@
 </div>
 
 <div class="staff-quick-grid">
-    <a class="staff-quick-card" href="{{ route('staff.check-in') }}">
+    <a class="staff-quick-card" href="{{ \App\Helpers\TabAuthHelper::route('staff.check-in') }}">
         <div class="quick-icon"><i class="bi bi-qr-code-scan"></i></div>
         <div>
             <strong>Check-in vé</strong>
@@ -403,7 +404,7 @@
         </div>
     </a>
 
-    <a class="staff-quick-card" href="{{ route('staff.booking-lookup') }}">
+    <a class="staff-quick-card" href="{{ \App\Helpers\TabAuthHelper::route('staff.booking-lookup') }}">
         <div class="quick-icon"><i class="bi bi-search"></i></div>
         <div>
             <strong>Tra cứu Booking/Vé</strong>
@@ -411,7 +412,7 @@
         </div>
     </a>
 
-    <a class="staff-quick-card" href="{{ route('staff.issue-support') }}">
+    <a class="staff-quick-card" href="{{ \App\Helpers\TabAuthHelper::route('staff.issue-support') }}">
         <div class="quick-icon"><i class="bi bi-life-preserver"></i></div>
         <div>
             <strong>Hỗ trợ sự cố</strong>
@@ -424,7 +425,7 @@
     <section class="staff-panel">
         <div class="staff-panel-header">
             <h2><i class="bi bi-clock-history me-2"></i>Check-in gần đây</h2>
-            <a class="staff-panel-link" href="{{ route('staff.check-in') }}">Mở check-in</a>
+            <a class="staff-panel-link" href="{{ \App\Helpers\TabAuthHelper::route('staff.check-in') }}">Mở check-in</a>
         </div>
 
         <div class="staff-panel-list">
@@ -435,7 +436,7 @@
                     $time = $item instanceof \App\Models\CheckInLog ? $item->created_at : $item->checked_in_at;
                     $staffName = $item instanceof \App\Models\CheckInLog ? $item->staff?->name : $item->checkedInByUser?->name;
                 @endphp
-                <a class="staff-list-item" href="{{ route('staff.booking-lookup') }}">
+                <a class="staff-list-item" href="{{ \App\Helpers\TabAuthHelper::route('staff.booking-lookup') }}">
                     <div class="staff-list-main">
                         <strong>{{ $ticket?->ticket_code ?? 'Vé không xác định' }}</strong>
                         <span>{{ $booking?->booking_code ?? 'Booking không xác định' }} · {{ $staffName ?? 'Staff' }}</span>
@@ -456,12 +457,12 @@
     <section class="staff-panel">
         <div class="staff-panel-header">
             <h2><i class="bi bi-cash-stack me-2"></i>Thanh toán tiền mặt gần đây</h2>
-            <a class="staff-panel-link" href="{{ route('staff.booking-lookup') }}">Tra cứu booking</a>
+            <a class="staff-panel-link" href="{{ \App\Helpers\TabAuthHelper::route('staff.booking-lookup') }}">Tra cứu booking</a>
         </div>
 
         <div class="staff-panel-list">
             @forelse ($recentCashPayments as $payment)
-                <a class="staff-list-item" href="{{ route('staff.booking-lookup') }}">
+                <a class="staff-list-item" href="{{ \App\Helpers\TabAuthHelper::route('staff.booking-lookup') }}">
                     <div class="staff-list-main">
                         <strong>{{ $payment->booking?->booking_code ?? 'Booking không xác định' }}</strong>
                         <span>{{ $payment->booking?->user?->name ?? 'Khách hàng' }} · {{ number_format($payment->amount) }}đ</span>

@@ -160,11 +160,26 @@ class StaffBookingService
 
         $seatMap = [];
 
-        // Đảm bảo roomSeats đã được sort như admin
+        //hiểu  đơn giản đoạn này chỉ là  dùng sortBy để sắp xếp theo ưu tiên bằng
+        // cái $s là từng phần tử trong mảng $roomSeats, và sắp xếp theo row_label trước, sau đó mới đến seat_number.
+        //khi chạy sortBy nó giống kiểu foreach ($roomSeat as $value) thì  cái $s chính là cái value đó
+        /* còn cái fn là 1 hàm ẩn danh  kiểu:
+                  function ($s) {
+                        return $s->row_label ?? '';
+                      }
+        */ // thì cái => ra chính là cái return đó
         $roomSeats = $roomSeats->sortBy([
+            //tiếp theo là tìm hiểu vì sao ưu tiên nhưng lại truyền 2 cái kiểm tra ưu tiên thì nó xếp kiểu gì?
+             /* ở đây theo thứ tự ví dụ: cái đầu ta có Hàng ghế(label) 'A,B,C,D'
+             lúc này cùng 1 hàng  như hàng A thì sẽ đến cái thứ 2 là xếp lần lượt  theo number như A1,A2,A3 */
             fn ($s) => $s->row_label ?? '',
             fn ($s) => $s->seat_number ?? 0,
-        ])->values();
+        ])->values(); /* tiếp theo trỏ value() là để xếp lại key của  tập hợp(colection) của $roomSeat;
+                        vì khi nó lấy tất cả ghế thì nó lấy lần lượt bảng key cx lần lượt 0,1,2...
+                         giả sử lộn xộn mà mình bên trên xếp lại  theo ưu tiên sortBy thì nó đc sắp xếp lại nhưng key vẫn không thay đổi
+                         ví dụ: trước đó key[1] ghế A2 và key[2] ghế A1 nhưng khi sortBy xếp lại thành Key[2] A1 rồi mới đến [key1] A2
+                                => ta có thể thấy là nó key vẫn đi theo mà ko lần lượt thì value() chính là xếp lại lần lượt key theo đúng tiêu chuẩn lần lượt 0,1,2,....
+                                */
 
         foreach ($roomSeats as $seat) {
             $row = $seat->row_label;

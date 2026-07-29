@@ -10,7 +10,7 @@
             <h3 class="mb-1">Thêm ghế mới</h3>
             <p class="text-muted mb-0">Cấu hình ghế cho phòng {{ $room->name }}</p>
         </div>
-        <a href="{{ route('admin.seats.index', ['room_id' => $room->id]) }}"
+        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.seats.index', ['room_id' => $room->id]) }}"
            class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i> Quay lại
         </a>
@@ -58,7 +58,7 @@
         </div>
 
         <div class="card-body">
-            <form action="{{ route('admin.seats.store') }}" method="POST">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.seats.store') }}" method="POST">
                 @csrf
                 <input type="hidden" name="room_id" value="{{ $room->id }}">
 
@@ -129,7 +129,7 @@
                         <i class="bi bi-check-lg me-1"></i> Lưu ghế
                     </button>
 
-                    <a href="{{ route('admin.seats.index', ['room_id' => $room->id]) }}"
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.seats.index', ['room_id' => $room->id]) }}"
                        class="btn btn-outline-secondary">
                         Hủy
                     </a>

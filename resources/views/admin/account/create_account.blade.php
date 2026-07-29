@@ -13,7 +13,7 @@
                 Tạo một tài khoản người dùng hoặc quản trị viên mới cho hệ thống
             </p>
         </div>
-        <a href="{{ route('admin.list_account') }}" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.list_account') }}" class="btn btn-outline-secondary rounded-pill px-4 shadow-sm">
             <i class="fas fa-arrow-left me-2"></i>Quay lại
         </a>
     </div>
@@ -54,7 +54,7 @@
         
         <div class="card-body p-4">
             <!-- Thay đổi action trỏ tới route xử lý submit form thực tế -->
-            <form action="{{ route('admin.account.store_account') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.account.store_account') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 
                 <div class="row g-4">

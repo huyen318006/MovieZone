@@ -19,7 +19,8 @@
 
         <div class="modern-search-card mb-4">
            <!-- #region -->
-            <form action="{{ route('staff.sell-tickets') }}" method="GET" class="d-flex align-items-center gap-2 p-2">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}" method="GET" class="d-flex align-items-center gap-2 p-2">
+                <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                 <input
                     type="text"
                     name="search"
@@ -85,7 +86,7 @@
                                             @endphp
                                             <div class="col-6 col-sm-4 col-md-3 col-lg-2">
                                                 <a
-                                                    href="{{ route('staff.sell-seat',$show['showtime_id']) }}"
+                                                    href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-seat', $show['showtime_id']) }}"
                                                     class="modern-showtime-card text-decoration-none"
                                                 >
                                                     <div class="modern-showtime-date">

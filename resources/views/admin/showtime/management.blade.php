@@ -34,11 +34,11 @@
         </div>
 
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('admin.showtime.add') }}" class="btn btn-primary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime.add') }}" class="btn btn-primary">
                 <i class="bi bi-plus-lg me-1"></i>
                 Tạo suất chiếu
             </a>
-            <a href="{{ route('admin.showtime') }}" class="btn btn-outline-secondary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-clockwise me-1"></i>
                 Làm mới
             </a>
@@ -96,7 +96,8 @@
         </div>
 
         <div class="card-body">
-            <form method="GET" action="{{ route('admin.showtime') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.showtime') }}" class="row g-3 align-items-end">
+                <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                 <div class="col-12 col-md-6 col-xl-3">
                     <label class="form-label">Phim</label>
                     <select name="movie" class="form-select">
@@ -141,7 +142,7 @@
                         <i class="bi bi-funnel me-1"></i>
                         Lọc danh sách
                     </button>
-                    <a href="{{ route('admin.showtime') }}" class="btn btn-outline-secondary">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime') }}" class="btn btn-outline-secondary">
                         <i class="bi bi-x-circle me-1"></i>
                         Xóa bộ lọc
                     </a>
@@ -201,7 +202,7 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2 flex-wrap">
-                                        <a href="{{ route('detail.showtime', $showtime->id) }}" class="btn btn-outline-info btn-sm">
+                                        <a href="{{ \App\Helpers\TabAuthHelper::route('detail.showtime', ['id' => $showtime->id]) }}" class="btn btn-outline-info btn-sm">
                                             <i class="bi bi-eye me-1"></i>
                                             Chi tiết
                                         </a>
@@ -225,7 +226,7 @@
                                         @endphp
 
                                         @if($canEdit)
-                                            <a href="{{ route('admin.view.update.showtime', $showtime->id) }}" class="btn btn-outline-primary btn-sm">
+                                            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.view.update.showtime', ['id' => $showtime->id]) }}" class="btn btn-outline-primary btn-sm">
                                                 <i class="bi bi-pencil me-1"></i>
                                                 Sửa
                                             </a>
@@ -249,7 +250,7 @@
                                         @endif
 
                                         @if($showtime->status !== 'CANCELLED')
-                                            <a href="{{ route('admin.showtime.confirm_cancel', $showtime->id) }}" class="btn btn-outline-warning btn-sm">
+                                            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime.confirm_cancel', ['id' => $showtime->id]) }}" class="btn btn-outline-warning btn-sm">
                                                 <i class="bi bi-x-circle me-1"></i>
                                                 Hủy
                                             </a>

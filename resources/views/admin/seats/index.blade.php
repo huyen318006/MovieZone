@@ -66,7 +66,7 @@
                 </div>
             </div>
             @if (request('room_id'))
-                <a href="{{ route('admin.seats.create', ['room_id' => request('room_id')]) }}" class="btn btn-primary">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.seats.create', ['room_id' => request('room_id')]) }}" class="btn btn-primary">
                     <i class="bi bi-plus-lg me-1"></i> Thêm ghế mới
                 </a>
             @endif
@@ -101,7 +101,8 @@
                     </div>
                 </div>
                 <div class="col-md-5">
-                    <form method="GET" action="{{ route('admin.seats.index') }}" id="showtimeFilterForm">
+                    <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.seats.index') }}" id="showtimeFilterForm">
+                        <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                         <input type="hidden" name="room_id" value="{{ request('room_id') }}">
                         <div class="panel panel-sm">
                             <div class="text-muted small">Suất chiếu</div>
@@ -385,7 +386,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                        <form id="bulkToggleForm" action="{{ route('admin.seats.toggle_lock_many') }}" method="POST" style="margin:0;">
+                        <form id="bulkToggleForm" action="{{ \App\Helpers\TabAuthHelper::route('admin.seats.toggle_lock_many') }}" method="POST" style="margin:0;">
                             @csrf
                             <div id="bulkToggleSeatIdsContainer"></div>
                             <button type="submit" class="btn btn-warning" id="bulkToggleSubmit" disabled>
@@ -411,7 +412,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                        <form id="bulkDeleteForm" action="{{ route('admin.seats.destroy_many') }}" method="POST">
+                        <form id="bulkDeleteForm" action="{{ \App\Helpers\TabAuthHelper::route('admin.seats.destroy_many') }}" method="POST">
                             @csrf
                             <button type="submit" class="btn btn-danger" id="bulkDeleteSubmit" disabled>Xác nhận
                                 xóa</button>
@@ -451,7 +452,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <form action="{{ route('admin.seats.store_batch') }}" method="POST">
+                        <form action="{{ \App\Helpers\TabAuthHelper::route('admin.seats.store_batch') }}" method="POST">
                             @csrf
                             <input type="hidden" name="room_id" value="{{ request('room_id') }}">
                             <div class="row g-3">
@@ -496,7 +497,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <form action="{{ route('admin.seats.bulk_update_type') }}" method="POST" id="bulkUpdateTypeForm">
+                        <form action="{{ \App\Helpers\TabAuthHelper::route('admin.seats.bulk_update_type') }}" method="POST" id="bulkUpdateTypeForm">
                             @csrf
                             <input type="hidden" name="room_id" value="{{ request('room_id') }}">
 

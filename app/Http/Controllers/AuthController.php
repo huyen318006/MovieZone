@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TabToken;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
+        // 1. Validate dữ liệu người dùng gửi lên
         $validated = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
@@ -24,37 +26,54 @@ class AuthController extends Controller
             'password.required' => 'Vui lòng nhập mật khẩu.',
         ]);
 
-        // Kiểm tra cả status ngay trong attempt
-        if (Auth::attempt([
+        //2. thử đăng nhập
+        $atttempt = Auth::attempt([
             'email'    => $request->email,
             'password' => $request->password,
-            'status'   => 'ACTIVE'           // ← Thêm dòng này
-        ])) {
-
-            $request->session()->regenerate();
-
-            $user = Auth::user();
-            $userRole = UserRole::where('user_id', $user->id)->first();
-
-            // Redirect theo role
-            if ($userRole && $userRole->role_id == 1) {
-                return redirect('/admin')
-                    ->with('success', 'Chào mừng admin trở lại hệ thống!');
-            }
-
-            if ($userRole && $userRole->role_id == 2) {
-                return redirect('/staff')
-                    ->with('success', 'Đăng nhập thành công với tư cách nhân viên!');
-            }
-
-            return redirect('/')
-                ->with('success', 'Đăng nhập thành công!');
+            'status'   => 'ACTIVE',
+        ]);
+        // 3. nếu đăng nhập thất bại
+        if(! $atttempt){
+            return back()->withErrors([
+                'email' => 'Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa.',
+            ])->onlyInput('email');
         }
 
-        // Nếu login thất bại (sai mật khẩu hoặc tài khoản bị khóa)
-        return back()->withErrors([
-            'email' => 'Thông tin đăng nhập không chính xác hoặc tài khoản đã bị khóa.',
-        ]);
+        // 4. nếu đăng nhập thành công thì lấy thông tin user
+        $user = Auth::user();
+
+        /*5.tạo token  ngẫu nhiên  (64 kí tự)
+        random_bytes(32) là bốc random 32 byte  nhị phân
+        sau đó bin2hex là phiên dịch số nhị phân đó thành ký tự hex (do bin2hex là hệ  2) => 32 byte sẽ thành 64 kí tự hex
+        */
+        $token = bin2hex(random_bytes(32));
+        //5. lưu token vào bảng tab_toke
+        TabToken::create(
+            [
+                'user_id' => $user->id,
+                'token'=> $token,
+                'last_used_at' => now(), //thời điểm tạo
+                'expires_at' => now()->addHours(24), // token có hiệu lực 24 giờ
+            ]
+        );
+
+
+        // 7.lấy role để quyết định chuyển hướng
+        $userRole = UserRole::where('user_id', $user->id)->first();
+        // 8. quyết định chuyển đến trang
+        $redirecPath = match($userRole?->role_id) {
+            1 => '/admin',
+            2 => '/staff',
+            3 => '/',
+            default => '/',
+        };
+        //logout đễ xóa session cũ tránh ở tab 2 nó lấy thông tin sesion cũ
+        Auth::logout();
+        
+        // 9. chuyển hướng redirect kèm với toke
+        //  đây là chỗ quan trọng  nhất: gán token vào url
+        return redirect($redirecPath.'?tab_token=' . $token)->with('success','Đăng nhập thành công !');
+
     }
     public function logout(Request $request)
     {

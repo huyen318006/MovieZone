@@ -27,7 +27,7 @@
         <h3 class="mb-1"><i class="bi bi-calendar-plus me-2"></i>Tạo suất chiếu</h3>
         <p class="text-muted mb-0">Tạo suất chiếu nhanh theo quy trình 3 bước — tự động quét lịch trống phòng chiếu.</p>
     </div>
-    <a href="{{ route('admin.showtime') }}" class="btn btn-outline-secondary">
+    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left me-1"></i>
         Quay lại
     </a>
@@ -60,7 +60,7 @@
 </div>
 
 {{-- ===== FORM CHÍNH ===== --}}
-<form action="{{ route('admin.store.showtime') }}" method="POST" id="showtimeForm">
+<form action="{{ \App\Helpers\TabAuthHelper::route('admin.store.showtime') }}" method="POST" id="showtimeForm">
     @csrf
 
     {{-- ============================================================
@@ -355,8 +355,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     // ===== VARIABLES =====
     const CSRF = '{{ csrf_token() }}';
-    const API_MOVIE_INFO = '{{ route("admin.showtime.api.movie_info") }}';
-    const API_AVAILABLE_SLOTS = '{{ route("admin.showtime.api.available_slots") }}';
+    const API_MOVIE_INFO = '{{ \App\Helpers\TabAuthHelper::route("admin.showtime.api.movie_info") }}';
+    const API_AVAILABLE_SLOTS = '{{ \App\Helpers\TabAuthHelper::route("admin.showtime.api.available_slots") }}';
 
     let currentStep = 1;
     let selectedMovie = null;

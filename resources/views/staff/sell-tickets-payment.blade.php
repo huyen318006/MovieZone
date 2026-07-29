@@ -5,50 +5,49 @@
 
 @section('content')
     <div class="staff-payment-wrapper">
-
-        <div class="payment-container">
-
-            {{-- LEFT: Thông tin đơn hàng --}}
-            <div class="payment-info-panel">
-                <div class="panel-header">
-                    <i class="fa-solid fa-ticket"></i>
-                    <h2>Chi Tiết Đơn Hàng</h2>
+        <div class="payment-shell">
+            <div class="payment-card payment-summary-card">
+                <div class="card-header">
+                    <div class="icon-badge"><i class="bi bi-ticket-perforated"></i></div>
+                    <div>
+                        <h2>Chi tiết đơn hàng</h2>
+                        <p>Mã đơn: {{ $order->order_code }}</p>
+                    </div>
                 </div>
 
-                <div class="order-badge">
-                    <i class="fa-solid fa-hashtag"></i>
+                <div class="order-chip">
+                    <i class="bi bi-hash"></i>
                     <span>{{ $order->order_code }}</span>
                 </div>
 
-                <div class="booking-detail-list">
+                <div class="detail-list">
                     <div class="detail-row">
-                        <span class="detail-label"><i class="fa-solid fa-film"></i> Phim</span>
+                        <span class="detail-label"><i class="bi bi-film"></i> Phim</span>
                         <span class="detail-value">{{ $order->getBookingInfo('movie_title') }}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label"><i class="fa-solid fa-door-open"></i> Phòng</span>
+                        <span class="detail-label"><i class="bi bi-door-open"></i> Phòng</span>
                         <span class="detail-value">{{ $order->getBookingInfo('room') }}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label"><i class="fa-solid fa-calendar"></i> Ngày</span>
+                        <span class="detail-label"><i class="bi bi-calendar3"></i> Ngày</span>
                         <span class="detail-value">{{ $order->getBookingInfo('show_date') }}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label"><i class="fa-solid fa-clock"></i> Suất</span>
+                        <span class="detail-label"><i class="bi bi-clock"></i> Suất</span>
                         <span class="detail-value">{{ $order->getBookingInfo('showtime') }}</span>
                     </div>
                     <div class="detail-row">
-                        <span class="detail-label"><i class="fa-solid fa-chair"></i> Ghế</span>
+                        <span class="detail-label"><i class="bi bi-chair"></i> Ghế</span>
                         <span class="detail-value">{{ $order->getSeatCodesFormatted() }}</span>
                     </div>
                 </div>
 
-                {{-- Thông tin khách hàng --}}
-                <div class="customer-info-box">
-                    <h4><i class="fa-solid fa-user"></i> Thông tin khách hàng</h4>
+                <div class="customer-box">
+                    <h3><i class="bi bi-person"></i> Thông tin khách hàng</h3>
                     <div class="customer-grid">
                         <div>
-                            <span class="label">Họ và Tên</span>
+                            <span class="label">Họ và tên</span>
                             <strong>{{ $order->getCustomerName() }}</strong>
                         </div>
                         <div>
@@ -56,7 +55,7 @@
                             <strong>{{ $order->getCustomerPhone() }}</strong>
                         </div>
                         @if ($order->getCustomerEmail())
-                            <div style="grid-column: span 2;">
+                            <div class="full-width">
                                 <span class="label">Email</span>
                                 <strong>{{ $order->getCustomerEmail() }}</strong>
                             </div>
@@ -64,9 +63,8 @@
                     </div>
                 </div>
 
-                {{-- Chi tiết giá --}}
-                <div class="seat-price-breakdown">
-                    <h4>Chi tiết giá vé</h4>
+                <div class="price-box">
+                    <h3><i class="bi bi-cash-stack"></i> Chi tiết giá</h3>
                     @foreach ($order->getBookingSeats() as $seat)
                         <div class="price-row">
                             <span>
@@ -83,9 +81,10 @@
                         </div>
                     @endforeach
 
-                    @if (!empty($order->metadata['combos']))
-                        <h4 style="margin-top: 16px;">Combo</h4>
-                        @foreach ($order->metadata['combos'] as $combo)
+                    @php $combos = data_get($order->metadata ?? [], 'combos', []); @endphp
+                    @if (!empty($combos))
+                        <h4>Combo</h4>
+                        @foreach ($combos as $combo)
                             <div class="price-row">
                                 <span>🍿 {{ $combo['name'] }} x{{ $combo['quantity'] }}</span>
                                 <span>{{ number_format($combo['total_price'], 0, ',', '.') }}đ</span>
@@ -100,24 +99,19 @@
                 </div>
             </div>
 
-            {{-- RIGHT: QR + Thanh toán --}}
-            <div class="payment-qr-panel">
-
-                {{-- Số tiền --}}
-                <div class="payment-amount-big">
-                    <span class="amount-value">{{ number_format($order->amount, 0, ',', '.') }}</span>
-                    <span class="amount-currency">VND</span>
+            <div class="payment-card payment-qr-card">
+                <div class="amount-pill">
+                    <span class="amount-label">Số tiền cần thanh toán</span>
+                    <div class="amount-value">{{ number_format($order->amount, 0, ',', '.') }} <span>VND</span></div>
                 </div>
 
-                {{-- QR Code --}}
                 <div class="qr-box">
                     <div class="qr-frame">
                         <img src="{{ $qrUrl }}" alt="QR Code thanh toán" id="qrImage">
                     </div>
-                    <p class="qr-hint">Quét mã QR bằng app ngân hàng</p>
+                    <p class="qr-hint">Quét mã QR bằng app ngân hàng hoặc ví điện tử</p>
                 </div>
 
-                {{-- Thông tin CK --}}
                 <div class="bank-transfer-info">
                     <div class="transfer-row">
                         <span>Ngân hàng</span>
@@ -127,8 +121,8 @@
                         <span>Số tài khoản</span>
                         <span class="fw-bold">
                             {{ $bankAccount }}
-                            <button class="copy-btn" onclick="copyText('{{ $bankAccount }}', this)">
-                                <i class="fa-solid fa-copy"></i>
+                            <button type="button" class="copy-btn" onclick="copyText('{{ $bankAccount }}', this)">
+                                <i class="bi bi-clipboard"></i>
                             </button>
                         </span>
                     </div>
@@ -140,363 +134,362 @@
                         <span>Nội dung CK</span>
                         <span class="fw-bold">
                             {{ $order->order_code }}
-                            <button class="copy-btn" onclick="copyText('{{ $order->order_code }}', this)">
-                                <i class="fa-solid fa-copy"></i>
+                            <button type="button" class="copy-btn" onclick="copyText('{{ $order->order_code }}', this)">
+                                <i class="bi bi-clipboard"></i>
                             </button>
                         </span>
                     </div>
                 </div>
 
-                {{-- Trạng thái --}}
                 <div class="payment-status-box" id="statusSection">
                     <div class="status-spinner"></div>
                     <div class="status-text" id="statusText">Đang chờ thanh toán...</div>
                     <div class="status-sub" id="statusSubtext">Hệ thống tự động kiểm tra mỗi vài giây</div>
                 </div>
 
-                <a href="{{ route('staff.sell-tickets') }}" class="cancel-link">
-                    <i class="fa-solid fa-arrow-left"></i> Huỷ và quay lại
-                </a>
+                <div class="action-row">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}" class="cancel-link">
+                        <i class="bi bi-arrow-left"></i> Huỷ và quay lại
+                    </a>
+                </div>
             </div>
-
         </div>
-
     </div>
+@endsection
 
+@push('styles')
     <style>
         .staff-payment-wrapper {
-            padding: 20px;
+            padding: 0;
         }
 
-        .payment-container {
+        .payment-shell {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            max-width: 1200px;
-            margin: 0 auto;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 24px;
+            align-items: start;
         }
 
-        .payment-info-panel,
-        .payment-qr-panel {
-            background: #1e293b;
-            border-radius: 16px;
-            padding: 30px;
-            border: 1px solid #334155;
+        .payment-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 18px 45px rgba(2, 6, 23, 0.28);
         }
 
-        .panel-header {
+        .card-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 14px;
+            margin-bottom: 18px;
         }
 
-        .panel-header i {
-            color: #3b82f6;
-            font-size: 24px;
-        }
-
-        .panel-header h2 {
-            margin: 0;
+        .icon-badge {
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--staff-primary), #6d28d9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
             font-size: 22px;
-            color: #f8fafc;
-            font-weight: 700;
         }
 
-        .order-badge {
+        .card-header h2,
+        .customer-box h3,
+        .price-box h3 {
+            margin: 0 0 4px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .card-header p {
+            margin: 0;
+            color: var(--staff-text-muted);
+            font-size: 13px;
+        }
+
+        .order-chip {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            padding: 8px 16px;
-            border-radius: 8px;
-            color: #60a5fa;
+            background: rgba(139, 92, 246, 0.16);
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            color: #ddd6fe;
+            padding: 8px 12px;
+            border-radius: 999px;
             font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
-        .booking-detail-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-bottom: 20px;
+        .detail-list,
+        .customer-box,
+        .price-box {
+            margin-bottom: 18px;
         }
 
-        .detail-row {
+        .detail-row,
+        .price-row,
+        .transfer-row {
             display: flex;
             justify-content: space-between;
-            padding: 10px 14px;
-            background: #111827;
-            border-radius: 8px;
-            border: 1px solid #1f2937;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+            color: #e2e8f0;
         }
 
-        .detail-label {
-            color: #9ca3af;
-            font-size: 14px;
+        .detail-row:last-child,
+        .price-row:last-child,
+        .transfer-row:last-child {
+            border-bottom: 0;
         }
 
-        .detail-label i {
-            color: #3b82f6;
-            margin-right: 6px;
+        .detail-label,
+        .label {
+            color: var(--staff-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .detail-value {
+        .detail-value,
+        .customer-grid strong {
+            text-align: right;
             color: #f8fafc;
             font-weight: 600;
-            font-size: 14px;
         }
 
-        .customer-info-box {
-            background: rgba(59, 130, 246, 0.05);
-            padding: 15px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(59, 130, 246, 0.2);
-        }
-
-        .customer-info-box h4 {
-            margin: 0 0 12px;
-            color: #60a5fa;
-            font-size: 14px;
-            text-transform: uppercase;
+        .customer-box,
+        .price-box {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 16px;
+            padding: 16px;
         }
 
         .customer-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 10px;
+            gap: 12px;
         }
 
-        .customer-grid .label {
-            display: block;
-            color: #9ca3af;
-            font-size: 12px;
+        .customer-grid .full-width {
+            grid-column: 1 / -1;
         }
 
-        .customer-grid strong {
-            color: #f8fafc;
-            font-size: 14px;
-        }
-
-        .seat-price-breakdown {
-            background: #111827;
-            padding: 16px;
-            border-radius: 10px;
-            border: 1px solid #1f2937;
-        }
-
-        .seat-price-breakdown h4 {
-            margin: 0 0 12px;
-            color: #9ca3af;
-            font-size: 13px;
-            text-transform: uppercase;
-        }
-
-        .price-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
+        .price-box h4 {
+            margin: 12px 0 8px;
             color: #cbd5e1;
             font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
         }
 
         .price-total-row {
             display: flex;
             justify-content: space-between;
-            padding: 12px 0 0;
+            gap: 12px;
             margin-top: 10px;
-            border-top: 1px solid #374151;
-            color: #ef4444;
+            padding-top: 12px;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+            font-size: 16px;
             font-weight: 700;
-            font-size: 18px;
+            color: #f8fafc;
         }
 
-        /* QR Panel */
-        .payment-amount-big {
+        .amount-pill {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.20), rgba(59, 130, 246, 0.16));
+            border: 1px solid rgba(129, 140, 248, 0.25);
+            border-radius: 18px;
+            padding: 18px;
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
+        }
+
+        .amount-label {
+            display: block;
+            color: var(--staff-text-muted);
+            font-size: 13px;
+            margin-bottom: 6px;
         }
 
         .amount-value {
-            font-size: 42px;
+            font-size: 34px;
             font-weight: 800;
-            color: #f8fafc;
-            letter-spacing: -1px;
+            color: #fff;
         }
 
-        .amount-currency {
-            font-size: 20px;
-            color: #9ca3af;
+        .amount-value span {
+            font-size: 16px;
+            color: #cbd5e1;
             margin-left: 6px;
         }
 
         .qr-box {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .qr-frame {
-            display: inline-block;
-            padding: 16px;
             background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border-radius: 18px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 16px;
         }
 
         .qr-frame img {
-            width: 220px;
-            height: 220px;
-            display: block;
+            width: 230px;
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
         }
 
         .qr-hint {
-            color: #9ca3af;
-            font-size: 14px;
-            margin-top: 12px;
+            margin: 10px 0 0;
+            color: #334155;
+            font-size: 13px;
         }
 
         .bank-transfer-info {
-            background: #111827;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-            border: 1px solid #1f2937;
-        }
-
-        .transfer-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #1f2937;
-            color: #cbd5e1;
-            font-size: 14px;
-        }
-
-        .transfer-row:last-child {
-            border-bottom: none;
-        }
-
-        .fw-bold {
-            font-weight: 600;
-            color: #f8fafc;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 16px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
         }
 
         .copy-btn {
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-            color: #60a5fa;
+            margin-left: 8px;
+            border: 0;
+            border-radius: 8px;
+            background: rgba(139, 92, 246, 0.16);
+            color: #ddd6fe;
             padding: 4px 8px;
-            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.2s;
-            font-size: 12px;
-        }
-
-        .copy-btn:hover {
-            background: rgba(59, 130, 246, 0.2);
         }
 
         .copy-btn.copied {
-            background: rgba(34, 197, 94, 0.1);
-            border-color: rgba(34, 197, 94, 0.3);
-            color: #22c55e;
+            background: rgba(16, 185, 129, 0.18);
+            color: #bbf7d0;
         }
 
         .payment-status-box {
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
             text-align: center;
-            padding: 20px;
-            background: #111827;
-            border-radius: 12px;
-            border: 1px solid #1f2937;
+            gap: 6px;
             margin-bottom: 16px;
         }
 
         .status-spinner {
-            width: 28px;
-            height: 28px;
-            border: 3px solid #334155;
-            border-top-color: #3b82f6;
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top-color: #60a5fa;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 12px;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
         }
 
         .status-text {
+            font-weight: 700;
             color: #f8fafc;
-            font-size: 16px;
-            font-weight: 600;
         }
 
         .status-sub {
-            color: #6b7280;
+            color: var(--staff-text-muted);
             font-size: 13px;
-            margin-top: 4px;
         }
 
         .payment-status-box.status-success {
-            background: rgba(34, 197, 94, 0.1);
-            border-color: rgba(34, 197, 94, 0.3);
+            background: rgba(16, 185, 129, 0.14);
+            border-color: rgba(16, 185, 129, 0.26);
         }
 
-        .payment-status-box.status-success .status-spinner {
-            display: none;
-        }
-
-        .payment-status-box.status-success .status-text {
-            color: #22c55e;
+        .action-row {
+            display: flex;
+            justify-content: center;
         }
 
         .cancel-link {
-            display: block;
-            text-align: center;
-            color: #9ca3af;
-            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            color: #cbd5e1;
             text-decoration: none;
-            padding: 10px;
-            transition: color 0.2s;
+            background: rgba(148, 163, 184, 0.12);
+            transition: all 0.2s ease;
         }
 
         .cancel-link:hover {
-            color: #f8fafc;
+            color: #fff;
+            background: rgba(148, 163, 184, 0.2);
         }
 
-        @media (max-width: 768px) {
-            .payment-container {
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            .payment-shell {
                 grid-template-columns: 1fr;
             }
         }
-    </style>
 
+        @media (max-width: 576px) {
+            .payment-card {
+                padding: 18px;
+            }
+
+            .customer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .detail-row,
+            .price-row,
+            .transfer-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .detail-value {
+                text-align: left;
+            }
+        }
+    </style>
+@endpush
+
+@push('scripts')
     <script>
-        // Copy to Clipboard
         function copyText(text, btn) {
-            navigator.clipboard.writeText(text).then(() => {
-                const icon = btn.querySelector('i');
-                icon.className = 'fa-solid fa-check';
-                btn.classList.add('copied');
-                setTimeout(() => {
-                    icon.className = 'fa-solid fa-copy';
-                    btn.classList.remove('copied');
-                }, 2000);
-            });
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = 'bi bi-check2';
+                    }
+                    btn.classList.add('copied');
+                    setTimeout(() => {
+                        if (icon) {
+                            icon.className = 'bi bi-clipboard';
+                        }
+                        btn.classList.remove('copied');
+                    }, 2000);
+                }).catch(() => {
+                    btn.classList.add('copied');
+                });
+            }
         }
 
-        // Payment Polling — Reuse logic từ Customer payment.blade.php
-        const checkUrl = '{{ route('booking.check', $order->order_code) }}';
-        const billUrl = '{{ route('staff.print-bill', $order->booking?->booking_code ?? $order->order_code) }}';
+        const checkUrl = '{{ route("booking.check", $order->order_code) }}';
+        const billUrl = '{{ \App\Helpers\TabAuthHelper::route("staff.print-bill", $order->booking->booking_code ?? "") }}';
         const pollMs = {{ $pollingInterval }};
 
         const statusText = document.getElementById('statusText');
@@ -538,5 +531,4 @@
         const pollingInterval = setInterval(checkPaymentStatus, pollMs);
         setTimeout(checkPaymentStatus, 3000);
     </script>
-
-@endsection
+@endpush

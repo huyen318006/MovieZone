@@ -25,7 +25,7 @@
             <div class="alert alert-danger">{{ session('error') }}</div>
         @endif
 
-        <form method="POST" action="{{ route('admin.showtime.cancel', $showtime->id) }}">
+        <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.showtime.cancel', ['id' => $showtime->id]) }}">
             @csrf
 
             <div class="mb-3">
@@ -45,7 +45,7 @@
             </div>
 
             <div class="d-flex gap-2 justify-content-end">
-                <a href="{{ route('admin.showtime') }}" class="btn btn-outline-secondary">Quay lại</a>
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime') }}" class="btn btn-outline-secondary">Quay lại</a>
                 <button type="submit" class="btn btn-danger">Xác nhận hủy</button>
             </div>
         </form>

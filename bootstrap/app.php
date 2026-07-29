@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'staff.permission' => \App\Http\Middleware\CheckStaffPermission::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'tab.auth' => \App\Http\Middleware\TabAuthMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

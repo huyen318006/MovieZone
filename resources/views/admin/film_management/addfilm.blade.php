@@ -18,7 +18,7 @@
             </div>
 
             <div class="card-body">
-                <form action="{{ route('admin.store.film') }}" enctype="multipart/form-data" method="POST">
+                <form action="{{ \App\Helpers\TabAuthHelper::route('admin.store.film') }}" enctype="multipart/form-data" method="POST">
                     @csrf
 
                     <!-- Thông tin cơ bản -->
@@ -307,7 +307,7 @@
 
                     <!-- BUTTON -->
                     <div class="mt-4 text-end">
-                        <a href="{{ route('admin.film') }}" class="btn btn-secondary">Hủy</a>
+                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.film') }}" class="btn btn-secondary">Hủy</a>
 
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-check-lg"></i> Lưu phim
@@ -348,7 +348,7 @@
                 btn.disabled = true;
 
                 try {
-                    const res = await fetch("{{ route('admin.movies.check-slots') }}", {
+                    const res = await fetch("{{ \App\Helpers\TabAuthHelper::route('admin.movies.check-slots') }}", {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

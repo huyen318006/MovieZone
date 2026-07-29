@@ -33,7 +33,7 @@
                         <li><hr class="dropdown-divider"></li>
 
                         <li>
-                            <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                            <form action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" method="POST" class="d-inline">
                                 @csrf
                                 <button type="submit" class="dropdown-item text-danger py-2 d-flex align-items-center gap-2 w-100 border-0 bg-transparent">
                                     <i class="bi bi-box-arrow-right fs-5"></i>
@@ -43,7 +43,7 @@
                         </li>
                     @else
                         <li>
-                            <a href="{{ route('login') }}" class="dropdown-item py-2 d-flex align-items-center gap-2 text-primary fw-semibold">
+                            <a href="{{ \App\Helpers\TabAuthHelper::route('login') }}" class="dropdown-item py-2 d-flex align-items-center gap-2 text-primary fw-semibold">
                                 <i class="bi bi-box-arrow-in-right fs-5"></i>
                                 <span>Đăng nhập</span>
                             </a>
