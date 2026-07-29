@@ -97,6 +97,71 @@ class MembershipService
     }
 
     /**
+     * Quét và xử lý tự động các tài khoản Membership quá hạn duy trì 6 tháng.
+     */
+    public function processExpiredMemberships(): array
+    {
+        $expiredMemberships = UserMembership::with('level')
+            ->whereNotNull('level_expired_at')
+            ->where('level_expired_at', '<', now())
+            ->get();
+
+        $processedCount = $expiredMemberships->count();
+        $extendedCount = 0;
+        $downgradedCount = 0;
+
+        foreach ($expiredMemberships as $m) {
+            // Kiểm tra trong 6 tháng qua khách có mua vé thành công không
+            $hasActiveBooking = Booking::where('user_id', $m->user_id)
+                ->where('status', 'PAID')
+                ->where('created_at', '>=', now()->subMonths(6))
+                ->exists();
+
+            if ($hasActiveBooking) {
+                // Khách có mua vé -> Gia hạn giữ nguyên hạng thêm 6 tháng
+                $m->update(['level_expired_at' => now()->addMonths(6)]);
+                $extendedCount++;
+            } else {
+                // Khách không mua vé -> Tự động hạ 1 mốc hạng (nếu chưa phải BRONZE)
+                $currentLevel = $m->level;
+                if ($currentLevel) {
+                    $lowerLevel = MembershipLevel::where('min_points', '<', $currentLevel->min_points)
+                        ->orderBy('min_points', 'desc')
+                        ->first();
+
+                    if ($lowerLevel) {
+                        $oldLevelId = $m->level_id;
+                        $m->update([
+                            'level_id' => $lowerLevel->id,
+                            'level_expired_at' => now()->addMonths(6),
+                            'updated_at' => now(),
+                        ]);
+
+                        MembershipLevelHistory::create([
+                            'user_id'      => $m->user_id,
+                            'old_level_id' => $oldLevelId,
+                            'new_level_id' => $lowerLevel->id,
+                            'reason'       => 'Tự động hạ 1 mốc hạng do không phát sinh giao dịch mua vé trong 6 tháng',
+                        ]);
+
+                        $downgradedCount++;
+                    } else {
+                        // Đã ở mốc thấp nhất (BRONZE) -> Gia hạn tiếp 6 tháng
+                        $m->update(['level_expired_at' => now()->addMonths(6)]);
+                        $extendedCount++;
+                    }
+                }
+            }
+        }
+
+        return [
+            'processed'  => $processedCount,
+            'extended'   => $extendedCount,
+            'downgraded' => $downgradedCount,
+        ];
+    }
+
+    /**
      * Tích Coin tự động khi booking thanh toán thành công (Tỷ lệ 10.000đ = 1 Coin).
      */
     public function awardBookingCoin(Booking $booking): ?PointTransaction

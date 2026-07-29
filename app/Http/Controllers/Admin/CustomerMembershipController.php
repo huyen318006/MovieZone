@@ -119,4 +119,17 @@ class CustomerMembershipController extends Controller
             return redirect()->back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Quét tự động kiểm tra hết hạn duy trì hạng 6 tháng của tất cả khách hàng
+     */
+    public function scanExpired(MembershipService $membershipService)
+    {
+        $result = $membershipService->processExpiredMemberships();
+
+        return redirect()->back()->with(
+            'success',
+            "Quét kiểm tra thành công! Đã xử lý {$result['processed']} tài khoản quá hạn duy trì ({$result['extended']} tài khoản được gia hạn, {$result['downgraded']} tài khoản tự động hạ hạng)."
+        );
+    }
 }
