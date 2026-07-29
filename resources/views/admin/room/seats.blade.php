@@ -11,10 +11,10 @@
             <p class="text-muted mb-0">Xem sơ đồ ghế và trạng thái thực tế của phòng {{ $room->name }}.</p>
         </div>
         <div class="d-flex gap-2 flex-wrap">
-            <a href="{{ route('admin.rooms.edit', $room) }}" class="btn btn-outline-primary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.edit', ['room' => $room]) }}" class="btn btn-outline-primary">
                 <i class="bi bi-pencil"></i> Sửa phòng
             </a>
-            <a href="{{ route('admin.rooms.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Quay lại danh sách
             </a>
         </div>
@@ -59,7 +59,8 @@
 
         {{-- Dropdown chọn suất chiếu --}}
         <div class="col-auto ms-auto">
-            <form method="GET" action="{{ route('admin.rooms.seats', $room) }}" id="showtimeForm">
+            <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.seats', ['room' => $room]) }}" id="showtimeForm">
+                <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                 <div class="d-flex align-items-center gap-2">
                     <label for="showtimeSelect" class="text-muted small">Suất chiếu:</label>
                     <select name="showtime_id" id="showtimeSelect" class="form-select form-select-sm" style="min-width: 280px;" onchange="this.form.submit()">

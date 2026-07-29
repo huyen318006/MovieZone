@@ -7,7 +7,7 @@
 <div class="sell-seat-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-white">Sơ đồ phòng chiếu: {{ $showtime->room->name }}</h4>
-        <a href="{{ route('staff.sell-tickets') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left"></i> Quay lại</a>
+        <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left"></i> Quay lại</a>
     </div>
 
     <section class="seat-page" style="background: transparent; padding: 0;">
@@ -29,8 +29,9 @@
                     <div id="selectedSeats">Chưa chọn ghế</div>
                     <div class="total-price" id="totalPrice">0VNĐ</div>
 
-                    <form action="{{ route('staff.sell-tickets.submitseat') }}" method="GET" id="bookingForm">
+                    <form action="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets.submitseat') }}" method="GET" id="bookingForm">
                         @csrf
+                        <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                         <input type="hidden" name="showtime_id" value="{{ $showtime->id }}">
                         <div id="hidden-seat-inputs"></div>
 

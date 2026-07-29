@@ -11,7 +11,7 @@
             <p class="text-muted mb-0">Cấu hình mã ưu đãi giảm giá mới.</p>
         </div>
         <div>
-            <a href="{{ route('admin.vouchers.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.vouchers.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Quay lại
             </a>
         </div>
@@ -21,7 +21,7 @@
 <div class="col-12 mt-3">
     <div class="card border-0 shadow-sm">
         <div class="card-body">
-            <form action="{{ route('admin.vouchers.store') }}" method="POST">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.vouchers.store') }}" method="POST">
                 @csrf
 
                 <div class="row g-3">

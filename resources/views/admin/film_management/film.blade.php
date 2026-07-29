@@ -25,7 +25,7 @@
                     {{-- <div class="text-muted">Giao diện tạm thời (demo UI): thêm / cập nhật / phân loại / ẩn-ngừng chiếu</div> --}}
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="{{ route('admin.film.add') }}" class="btn btn-primary">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.film.add') }}" class="btn btn-primary">
                         <i class="bi bi-plus-lg"></i>
                         Thêm phim
                     </a>
@@ -42,7 +42,8 @@
                     <div class="fw-semibold">Danh sách phim</div>
                     <div class="d-flex gap-2">
 
-                        <form method="GET" action="{{ route('admin.film') }}">
+                        <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.film') }}">
+                            <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                             <div class="d-flex gap-2 align-items-center">
 
                                 <h5 class="mb-0"></h5>
@@ -79,7 +80,7 @@
                                 </select>
 
                                 {{-- Reset --}}
-                                <a href="{{ route('admin.film') }}" class="btn btn-outline-secondary btn-sm">
+                                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.film') }}" class="btn btn-outline-secondary btn-sm">
                                     <i class="bi bi-arrow-clockwise"></i> Làm mới
                                 </a>
 
@@ -208,7 +209,7 @@
                                             <div class="d-flex gap-2 flex-wrap">
 
 
-                                                <a href="{{ route('admin.view.update.film', $m->id) }}"
+                                                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.view.update.film', ['id' => $m->id]) }}"
                                                     class="btn btn-outline-primary btn-sm">
                                                     <i class="bi bi-pencil"></i>Sửa
                                                 </a>
@@ -216,12 +217,12 @@
 
 
                                                 @if ($m->status === 'ENDED')
-                                                    <a href="{{ route('restore.film', $m->id) }}"
+                                                    <a href="{{ \App\Helpers\TabAuthHelper::route('restore.film', ['id' => $m->id]) }}"
                                                         class="btn btn-outline-success btn-sm">
                                                         <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
                                                     </a>
                                                 @else
-                                                    <a href="{{ route('admin.film.confirm_stop', $m->id) }}"
+                                                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.film.confirm_stop', ['id' => $m->id]) }}"
                                                         class="btn btn-outline-warning btn-sm">
                                                         <i class="bi bi-stop-circle"></i> Ngừng chiếu
                                                     </a>

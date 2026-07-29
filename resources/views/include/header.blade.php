@@ -2,7 +2,7 @@
 
     <div class="logo">
 
-        <a href="{{ route('home') }}">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('home') }}">
 
             MOVIE<span>ZONE</span>
 
@@ -12,15 +12,15 @@
 
     <nav class="main-nav">
 
-        <a href="{{ route('home') }}">Trang Chủ</a>
+        <a href="{{ \App\Helpers\TabAuthHelper::route('home') }}">Trang Chủ</a>
 
-        <a href="{{ route('movies') }}">Phim</a>
+        <a href="{{ \App\Helpers\TabAuthHelper::route('movies') }}">Phim</a>
 
-        <a href="{{ route('showtimes') }}">Lịch Chiếu</a>
+        <a href="{{ \App\Helpers\TabAuthHelper::route('showtimes') }}">Lịch Chiếu</a>
 
-        <a href="{{ route('promotions') }}">Khuyến Mãi</a>
+        <a href="{{ \App\Helpers\TabAuthHelper::route('promotions') }}">Khuyến Mãi</a>
 
-        <a href="{{ route('news') }}">Tin Tức</a>
+        <a href="{{ \App\Helpers\TabAuthHelper::route('news') }}">Tin Tức</a>
 
     </nav>
 
@@ -36,38 +36,45 @@
 
         </div>
 
+@php
+    $currentUser = \App\Helpers\TabAuthHelper::currentUser();
+@endphp
 
-        @auth
-            <a href="{{ route('coin.index', Auth::user()->id) }}" class="btn btn-warning rounded-pill d-flex align-items-center gap-2 fw-bold px-3">
-                <i class="bi bi-coin"></i>
-                <span>{{ number_format(Auth::user()->coin?->balance ?? 0) }}</span>
+@if($currentUser)
+    <a href="{{ \App\Helpers\TabAuthHelper::route('coin.index', $currentUser->id) }}"
+       class="btn btn-warning rounded-pill d-flex align-items-center gap-2 fw-bold px-3">
+        <i class="bi bi-coin"></i>
+        <span>{{ number_format($currentUser->coin?->balance ?? 0) }}</span>
+    </a>
+
+    <div class="user-dropdown">
+        <div class="user-btn">
+            <i class="bi bi-person-circle"></i>
+            <span>{{ $currentUser->name }}</span>
+        </div>
+        <div class="dropdown-content">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('profile') }}" class="dropdown-item">
+                <i class="bi bi-person"></i>
+                <span>Xem hồ sơ</span>
             </a>
-            <div class="user-dropdown">
-                <div class="user-btn">
-                    <i class="bi bi-person-circle"></i>
-                    <span>{{ Auth::user()->name }}</span>
-                </div>
-                <div class="dropdown-content">
-                    <a href="{{ route('profile') }}" class="dropdown-item">
-                        <i class="bi bi-person"></i>
-                        <span>Xem hồ sơ</span>
-                    </a>
-                    <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
-                        @csrf
-                        @method('POST')
-                        <button type="submit" class="logout-btn">
-                            <i class="bi bi-box-arrow-right"></i>
-                            <span>Đăng xuất</span>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        @else
-            <a href="{{ route('login') }}" class="user-btn">
-                <i class="bi bi-person-circle"></i>
-                <span>Đăng Nhập</span>
-            </a>
-        @endauth
+
+            <form action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" method="POST" style="margin: 0;">
+                @csrf
+                @method('POST')
+                <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
+                <button type="submit" class="logout-btn">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </form>
+        </div>
+    </div>
+@else
+    <a href="{{ route('login') }}" class="user-btn">
+        <i class="bi bi-person-circle"></i>
+        <span>Đăng Nhập</span>
+    </a>
+@endif
 
     </div>
 

@@ -10,7 +10,7 @@
             <h3 class="mb-1">Sửa ghế {{ $seat->seat_code }}</h3>
             <p class="text-muted mb-0">Phòng {{ $seat->room->name }}</p>
         </div>
-        <a href="{{ route('admin.seats.index', ['room_id' => $seat->room_id]) }}"
+        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.seats.index', ['room_id' => $seat->room_id]) }}"
            class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i> Quay lại
         </a>
@@ -61,7 +61,7 @@
             <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Cập nhật ghế</h5>
         </div>
         <div class="card-body">
-            <form action="{{ route('admin.seats.update', $seat->id) }}" method="POST">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.seats.update', ['id' => $seat->id]) }}" method="POST">
                 @csrf
                 @method('PUT')
 
@@ -102,7 +102,7 @@
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-lg me-1"></i> Cập nhật ghế
                     </button>
-                    <a href="{{ route('admin.seats.index', ['room_id' => $seat->room_id]) }}"
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.seats.index', ['room_id' => $seat->room_id]) }}"
                        class="btn btn-outline-secondary">Hủy</a>
                 </div>
             </form>

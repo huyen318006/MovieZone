@@ -7,7 +7,7 @@
             <h3 class="mb-1">Chi tiết suất chiếu</h3>
             <p class="text-muted mb-0">Thông tin suất chiếu trong rạp duy nhất của hệ thống.</p>
         </div>
-        <a href="{{ route('admin.showtime') }}" class="btn btn-outline-secondary">Quay lại</a>
+        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime') }}" class="btn btn-outline-secondary">Quay lại</a>
     </div>
 
     <div class="card shadow-sm">

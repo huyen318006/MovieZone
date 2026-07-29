@@ -13,7 +13,7 @@
             </div>
 
             <!-- BẮT ĐẦU FORM BAO QUANH TOÀN BỘ THÔNG TIN -->
-            <form action="{{ route('staff.sell-tickets.checkout') }}" method="POST">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets.checkout') }}" method="POST">
                 @csrf
 
                 <div class="confirm-content">
@@ -225,7 +225,7 @@
 
                 {{-- Các nút hành động --}}
                 <div class="confirm-actions">
-                    <a href="{{ route('staff.sell-tickets') }}" class="btn-back">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}" class="btn-back">
                         <i class="fa-solid fa-arrow-left"></i>
                         Quay lại chọn ghế
                     </a>

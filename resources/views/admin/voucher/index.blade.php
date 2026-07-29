@@ -27,7 +27,7 @@
             <p class="text-muted mb-0">Tạo và cấu hình mã giảm giá khi thanh toán vé/combo.</p>
         </div>
         <div>
-            <a href="{{ route('admin.vouchers.create') }}" class="btn btn-primary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.vouchers.create') }}" class="btn btn-primary">
                 <i class="bi bi-plus-lg"></i> Thêm Voucher mới
             </a>
         </div>
@@ -38,7 +38,8 @@
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-transparent d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div class="fw-semibold">Danh sách mã giảm giá</div>
-            <form method="GET" action="{{ route('admin.vouchers.index') }}" class="d-flex gap-2 align-items-center">
+            <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.vouchers.index') }}" class="d-flex gap-2 align-items-center">
+                <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                 <input type="text" name="search" class="form-control form-control-sm" style="width: 200px;" placeholder="Tìm mã giảm giá..." value="{{ request('search') }}">
                 <select name="status" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                     <option value="">Tất cả trạng thái</option>
@@ -47,7 +48,7 @@
                     <option value="EXPIRED" {{ request('status') == 'EXPIRED' ? 'selected' : '' }}>Hết hạn</option>
                 </select>
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i></button>
-                <a href="{{ route('admin.vouchers.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></a>
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.vouchers.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></a>
             </form>
         </div>
 
@@ -118,10 +119,10 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('admin.vouchers.edit', $voucher->id) }}" class="btn btn-outline-primary btn-sm">
+                                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.vouchers.edit', $voucher->id) }}" class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-pencil"></i> Sửa
                                         </a>
-                                        <form method="POST" action="{{ route('admin.vouchers.destroy', $voucher->id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa mã giảm giá này không?');" class="d-inline">
+                                        <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.vouchers.destroy', $voucher->id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa mã giảm giá này không?');" class="d-inline">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger btn-sm">

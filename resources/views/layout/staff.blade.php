@@ -110,7 +110,7 @@
 <div class="staff-shell">
     <!-- SIDEBAR -->
     <aside class="staff-sidebar" id="staffSidebar">
-        <a class="sidebar-brand" href="{{ route('staff.dashboard') }}">
+        <a class="sidebar-brand" href="{{ \App\Helpers\TabAuthHelper::route('staff.dashboard') }}">
             <div class="brand-icon"><i class="bi bi-film"></i></div>
             <div>
                 <div class="brand-title">MovieZone</div>
@@ -122,29 +122,29 @@
             <div class="nav-label">Tổng quan</div>
 
             <a class="nav-link {{ Request::routeIs('staff.dashboard') ? 'active' : '' }}"
-               href="{{ route('staff.dashboard') }}">
+               href="{{ \App\Helpers\TabAuthHelper::route('staff.dashboard') }}">
                 <i class="bi bi-speedometer2"></i> Staff Dashboard
             </a>
 
             <div class="nav-label">Chức năng</div>
 
             <a class="nav-link {{ Request::routeIs('staff.booking-lookup') ? 'active' : '' }}"
-               href="{{ route('staff.booking-lookup') }}">
+               href="{{ \App\Helpers\TabAuthHelper::route('staff.booking-lookup') }}">
                 <i class="bi bi-search"></i> Tra cứu Booking/Vé
             </a>
 
             <a class="nav-link {{ Request::routeIs('staff.check-in') ? 'active' : '' }}"
-               href="{{ route('staff.check-in') }}">
+               href="{{ \App\Helpers\TabAuthHelper::route('staff.check-in') }}">
                 <i class="bi bi-qr-code-scan"></i> Check-in Vé
             </a>
 
             <a class="nav-link {{ Request::routeIs('staff.sell-tickets') ? 'active' : '' }}"
-               href="{{ route('staff.sell-tickets') }}">
+               href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}">
                 <i class="bi bi-ticket-perforated"></i> Bán vé
             </a>
 
             <a class="nav-link {{ Request::routeIs('staff.issue-support') ? 'active' : '' }}"
-               href="{{ route('staff.issue-support') }}">
+               href="{{ \App\Helpers\TabAuthHelper::route('staff.issue-support') }}">
                 <i class="bi bi-life-preserver"></i> Hỗ trợ sự cố đặt vé
             </a>
 
@@ -156,7 +156,7 @@
                 <div class="user-name">{{ auth()->user()->name ?? 'Staff' }}</div>
                 <div class="user-role">Staff</div>
             </div>
-            <form method="POST" action="{{ route('logout') }}" style="margin:0;">
+            <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" style="margin:0;">
                 @csrf
                 <button type="submit" class="btn btn-sm" style="color: var(--staff-text-muted); padding: 4px 8px;" title="Đăng xuất">
                     <i class="bi bi-box-arrow-right"></i>

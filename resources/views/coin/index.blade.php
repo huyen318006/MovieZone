@@ -133,7 +133,7 @@
                         @if(!empty($checkedToday))
                             <button class="btn btn-success btn-lg px-5 fw-semibold" disabled>✅ Đã điểm danh hôm nay</button>
                         @else
-                            <form method="POST" action="{{ route('coin.checkin', ['id' => auth()->id()]) }}">
+                            <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('coin.checkin', ['id' => \App\Helpers\TabAuthHelper::currentUser()->id]) }}">
                                 @csrf
                                 <input type="hidden" name="reward_coin" value="{{ $todayReward }}" />
                                 <input type="hidden" name="todayStep" value="{{ $todayStep }}" />

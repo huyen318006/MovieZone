@@ -75,7 +75,7 @@
             <h3 class="mb-1 fw-bold">Quản lý người dùng</h3>
             <p class="text-muted mb-0">Phân nhóm và quản lý tài khoản hệ thống</p>
         </div>
-        <a href="{{ route('admin.create_account') }}" class="btn btn-success rounded-pill px-4 shadow-sm">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.create_account') }}" class="btn btn-success rounded-pill px-4 shadow-sm">
             <i class="fas fa-user-plus me-2"></i>Thêm tài khoản
         </a>
     </div>
@@ -135,34 +135,34 @@
 <div class="card-header px-4 pt-3 pb-0">
     <ul class="nav dark-tabs gap-1">
         <li class="nav-item">
-            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'all'])) }}"
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'all'])) }}"
                class="nav-link px-4 py-2 fw-semibold {{ $tab=='all' ? 'active' : '' }}">
                 <i class="fas fa-list me-2"></i>Tất cả
             </a>
         </li>
         <li class="nav-item">
-            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'admin'])) }}"
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'admin'])) }}"
                class="nav-link px-4 py-2 fw-semibold tab-admin {{ $tab=='admin' ? 'active' : '' }}">
                 <i class="fas fa-shield-alt me-2"></i>Admin
                 <span class="badge rounded-pill ms-1 {{ $tab=='admin' ? 'badge-admin' : 'bg-secondary bg-opacity-50' }}">{{ $countAdmin }}</span>
             </a>
         </li>
         <li class="nav-item">
-            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'staff'])) }}"
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'staff'])) }}"
                class="nav-link px-4 py-2 fw-semibold tab-staff {{ $tab=='staff' ? 'active' : '' }}">
                 <i class="fas fa-user-tie me-2"></i>Staff
                 <span class="badge rounded-pill ms-1 {{ $tab=='staff' ? 'badge-staff' : 'bg-secondary bg-opacity-50' }}">{{ $countStaff }}</span>
             </a>
         </li>
         <li class="nav-item">
-            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'customer'])) }}"
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'customer'])) }}"
                class="nav-link px-4 py-2 fw-semibold tab-customer {{ $tab=='customer' ? 'active' : '' }}">
                 <i class="fas fa-users me-2"></i>Customer
                 <span class="badge rounded-pill ms-1 {{ $tab=='customer' ? 'badge-customer' : 'bg-secondary bg-opacity-50' }}">{{ $countCustomer }}</span>
             </a>
         </li>
         <li class="nav-item">
-            <a href="{{ route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'locked'])) }}"
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.list_account', array_merge(request()->except(['tab','page']), ['tab'=>'locked'])) }}"
                class="nav-link px-4 py-2 fw-semibold tab-locked {{ $tab=='locked' ? 'active' : '' }}">
                 <i class="fas fa-lock me-2"></i>Đã khóa
                 <span class="badge rounded-pill ms-1 {{ $tab=='locked' ? 'badge-locked' : 'bg-secondary bg-opacity-50' }}">{{ $countLocked }}</span>
@@ -173,7 +173,8 @@
 
         {{-- Bộ lọc --}}
         <div class="filter-area px-4 py-3">
-            <form action="{{ route('admin.list_account') }}" method="GET">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.list_account') }}" method="GET">
+                <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                 <input type="hidden" name="tab" value="{{ $tab }}">
 
                 <div class="row g-3 align-items-end">
@@ -202,7 +203,7 @@
                         <button type="submit" class="btn btn-primary flex-grow-1">
                             <i class="fas fa-filter me-2"></i>Lọc
                         </button>
-                        <a href="{{ route('admin.list_account', ['tab'=>$tab]) }}" class="btn btn-secondary flex-grow-1 d-flex align-items-center justify-content-center">
+                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.list_account', ['tab'=>$tab]) }}" class="btn btn-secondary flex-grow-1 d-flex align-items-center justify-content-center">
                             <i class="fas fa-undo me-1"></i>Làm mới
                         </a>
                     </div>
@@ -292,7 +293,7 @@
                         @endif
                     </td>
                             <td class="pe-4 text-end">
-                                <a href="{{ route('admin.detail.account', $user->id) }}" class="btn btn-sm rounded-pill px-3 fw-medium detail-btn">
+                                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.detail.account', $user->id) }}" class="btn btn-sm rounded-pill px-3 fw-medium detail-btn">
                                     <i class="fas fa-eye me-1"></i>Chi tiết
                                 </a>
                             </td>
@@ -335,7 +336,7 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                <form method="POST" action="{{ route('admin.users.promote') }}">
+                <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.users.promote') }}">
                     @csrf @method('PUT')
                     <input type="hidden" name="user_id" id="modalUserId">
                     <button type="submit" class="btn btn-warning rounded-pill px-4">Xác nhận</button>
@@ -359,7 +360,7 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                <form method="POST" action="{{ route('admin.users.demote') }}">
+                <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.users.demote') }}">
                     @csrf @method('PUT')
                     <input type="hidden" name="user_id" id="demoteUserId">
                     <button type="submit" class="btn btn-danger rounded-pill px-4">Xác nhận</button>
@@ -382,7 +383,7 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Hủy</button>
-                <form method="POST" action="{{ route('admin.users.demote.admin') }}">
+                <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.users.demote.admin') }}">
                     @csrf @method('PUT')
                     <input type="hidden" name="user_id" id="demoteAdminId">
                     <button type="submit" class="btn btn-dark rounded-pill px-4">Xác nhận</button>

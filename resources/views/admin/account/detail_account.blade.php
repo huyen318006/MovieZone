@@ -32,7 +32,7 @@
                 </p>
             </div>
 
-            <a href="{{ route('admin.list_account') }}" class="btn btn-secondary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.list_account') }}" class="btn btn-secondary">
                 Quay lại
             </a>
         </div>
@@ -155,7 +155,7 @@
                         <div class="mt-3">
 
                             @if(auth()->user()->id == $user->id)
-                                <a href="{{ route('admin.profile.account.admins', $user->id) }}" class="btn btn-primary">
+                                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.profile.account.admins', $user->id) }}" class="btn btn-primary">
                                     Sửa thông tin tài khoản
                                 </a>
                             @else
@@ -164,7 +164,7 @@
                                        Khóa Tài Khoản
                                     </button>
                                 @else
-                                    <a href="{{ route('admin.users.open',$user->id  ) }}" class="btn btn-success" onclick="return confirm('Hãy xác nhận mở lại quyền cho tài khoản chứ?')">
+                                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.users.open',$user->id  ) }}" class="btn btn-success" onclick="return confirm('Hãy xác nhận mở lại quyền cho tài khoản chứ?')">
                                         Mở khóa tài khoản
                                     </a>
                                 @endif
@@ -188,7 +188,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
 
-            <form method="POST" action="{{ route('admin.users.lock', $user->id) }}">
+            <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.users.lock', $user->id) }}">
                 @csrf
 
                 <div class="modal-header">

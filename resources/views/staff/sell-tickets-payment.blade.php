@@ -151,7 +151,7 @@
                 <div class="status-sub" id="statusSubtext">Hệ thống tự động kiểm tra mỗi vài giây</div>
             </div>
 
-            <a href="{{ route('staff.sell-tickets') }}" class="cancel-link">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}" class="cancel-link">
                 <i class="fa-solid fa-arrow-left"></i> Huỷ và quay lại
             </a>
         </div>
@@ -491,7 +491,7 @@
 
     // Payment Polling — Reuse logic từ Customer payment.blade.php
     const checkUrl = '{{ route("booking.check", $order->order_code) }}';
-    const billUrl = '{{ route("staff.print-bill", $order->booking->booking_code ?? "") }}';
+    const billUrl = '{{ \App\Helpers\TabAuthHelper::route("staff.print-bill", $order->booking->booking_code ?? "") }}';
     const pollMs = {{ $pollingInterval }};
 
     const statusText = document.getElementById('statusText');

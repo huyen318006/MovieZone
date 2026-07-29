@@ -10,7 +10,7 @@
             <h3 class="mb-1">Thêm phòng chiếu</h3>
             <p class="text-muted mb-0">Tạo phòng chiếu mới.</p>
         </div>
-        <a href="{{ route('admin.rooms.index') }}" class="btn btn-outline-secondary">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Quay lại danh sách
         </a>
     </div>
@@ -33,7 +33,7 @@
             </div>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ route('admin.rooms.store') }}">
+            <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.store') }}">
                 @csrf
 
                 <div class="row g-3">
@@ -88,7 +88,7 @@
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-lg me-1"></i> Lưu phòng chiếu
                     </button>
-                    <a href="{{ route('admin.rooms.index') }}" class="btn btn-outline-secondary">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.index') }}" class="btn btn-outline-secondary">
                         Huỷ bỏ
                     </a>
                 </div>

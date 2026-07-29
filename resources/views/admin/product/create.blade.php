@@ -11,7 +11,7 @@
             <p class="text-muted mb-0">Tạo bắp, nước, snack mới trong hệ thống.</p>
         </div>
         <div>
-            <a href="{{ route('admin.products.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.products.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Quay lại
             </a>
         </div>
@@ -21,7 +21,7 @@
 <div class="col-12 mt-3">
     <div class="card border-0 shadow-sm">
         <div class="card-body">
-            <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
 
                 <div class="row g-3">

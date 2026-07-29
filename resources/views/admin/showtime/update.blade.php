@@ -40,7 +40,7 @@
             Chỉnh sửa thông tin suất chiếu hiện tại. Tự động kiểm tra và lọc phòng trống thông minh.
         </p>
     </div>
-    <a href="{{ route('admin.showtime') }}" class="btn btn-outline-secondary">
+    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime') }}" class="btn btn-outline-secondary">
         <i class="bi bi-arrow-left"></i>
         Quay lại
     </a>
@@ -78,7 +78,7 @@
             </div>
         @endif
 
-        <form action="{{ route('update.showtime', $showtime->id) }}" method="POST" id="updateShowtimeForm">
+        <form action="{{ \App\Helpers\TabAuthHelper::route('update.showtime', ['id' => $showtime->id]) }}" method="POST" id="updateShowtimeForm">
             @csrf
 
             <div class="row g-4 mb-4">
@@ -180,7 +180,7 @@
             <hr class="my-4">
 
             <div class="d-flex gap-2 justify-content-end">
-                <a href="{{ route('admin.showtime') }}" class="btn btn-outline-secondary px-4">Hủy bỏ</a>
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime') }}" class="btn btn-outline-secondary px-4">Hủy bỏ</a>
                 <button type="submit" class="btn btn-primary px-4" id="btnSubmit">
                     <i class="bi bi-save me-1"></i>
                     Lưu thay đổi
@@ -193,11 +193,11 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const API_CHECK_ROOMS = '{{ route("admin.showtime.api.check_rooms_availability") }}';
-    const API_GET_ROOM_TIMELINE = '{{ route("admin.showtime.api.room_timeline") }}';
+    const API_CHECK_ROOMS = '{{ \App\Helpers\TabAuthHelper::route("admin.showtime.api.check_rooms_availability") }}';
+    const API_GET_ROOM_TIMELINE = '{{ \App\Helpers\TabAuthHelper::route("admin.showtime.api.room_timeline") }}';
     const CSRF = '{{ csrf_token() }}';
     const showtimeId = '{{ $showtime->id }}';
-        const API_MOVIE_INFO = '{{ route("admin.showtime.api.movie_info") }}';
+        const API_MOVIE_INFO = '{{ \App\Helpers\TabAuthHelper::route("admin.showtime.api.movie_info") }}';
 
     const selectMovie = document.getElementById('selectMovie');
     const selectDate = document.getElementById('selectDate');

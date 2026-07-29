@@ -11,7 +11,7 @@
             <p class="text-muted mb-0">Tạo gói combo mới từ các sản phẩm lẻ hiện có.</p>
         </div>
         <div>
-            <a href="{{ route('admin.combos.index') }}" class="btn btn-outline-secondary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.combos.index') }}" class="btn btn-outline-secondary">
                 <i class="bi bi-arrow-left"></i> Quay lại
             </a>
         </div>
@@ -24,10 +24,10 @@
             @if($products->isEmpty())
                 <div class="alert alert-warning py-3 text-center">
                     <i class="bi bi-exclamation-triangle-fill me-2 fs-4"></i>
-                    Không có sản phẩm lẻ hoạt động nào. Hãy tạo <a href="{{ route('admin.products.create') }}">Sản phẩm lẻ</a> trước khi tạo combo.
+                    Không có sản phẩm lẻ hoạt động nào. Hãy tạo <a href="{{ \App\Helpers\TabAuthHelper::route('admin.products.create') }}">Sản phẩm lẻ</a> trước khi tạo combo.
                 </div>
             @else
-                <form action="{{ route('admin.combos.store') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ \App\Helpers\TabAuthHelper::route('admin.combos.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
 
                     <div class="row g-3">

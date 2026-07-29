@@ -41,7 +41,7 @@
                 Chỉnh sửa thông tin cá nhân của bạn
             </p>
         </div>
-        <a href="{{ route('admin.detail.account', $user->id ?? auth()->id()) }}" class="btn btn-secondary">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.detail.account', $user->id ?? auth()->id()) }}" class="btn btn-secondary">
             Quay lại
         </a>
     </div>
@@ -68,7 +68,7 @@
                 </div>
 
                 <div class="col-md-8 col-xl-9">
-                    <form action="{{ route('admin.profile.account.admins.update', $user->id) }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ \App\Helpers\TabAuthHelper::route('admin.profile.account.admins.update', $user->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         
                         <div class="mb-3">
@@ -102,7 +102,7 @@
                     <hr class="my-5">
 
                     <h5 class="mb-3 text-danger">Đổi mật khẩu</h5>
-                    <form action="{{ route('admin.profile.account.admins.updatepassword', $user->id) }}" method="POST">
+                    <form action="{{ \App\Helpers\TabAuthHelper::route('admin.profile.account.admins.updatepassword', $user->id) }}" method="POST">
                         @csrf
                         @method('PUT')
                         
@@ -129,7 +129,7 @@
 
                         <div class="mt-4 d-flex justify-content-between align-items-center">
                             <button type="submit" class="btn btn-danger">Đổi mật khẩu</button>
-                            <a href="{{ route('password.request') }}" class="text-decoration-none">Quên mật khẩu?</a>
+                            <a href="{{ \App\Helpers\TabAuthHelper::route('password.request') }}" class="text-decoration-none">Quên mật khẩu?</a>
                         </div>
                     </form>
 
