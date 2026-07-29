@@ -181,6 +181,7 @@ Route::middleware('auth')->group(function () {
 // Membership Customer
 Route::middleware('auth')->group(function () {
     Route::get('/membership', [MembershipController::class, 'index'])->name('membership.index');
+    Route::get('/membership/history', [MembershipController::class, 'history'])->name('membership.history');
 });
 
 

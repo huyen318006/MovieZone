@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Coin;
 use App\Models\DailyCheckin;
 use App\Models\MembershipLevel;
+use App\Models\PointTransaction;
 use App\Models\UserMembership;
 use App\Services\MembershipService;
 use Illuminate\Http\Request;
@@ -94,5 +95,20 @@ class MembershipController extends Controller
             'rewardTable',
             'vouchers'
         ));
+    }
+
+    /**
+     * Xem lịch sử tích điểm và biến động Coin của Customer
+     */
+    public function history()
+    {
+        $user = Auth::user();
+
+        $transactions = PointTransaction::with('booking')
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('membership.history', compact('user', 'transactions'));
     }
 }
