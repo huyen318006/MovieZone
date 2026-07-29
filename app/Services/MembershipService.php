@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Booking;
 use App\Models\Coin;
 use App\Models\MembershipLevel;
+use App\Models\MembershipLevelHistory;
 use App\Models\PointTransaction;
 use App\Models\User;
 use App\Models\UserMembership;
@@ -37,6 +38,7 @@ class MembershipService
                 'level_id' => $defaultLevelId,
                 'points' => 0,
                 'total_spent' => 0,
+                'level_expired_at' => now()->addMonths(6),
                 'updated_at' => now(),
             ]
         );
@@ -87,7 +89,7 @@ class MembershipService
                 $userMembership->increment('total_spent', $amount);
             }
 
-            $this->recalculateLevel($booking->user_id);
+            $this->recalculateLevel($booking->user_id, 'Thăng hạng/Gia hạn tự động khi mua vé thành công');
 
             return $transaction;
         });
@@ -96,7 +98,7 @@ class MembershipService
     /**
      * Tự động tính lại Hạng và gia hạn thời gian duy trì hạng (6 tháng) dựa trên số Coin tích lũy.
      */
-    public function recalculateLevel(int $userId): void
+    public function recalculateLevel(int $userId, string $reason = 'Thay đổi hạng tự động'): void
     {
         $coin = Coin::where('user_id', $userId)->first();
         $balance = $coin ? $coin->balance : 0;
@@ -110,13 +112,24 @@ class MembershipService
 
         $userMembership = UserMembership::where('user_id', $userId)->first();
         if ($userMembership) {
-            $isLevelUp = ($matchedLevel->id != $userMembership->level_id);
+            $oldLevelId = $userMembership->level_id;
+            $isLevelChanged = ($matchedLevel->id != $oldLevelId);
 
             $userMembership->update([
                 'level_id' => $matchedLevel->id,
                 'level_expired_at' => now()->addMonths(6), // Gia hạn hạng 6 tháng
                 'updated_at' => now(),
             ]);
+
+            // Nếu có sự thay đổi hạng, ghi nhận lịch sử biến động Hạng
+            if ($isLevelChanged) {
+                MembershipLevelHistory::create([
+                    'user_id'      => $userId,
+                    'old_level_id' => $oldLevelId,
+                    'new_level_id' => $matchedLevel->id,
+                    'reason'       => $reason,
+                ]);
+            }
         }
     }
 
