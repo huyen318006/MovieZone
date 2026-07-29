@@ -329,6 +329,9 @@ class BookTicketsController extends Controller
                     'paid_at'        => now(),
                 ]);
 
+                // Tự động tích Coin Membership
+                app(\App\Services\MembershipService::class)->awardBookingCoin($booking);
+
                 // Cập nhật SepayOrder (nếu có)
                 $sepayOrder = SepayOrder::where('booking_id', $booking->id)->first();
                 if ($sepayOrder) {

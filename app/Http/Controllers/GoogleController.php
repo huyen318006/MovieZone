@@ -87,30 +87,30 @@ class GoogleController extends Controller
             'assigned_at' => now(),
         ]);
 
-        //tạo token mới để đăng nhập
-        $token = bin2hex(random_bytes(32));
-        //lưu token
-        TabToken::create(
-            [
-                'user_id' => $newUser->id,
-                'token'=> $token,
-                'last_used_at' => now(), //thời điểm tạo
-                'expires_at' => now()->addHours(24), // token có hiệu lực 24 giờ
-            ]
-        );
-        // 8. logout  để tránh dính session cho các tab khác
-            Auth::logout();
+        // Tự động khởi tạo ví Coin & Membership mặc định
+        app(\App\Services\MembershipService::class)->ensureMembership($newUser);
 
-        //kiểm tra role để phân quyền
+        // Tạo token mới để đăng nhập tab_token
+        $token = bin2hex(random_bytes(32));
+        TabToken::create([
+            'user_id'      => $newUser->id,
+            'token'        => $token,
+            'last_used_at' => now(),
+            'expires_at'   => now()->addHours(24),
+        ]);
+
+        Auth::logout();
+
         $userRole = UserRole::where('user_id', $newUser->id)->first();
-        $redirectRoute = match($userRole->role_id) {
+        $redirectRoute = match($userRole?->role_id) {
             1 => 'admin.dashboard',
             2 => 'staff.dashboard',
-            3 => 'home', // Khách hàng
-            default => 'home', // Mặc định về trang chủ
+            3 => 'home',
+            default => 'home',
         };
+
         return redirect()->route($redirectRoute, ['tab_token' => $token])
-            ->with('success', 'Đăng nhập thành công qua Google!');
+            ->with('success', 'Đăng ký và đăng nhập thành công qua Google!');
 
     }
 }

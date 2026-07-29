@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountManageController;
+use App\Http\Controllers\Admin\CustomerMembershipController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\BannerManageController;
 use App\Http\Controllers\Admin\BookingManageController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Admin\ShowtimeManageController;
 use App\Http\Controllers\CoinController;
 use App\Http\Controllers\FilmManageController;
 use App\Http\Controllers\GoogleController;
+use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MovieController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
@@ -175,6 +177,12 @@ Route::middleware('tab.auth')->group(function () { // chưa đăng nhập thì k
 Route::middleware('tab.auth')->group(function () {
     Route::get('/my-tickets', [TicketController::class, 'index'])->name('my-tickets.index');
     Route::get('/my-tickets/{id}', [TicketController::class, 'detail'])->name('my-tickets.show');
+});
+
+// Membership Customer
+Route::middleware('auth')->group(function () {
+    Route::get('/membership', [MembershipController::class, 'index'])->name('membership.index');
+    Route::get('/membership/history', [MembershipController::class, 'history'])->name('membership.history');
 });
 
 
@@ -535,4 +543,11 @@ Route::middleware(['tab.auth', 'admin'])->group(function () {
                 'update' => 'admin.banners.update',
                 'destroy' => 'admin.banners.destroy',
             ]);
+});
+/* --------------------- Quản lý Membership Admin ------------------ */
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/admin/memberships', [CustomerMembershipController::class, 'index'])->name('admin.memberships.index');
+    Route::post('/admin/memberships/scan-expired', [CustomerMembershipController::class, 'scanExpired'])->name('admin.memberships.scan_expired');
+    Route::get('/admin/memberships/{id}', [CustomerMembershipController::class, 'show'])->name('admin.memberships.show');
+    Route::post('/admin/memberships/{id}/adjust-coin', [CustomerMembershipController::class, 'adjustCoin'])->name('admin.memberships.adjust_coin');
 });

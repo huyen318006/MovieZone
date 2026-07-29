@@ -76,7 +76,7 @@ class CoinController extends Controller
             ->exists();
 
         if ($alreadyChecked) {
-            return redirect()->route('coin.index', $id)
+            return redirect()->back()
                 ->with('error', 'Bạn đã điểm danh hôm nay.');
         }
 
@@ -117,8 +117,8 @@ class CoinController extends Controller
         ]);
 
 
-        return redirect()->route('coin.index', $id)
-            ->with('success', "Bạn đã điểm danh thành công và nhận {$todayReward} coin.");
+        return redirect()->back()
+            ->with('success', "Bạn đã điểm danh thành công và nhận {$todayReward} Coin!");
     }
 
     /**

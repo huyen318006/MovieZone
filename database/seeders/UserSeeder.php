@@ -39,7 +39,7 @@ class UserSeeder extends Seeder
                 'updated_at'        => now(),
             ],
             [
-                'name'              => 'Staff',
+                'name'              => 'Customer Test',
                 'phone'             => '0112233445',
                 'email'             => 'customer@moviezone.com',
                 'email_verified_at' => now(),

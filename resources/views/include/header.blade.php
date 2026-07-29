@@ -41,7 +41,7 @@
 @endphp
 
 @if($currentUser)
-    <a href="{{ \App\Helpers\TabAuthHelper::route('coin.index', $currentUser->id) }}"
+    <a href="{{ \App\Helpers\TabAuthHelper::route('membership.index') }}"
        class="btn btn-warning rounded-pill d-flex align-items-center gap-2 fw-bold px-3">
         <i class="bi bi-coin"></i>
         <span>{{ number_format($currentUser->coin?->balance ?? 0) }}</span>
@@ -56,6 +56,10 @@
             <a href="{{ \App\Helpers\TabAuthHelper::route('profile') }}" class="dropdown-item">
                 <i class="bi bi-person"></i>
                 <span>Xem hồ sơ</span>
+            </a>
+            <a href="{{ \App\Helpers\TabAuthHelper::route('membership.index') }}" class="dropdown-item">
+                <i class="bi bi-shield-check"></i>
+                <span>Membership & Coin</span>
             </a>
 
             <form action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" method="POST" style="margin: 0;">

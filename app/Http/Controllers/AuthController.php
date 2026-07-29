@@ -138,6 +138,9 @@ class AuthController extends Controller
             'assigned_at' => now(),
         ]);
 
+        // Tự động khởi tạo ví Coin & Membership mặc định
+        app(\App\Services\MembershipService::class)->ensureMembership($userNew);
+
         return redirect()
             ->route('login')
             ->with('success', 'Đăng ký tài khoản thành công.');
