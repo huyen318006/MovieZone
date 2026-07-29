@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ShowtimeManageController;
 use App\Http\Controllers\CoinController;
 use App\Http\Controllers\FilmManageController;
 use App\Http\Controllers\GoogleController;
+use App\Http\Controllers\MembershipController;
 use App\Http\Controllers\MovieController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
@@ -175,6 +176,11 @@ Route::middleware('auth')->group(function () { // chưa đăng nhập thì khôn
 Route::middleware('auth')->group(function () {
     Route::get('/my-tickets', [TicketController::class, 'index'])->name('my-tickets.index');
     Route::get('/my-tickets/{id}', [TicketController::class, 'detail'])->name('my-tickets.show');
+});
+
+// Membership Customer
+Route::middleware('auth')->group(function () {
+    Route::get('/membership', [MembershipController::class, 'index'])->name('membership.index');
 });
 
 
