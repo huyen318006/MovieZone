@@ -71,7 +71,7 @@
                 <h1 class="fw-bold mb-1 text-white"><i class="bi bi-clock-history text-warning me-2"></i>Lịch Sử Tích Điểm & Biến Động Coin</h1>
                 <p class="mb-0" style="color: #cbd5e1 !important;">Nhật ký toàn bộ các lần cộng, trừ và thưởng Coin của bạn</p>
             </div>
-            <a href="{{ route('membership.index') }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('membership.index') }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
                 <i class="bi bi-arrow-left me-1"></i> Quay lại Membership
             </a>
         </div>
