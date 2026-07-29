@@ -32,7 +32,7 @@
 </style>
 
 <section class="container promo-detail-shell">
-    <a href="{{ route('promotions') }}" class="btn btn-outline-light mb-4">
+    <a href="{{ \App\Helpers\TabAuthHelper::route('promotions') }}" class="btn btn-outline-light mb-4">
         <i class="fa-solid fa-arrow-left me-1"></i> Quay lại khuyến mãi
     </a>
 
@@ -86,10 +86,10 @@
             </div>
 
             <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('movies') }}" class="btn btn-primary btn-lg">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('movies') }}" class="btn btn-primary btn-lg">
                     Xem phim đang chiếu
                 </a>
-                <a href="{{ route('promotions') }}" class="btn btn-outline-secondary btn-lg">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('promotions') }}" class="btn btn-outline-secondary btn-lg">
                     Xem khuyến mãi khác
                 </a>
             </div>

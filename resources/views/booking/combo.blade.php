@@ -68,7 +68,7 @@
                 </div>
             @endif
 
-            <form id="comboForm" action="{{ route('booking.combo.save') }}" method="POST">
+            <form id="comboForm" action="{{ \App\Helpers\TabAuthHelper::route('booking.combo.save') }}" method="POST">
                 @csrf
 
                 <input type="hidden" name="confirm_over_seat" id="confirmOverSeat" value="0">

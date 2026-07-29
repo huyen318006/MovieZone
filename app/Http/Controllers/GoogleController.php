@@ -20,7 +20,7 @@ class GoogleController extends Controller
 
     public function handleGoogleCallback()
     {
-        // 1. Lấy thông tin người dùng từ Google    
+        // 1. Lấy thông tin người dùng từ Google
         $googleUser = Socialite::driver('google')->stateless()->user();
 
         $finduser = User::where('email', $googleUser->email)->first();
@@ -33,6 +33,7 @@ class GoogleController extends Controller
                 return redirect()->route('login')
                     ->withErrors(['error' => 'Tài khoản của bạn đã bị khóa. Hãy quay lại trang chủ điền form hỗ trợ để mở khóa tài khoản']);
             }
+            
 
             // Đăng nhập
             Auth::login($finduser);

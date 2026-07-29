@@ -6,7 +6,7 @@
 <div class="ticket-detail-container">
     {{-- Thanh điều hướng quay lại --}}
     <div class="back-navigation">
-        <a href="{{ route('my-tickets.index') }}" class="back-btn">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('my-tickets.index') }}" class="back-btn">
             <i class="bi bi-arrow-left"></i> Quay lại danh sách
         </a>
     </div>
@@ -17,11 +17,11 @@
         </div>
 
         <div class="detail-card-body">
-            
+
             {{-- 1. Thông tin phim & suất chiếu --}}
             <div class="detail-section">
                 <div class="detail-section-title"><i class="bi bi-film"></i> Thông tin suất chiếu</div>
-                
+
                 {{-- Khu vực hiển thị thông tin phim trực quan --}}
                 @if(isset($booking->showtime->movie))
                     <div class="movie-info-header">
@@ -80,7 +80,7 @@
                                     <div class="ticket-seat-label">Ghế: <span class="seat-highlight">{{ $ticket->bookingSeat->seat_code ?? 'N/A' }}</span></div>
                                     @if($ticket->status === 'USED' && $ticket->checked_in_at)
                                         <div class="ticket-checkin-info">
-                                            <i class="bi bi-check-square-fill text-success"></i> Check-in: 
+                                            <i class="bi bi-check-square-fill text-success"></i> Check-in:
                                             {{ \Carbon\Carbon::parse($ticket->checked_in_at)->format('H:i:s d/m/Y') }}
                                         </div>
                                     @endif

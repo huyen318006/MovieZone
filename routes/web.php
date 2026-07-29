@@ -98,7 +98,7 @@ Route::controller(GoogleController::class)->group(function () {
     Route::get('auth/google', 'redirectToGoogle')->name('auth.google');
     Route::get('auth/google/callback', 'handleGoogleCallback');
 });
-Route::post('/logout', [AuthController::class, 'logout'])
+Route::match(['GET', 'POST'], '/logout', [AuthController::class, 'logout'])
     ->name('logout');
 /* ---------------------END---------- */
 
@@ -129,14 +129,15 @@ Route::get('/movies', [MovieController::class, 'index'])->name('movies');
 
 // Lịch chiếu
 Route::get('/showtimes', [ShowtimeController::class, 'index'])->name('showtimes');
-Route::get('/showtimes/{showtime}/select', [ShowtimeController::class, 'select'])->name('showtimes.select');
+// Chọn suất chiếu cụ thể - yêu cầu đăng nhập (cần tab_token để giữ ghế)
+Route::middleware('tab.auth')->get('/showtimes/{showtime}/select', [ShowtimeController::class, 'select'])->name('showtimes.select');
 
 
 
 // Chọn ghế
 
-// Booking payment flow (dùng SepayController cho QR + polling)
-Route::prefix('booking')->name('booking.')->group(function () {
+// Booking payment flow (dùng SepayController cho QR + polling) - yêu cầu đăng nhập
+Route::middleware('tab.auth')->prefix('booking')->name('booking.')->group(function () {
     Route::get('/demo-bill', [SepayController::class, 'demoBill'])->name('demo-bill');
     // Route checkout cũ đã chuyển sang BookingController::checkout
     // Route::post('/checkout', [SepayController::class, 'bookingCheckout'])->name('checkout');
@@ -145,8 +146,8 @@ Route::prefix('booking')->name('booking.')->group(function () {
     Route::get('/bill/{orderCode}', [SepayController::class, 'bookingBill'])->name('bill');
 });
 
-// route Sepay (gói nạp tiền)
-Route::prefix('sepay')->name('sepay.')->group(function () {
+// route Sepay (gói nạp tiền) - yêu cầu đăng nhập
+Route::middleware('tab.auth')->prefix('sepay')->name('sepay.')->group(function () {
     Route::get('/', [SepayController::class, 'index'])->name('index');
     Route::post('/checkout/{packageId}', [SepayController::class, 'checkout'])->name('checkout');
     Route::get('/payment/{orderCode}', [SepayController::class, 'payment'])->name('payment');
@@ -223,7 +224,7 @@ Route::middleware(['tab.auth', 'admin'])->controller(FilmManageController::class
 
 
 // Quản lý phòng chiếu - ROOM MANAGEMENT
-Route::prefix('admin/rooms')->name('admin.rooms.')->group(function () {
+Route::middleware(['tab.auth', 'admin'])->prefix('admin/rooms')->name('admin.rooms.')->group(function () {
     Route::get('/', [RoomManageController::class, 'index'])->name('index');
     Route::get('/create', [RoomManageController::class, 'create'])->name('create');
     Route::post('/', [RoomManageController::class, 'store'])->name('store');
@@ -235,7 +236,7 @@ Route::prefix('admin/rooms')->name('admin.rooms.')->group(function () {
 });
 
 // QUẢN LÝ SUẤT CHIẾU - SHOWTIME MANAGEMENT
-Route::controller(ShowtimeManageController::class)->group(function () {
+Route::middleware(['tab.auth', 'admin'])->controller(ShowtimeManageController::class)->group(function () {
     // Danh sách suất chiếu
     Route::get('/admin/showtime/management', 'listShowtime')->name('admin.showtime');
     // Form thêm suất chiếu
@@ -305,7 +306,7 @@ Route::middleware(['tab.auth'])->group(function () {
 
 //UC-04 quan ly ghe
 // Đặt trong group admin
-Route::middleware(['tab.auth'])->prefix('admin/seats')->name('admin.seats.')->group(function () {
+Route::middleware(['tab.auth', 'admin'])->prefix('admin/seats')->name('admin.seats.')->group(function () {
     Route::get('/', [SeatManageController::class, 'index'])->name('index');
     Route::get('/create', [SeatManageController::class, 'create'])->name('create');
     Route::post('/store', [SeatManageController::class, 'store'])->name('store');

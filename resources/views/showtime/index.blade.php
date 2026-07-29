@@ -20,7 +20,11 @@
         @endif
 
         <section class="showtime-filter-panel" data-aos="fade-up">
-            <form action="{{ route('showtimes') }}" method="GET" class="showtime-filter-form">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('showtimes') }}" method="GET" class="showtime-filter-form">
+                {{-- Giữ tab_token khi submit GET form --}}
+                @if(\App\Helpers\TabAuthHelper::gettoken())
+                    <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
+                @endif
                 <select id="showtime-movie" name="movie">
                     <option value="">Tất cả phim</option>
                     @foreach ($movies as $movie)
@@ -48,7 +52,7 @@
                     <button id="showtime-filter-submit" type="submit">
                         <i class="bi bi-search"></i> Tìm suất chiếu
                     </button>
-                    <a id="showtime-filter-reset" href="{{ route('showtimes') }}">Xóa lọc</a>
+                    <a id="showtime-filter-reset" href="{{ \App\Helpers\TabAuthHelper::route('showtimes') }}">Xóa lọc</a>
                 </div>
             </form>
         </section>
@@ -67,7 +71,7 @@
         <section class="showtime-results" data-aos="fade-up">
             <div class="section-title">
                 <h2>Suất Chiếu Phù Hợp</h2>
-                <a href="{{ route('movies') }}">Xem danh sách phim</a>
+                <a href="{{ \App\Helpers\TabAuthHelper::route('movies') }}">Xem danh sách phim</a>
             </div>
 
             @if ($showtimes->isEmpty())
@@ -124,7 +128,7 @@
                                 </div>
 
                                 @if ($showtime->available_seats_count > 0)
-                                    <a href="{{ route('showtimes.select', $showtime) }}" class="showtime-select-btn">
+                                    <a href="{{ \App\Helpers\TabAuthHelper::route('showtimes.select', $showtime) }}" class="showtime-select-btn">
                                         Chọn suất chiếu <i class="bi bi-arrow-right"></i>
                                     </a>
                                 @else

@@ -41,7 +41,7 @@
 
                     </div>
 
-                    <form action="{{ route('booking.seats.submit') }}" method="POST" id="bookingForm">
+                    <form action="{{ \App\Helpers\TabAuthHelper::route('booking.seats.submit') }}" method="POST" id="bookingForm">
                         @csrf
                         <input type="hidden" name="showtime_id" value="{{ $showtime->id }}">
                         <div id="hidden-seat-inputs"></div>
@@ -563,7 +563,7 @@
             </div>
             <h3>Hết thời gian giữ ghế!</h3>
             <p>Phiên giữ ghế 5 phút đã hết. Vui lòng chọn lại ghế.</p>
-            <a href="{{ route('booking.seat', ['showtime_id' => $showtime->id]) }}" class="btn-reload">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $showtime->id]) }}" id="seatPageReloadLink" class="btn-reload">
                 <i class="fa-solid fa-rotate-right"></i> Chọn ghế lại
             </a>
         </div>
@@ -576,9 +576,25 @@
             const totalPriceEl = document.getElementById('totalPrice');
             const hiddenSeatInputs = document.getElementById('hidden-seat-inputs');
             const btnPayment = document.getElementById('btnPayment');
+            const bookingForm = document.getElementById('bookingForm');
+            const seatPageReloadLink = document.getElementById('seatPageReloadLink');
 
             let timerInterval;
             let secondsLeft = Math.max(0, {{ $secondsLeft ?? 300 }});
+            const currentSearch = window.location.search;
+            const tabToken = new URLSearchParams(currentSearch).get('tab_token');
+
+            let holdSeatUrl = new URL("{{ route('booking.holdSeat') }}", window.location.origin);
+            if (tabToken) {
+                holdSeatUrl.searchParams.set('tab_token', tabToken);
+            }
+
+            if (bookingForm && tabToken && !bookingForm.action.includes('tab_token=')) {
+                bookingForm.action += (bookingForm.action.includes('?') ? '&' : '?') + 'tab_token=' + tabToken;
+            }
+            if (seatPageReloadLink && tabToken && !seatPageReloadLink.href.includes('tab_token=')) {
+                seatPageReloadLink.href += (seatPageReloadLink.href.includes('?') ? '&' : '?') + 'tab_token=' + tabToken;
+            }
 
             // 1. TỰ ĐỘNG KHÔI PHỤC GHẾ ĐANG CHỌN (Từ class HELD_BY_ME trên màn hình)
             document.querySelectorAll('.HELD_BY_ME').forEach(btn => {
@@ -651,7 +667,7 @@
                     let lastMessage = '';
 
                     for (const sId of seatIds) {
-                        const response = await fetch("{{ route('booking.holdSeat') }}", {
+                        const response = await fetch(holdSeatUrl.toString(), {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',

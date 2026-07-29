@@ -36,7 +36,7 @@
             <div class="expired-spinner"></div>
             <span>Đang chuyển về chọn ghế... (<span id="redirectCountdown">3</span>s)</span>
         </div>
-        <a href="{{ route('booking.seat', ['showtime_id' => session('booking_tam.showtime_id', '#')]) }}" class="expired-btn-back">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => session('booking_tam.showtime_id', '#')]) }}" class="expired-btn-back">
             <i class="fa-solid fa-arrow-left"></i> Chọn ghế lại
         </a>
     </div>
@@ -333,7 +333,7 @@
     const redirectCountdownEl = document.getElementById('redirectCountdown');
 
     // Lấy showtime_id từ URL hoặc session để build redirect URL
-    const seatPageUrl = "{{ route('booking.seat', ['showtime_id' => session('booking_tam.showtime_id', '#')]) }}";
+    const seatPageUrl = "{{ \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => session('booking_tam.showtime_id', '#')]) }}";
 
     function updateDisplay() {
         if (!clockEl || !fillEl) return;

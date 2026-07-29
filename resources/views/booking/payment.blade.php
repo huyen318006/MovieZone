@@ -154,7 +154,7 @@
             <div class="status-sub-mz" id="statusSubtext">Hệ thống tự động kiểm tra mỗi vài giây</div>
         </div>
 
-        <form action="{{ route('booking.cancel', $order->order_code) }}" method="POST" style="display: inline;">
+        <form action="{{ \App\Helpers\TabAuthHelper::route('booking.cancel', $order->order_code) }}" method="POST" style="display: inline;">
             @csrf
             <button type="submit" class="cancel-link-mz" onclick="return confirm('Bạn có chắc muốn hủy đơn hàng và chọn ghế khác?')">
                 <i class="fa-solid fa-arrow-left"></i> Huỷ và chọn ghế khác

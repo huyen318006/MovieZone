@@ -51,8 +51,12 @@
         <p class="fs-5 mb-0 opacity-75">Cập nhật ưu đãi đang diễn ra và sắp ra mắt trước khi đặt vé.</p>
     </div>
 
-    <form method="GET" action="{{ route('promotions') }}" class="card promo-filter-card border-0 shadow-sm mb-4">
+    <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('promotions') }}" class="card promo-filter-card border-0 shadow-sm mb-4">
         <div class="card-body row g-3 align-items-end">
+            {{-- Giữ tab_token khi submit GET form --}}
+            @if(\App\Helpers\TabAuthHelper::gettoken())
+                <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
+            @endif
             <div class="col-md-6">
                 <label class="form-label fw-semibold">Tìm kiếm khuyến mãi</label>
                 <input type="search" name="search" value="{{ $search }}" class="form-control form-control-lg" placeholder="Nhập tiêu đề hoặc nội dung...">
@@ -67,7 +71,7 @@
                 </select>
             </div>
             <div class="col-md-2 d-flex gap-2">
-                <a href="{{ route('promotions') }}" class="btn btn-outline-secondary btn-lg w-100">Reset</a>
+                <a href="{{ \App\Helpers\TabAuthHelper::route('promotions') }}" class="btn btn-outline-secondary btn-lg w-100">Reset</a>
                 <button type="submit" class="btn btn-primary btn-lg w-100">Lọc</button>
             </div>
         </div>
@@ -84,7 +88,7 @@
                     : ($timeLabel === 'Sắp diễn ra' ? 'text-bg-primary' : 'text-bg-secondary');
             @endphp
             <div class="col-md-6 col-lg-4">
-                <a href="{{ route('promotion.show', $promotion) }}" class="text-decoration-none text-body">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('promotion.show', $promotion) }}" class="text-decoration-none text-body">
                     <article class="card promo-card h-100 shadow-sm border-0">
                         <div class="promo-image-wrap">
                             @if ($promotion->banner_url && \Illuminate\Support\Facades\Storage::disk('public')->exists($promotion->banner_url))

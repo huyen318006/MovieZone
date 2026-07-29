@@ -9,8 +9,8 @@
         {{-- Breadcrumb --}}
         <nav aria-label="breadcrumb" class="mb-4" data-aos="fade-up">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ route('home') }}" class="text-soft" style="text-decoration: none;">Trang chủ</a></li>
-                <li class="breadcrumb-item"><a href="{{ route('news') }}" class="text-soft" style="text-decoration: none;">Tin tức</a></li>
+                <li class="breadcrumb-item"><a href="{{ \App\Helpers\TabAuthHelper::route('home') }}" class="text-soft" style="text-decoration: none;">Trang chủ</a></li>
+                <li class="breadcrumb-item"><a href="{{ \App\Helpers\TabAuthHelper::route('news') }}" class="text-soft" style="text-decoration: none;">Tin tức</a></li>
                 <li class="breadcrumb-item active text-white" aria-current="page">{{ Str::limit($article->title, 30) }}</li>
             </ol>
         </nav>
@@ -75,7 +75,7 @@
                     @else
                         <div class="d-flex flex-column gap-4">
                             @foreach($otherArticles as $other)
-                                <a href="{{ route('news.detail', $other->slug) }}" class="d-flex gap-3 text-decoration-none group-article" style="transition: all 0.3s ease;">
+                                <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $other->slug) }}" class="d-flex gap-3 text-decoration-none group-article" style="transition: all 0.3s ease;">
                                     {{-- Mini Thumbnail --}}
                                     <div class="flex-shrink-0 overflow-hidden" style="width: 90px; height: 90px; border-radius: 12px;">
                                         <img src="{{ $other->thumbnail_url ? asset($other->thumbnail_url) : asset('assets/news/batman.jpg') }}" class="w-100 h-100 object-fit-cover img-thumbnail-mini" alt="{{ $other->title }}" style="transition: transform 0.3s ease;">

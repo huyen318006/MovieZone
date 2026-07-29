@@ -202,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const hintEl = document.getElementById('chatbot-footer-hint');
     const apiUrl = '{{ route("api.chatbot") }}';
     const csrfToken = '{{ csrf_token() }}';
+    const tabToken = '{{ request('tab_token') }}';
     let pendingInputAction = null;
 //được kích hoạt khi bấm nút
     async function sendAction(action, value) {
@@ -271,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 : 'https://via.placeholder.com/50x70/0d6efd/fff?text=🎬';
             const genres = movie.genres ? movie.genres.join(', ') : '';
             const titleHtml = movie.detail_url
-                ? '<a href="' + movie.detail_url + '" target="_blank" style="color:#0d6efd;text-decoration:none;font-weight:600;">' + movie.title + ' 🔗</a>'
+                ? '<a href="' + (movie.detail_url + (tabToken ? (movie.detail_url.includes('?') ? '&' : '?') + 'tab_token=' + tabToken : '')) + '" target="_blank" style="color:#0d6efd;text-decoration:none;font-weight:600;">' + movie.title + ' 🔗</a>'
                 : '<span style="font-weight:600;">' + movie.title + '</span>';
             card.innerHTML =
                 '<img src="' + posterSrc + '" alt="' + movie.title + '" onerror="this.src=\'https://via.placeholder.com/50x70/0d6efd/fff?text=🎬\'">' +
@@ -313,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (movie.description) html += '<div style="margin-top:6px;font-size:12px;color:#555;border-top:1px solid #eee;padding-top:6px;">📝 ' + movie.description + '</div>';
         if (movie.trailer_url) html += '<div style="margin-top:6px;"><a href="' + movie.trailer_url + '" target="_blank" style="color:#0d6efd;font-size:12px;">▶️ Xem trailer</a></div>';
         if (movie.detail_url) html += '<div style="margin-top:10px;">' +
-            '<a href="' + movie.detail_url + '" target="_blank" ' +
+            '<a href="' + (movie.detail_url + (tabToken ? (movie.detail_url.includes('?') ? '&' : '?') + 'tab_token=' + tabToken : '')) + '" target="_blank" ' +
             'style="display:inline-block;background:#0d6efd;color:white;padding:6px 16px;border-radius:18px;font-size:12.5px;font-weight:600;text-decoration:none;">' +
             '🎬 Xem trang phim đầy đủ</a></div>';
         container.innerHTML = html;
@@ -331,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? (movieInfo.poster_url.startsWith('http') ? movieInfo.poster_url : '/storage/' + movieInfo.poster_url)
                 : 'https://via.placeholder.com/40x55/0d6efd/fff?text=🎬';
             const titleHtml = movieInfo.detail_url
-                ? '<a href="' + movieInfo.detail_url + '" target="_blank" style="color:#0d6efd;text-decoration:none;font-weight:600;">' + movieInfo.title + ' 🔗</a>'
+                ? '<a href="' + (movieInfo.detail_url + (tabToken ? (movieInfo.detail_url.includes('?') ? '&' : '?') + 'tab_token=' + tabToken : '')) + '" target="_blank" style="color:#0d6efd;text-decoration:none;font-weight:600;">' + movieInfo.title + ' 🔗</a>'
                 : '<span style="font-weight:600;">' + movieInfo.title + '</span>';
             const movieCard = document.createElement('div');
             movieCard.className = 'cb-movie-card';

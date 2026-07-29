@@ -62,10 +62,7 @@
                 <span>Membership & Coin</span>
             </a>
 
-            <form action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" method="POST" style="margin: 0;">
-                @csrf
-                @method('POST')
-                <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('logout') }}" method="GET" style="margin: 0;">
                 <button type="submit" class="logout-btn">
                     <i class="bi bi-box-arrow-right"></i>
                     <span>Đăng xuất</span>

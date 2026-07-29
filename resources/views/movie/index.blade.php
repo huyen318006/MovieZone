@@ -20,7 +20,11 @@
         </section>
 
         <section class="movie-filter-section" data-aos="fade-up">
-            <form action="{{ route('movies') }}" method="GET" class="movie-filter-form">
+            <form action="{{ \App\Helpers\TabAuthHelper::route('movies') }}" method="GET" class="movie-filter-form">
+                {{-- Giữ tab_token khi submit GET form (browser bỏ qua query string trong action URL) --}}
+                @if(\App\Helpers\TabAuthHelper::gettoken())
+                    <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
+                @endif
                 <div class="filter-search-field">
                     <i class="bi bi-search"></i>
                     <input id="movie-keyword" name="keyword" type="text" value="{{ $filters['keyword'] ?? '' }}"
@@ -69,7 +73,7 @@
                     <button id="movie-filter-submit" type="submit" class="filter-submit-btn">
                         <i class="bi bi-funnel"></i> Lọc phim
                     </button>
-                    <a id="movie-filter-reset" href="{{ route('movies') }}" class="filter-reset-btn">Xóa lọc</a>
+                    <a id="movie-filter-reset" href="{{ \App\Helpers\TabAuthHelper::route('movies') }}" class="filter-reset-btn">Xóa lọc</a>
                 </div>
             </form>
         </section>
@@ -80,14 +84,14 @@
                     <i class="bi bi-exclamation-triangle"></i>
                     <h2>Lỗi tải danh sách phim</h2>
                     <p>{{ $loadError }}</p>
-                    <a href="{{ route('movies') }}">Thử lại</a>
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('movies') }}">Thử lại</a>
                 </div>
             @elseif($movies->isEmpty())
                 <div class="movie-state-card" data-aos="fade-up">
                     <i class="bi bi-film"></i>
                     <h2>Không tìm thấy phim phù hợp</h2>
                     <p>Bạn có thể thay đổi từ khóa hoặc bộ lọc để xem thêm phim khác.</p>
-                    <a href="{{ route('movies') }}">Xem tất cả phim</a>
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('movies') }}">Xem tất cả phim</a>
                 </div>
             @else
                 <div class="movie-results-header">
@@ -128,7 +132,7 @@
                                     <span><i class="bi bi-clock"></i>{{ $movie->duration_minutes }} phút</span>
                                 </div>
 
-                                <a href="{{ route('movie.detail', $movie->slug) }}" class="movie-detail-link">
+                                <a href="{{ \App\Helpers\TabAuthHelper::route('movie.detail', $movie->slug) }}" class="movie-detail-link">
                                     Xem chi tiết <i class="bi bi-arrow-right"></i>
                                 </a>
                             </div>

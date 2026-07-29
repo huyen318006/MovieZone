@@ -69,7 +69,7 @@ class AuthController extends Controller
         };
         //logout đễ xóa session cũ tránh ở tab 2 nó lấy thông tin sesion cũ
         Auth::logout();
-        
+
         // 9. chuyển hướng redirect kèm với toke
         //  đây là chỗ quan trọng  nhất: gán token vào url
         return redirect($redirecPath.'?tab_token=' . $token)->with('success','Đăng nhập thành công !');
@@ -77,9 +77,16 @@ class AuthController extends Controller
     }
     public function logout(Request $request)
     {
+        $token = $request->input('tab_token') ?? $request->query('tab_token');
+
+        if ($token) {
+            TabToken::where('token', $token)->delete();
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/')->with('success', 'Đăng xuất thành công!');
     }
     function register(Request $request)

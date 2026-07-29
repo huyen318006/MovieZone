@@ -26,7 +26,7 @@
 
                     <h3>{{ $showtime->movie->title }}</h3>
 
-                    
+
 
                     <div class="info-item">
                         <i class="fa-solid fa-door-open"></i>
@@ -55,7 +55,7 @@
                                 $seatType = $seat->seat->type ?? '';
                                 $isSweetbox = (strtolower($seatType) == 'sweetbox') || str_contains(strtolower($seatCode), 'sw');
                             @endphp
-                            
+
                             <span class="seat-badge {{ $isSweetbox ? 'seat-sweetbox' : '' }}">
                                 @if($isSweetbox)
                                     <i class="fa-solid fa-heart" style="font-size: 12px; margin-right: 4px;"></i>
@@ -126,7 +126,7 @@
 
         </div>
 
-        <form action="{{ route('booking.checkout') }}" method="POST">
+        <form action="{{ \App\Helpers\TabAuthHelper::route('booking.checkout') }}" method="POST">
             @csrf
 
             <div class="payment-method-box">
@@ -134,7 +134,7 @@
                     <i class="fa-solid fa-user"></i>
                     Thông tin khách hàng
                 </h4>
-                
+
                 <div class="customer-info-form" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 10px;">
                     <div>
                         <label style="color: #9ca3af; font-size: 14px; margin-bottom: 5px; display: block;">Họ và Tên <span style="color: #ef4444;">*</span></label>
@@ -178,7 +178,7 @@
 
             <div class="confirm-actions">
 
-                <a href="{{ route('booking.combo') }}"
+                <a href="{{ \App\Helpers\TabAuthHelper::route('booking.combo') }}"
                    class="btn-back">
                     <i class="fa-solid fa-arrow-left"></i>
                     Quay lại chọn combo
