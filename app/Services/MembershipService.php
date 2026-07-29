@@ -6,6 +6,9 @@ use App\Models\Coin;
 use App\Models\MembershipLevel;
 use App\Models\User;
 use App\Models\UserMembership;
+use App\Models\Voucher;
+use App\Models\VoucherUsage;
+use Illuminate\Support\Carbon;
 
 class MembershipService
 {
@@ -34,5 +37,42 @@ class MembershipService
                 'updated_at' => now(),
             ]
         );
+    }
+
+    /**
+     * Truy xuất danh sách Voucher của Customer kèm trạng thái (Chưa dùng, Đã dùng, Hết hạn) và HSD.
+     */
+    public function getUserVouchers(User $user)
+    {
+        $allVouchers = Voucher::where('status', 'ACTIVE')->orderBy('end_date', 'asc')->get();
+        $usedVoucherIds = VoucherUsage::where('user_id', $user->id)->pluck('voucher_id')->toArray();
+        $today = Carbon::today();
+
+        return $allVouchers->map(function ($voucher) use ($usedVoucherIds, $today) {
+            $isUsed = in_array($voucher->id, $usedVoucherIds);
+            $isExpired = $voucher->end_date && $today->greaterThan($voucher->end_date);
+
+            if ($isUsed) {
+                $statusState = 'USED';
+                $statusLabel = 'Đã sử dụng';
+            } elseif ($isExpired) {
+                $statusState = 'EXPIRED';
+                $statusLabel = 'Hết hạn';
+            } else {
+                $statusState = 'AVAILABLE';
+                $statusLabel = 'Chưa dùng';
+            }
+
+            $daysRemaining = null;
+            if ($voucher->end_date && !$isUsed && !$isExpired) {
+                $daysRemaining = max(0, (int) $today->diffInDays($voucher->end_date, false));
+            }
+
+            $voucher->status_state = $statusState;
+            $voucher->status_label = $statusLabel;
+            $voucher->days_remaining = $daysRemaining;
+
+            return $voucher;
+        });
     }
 }

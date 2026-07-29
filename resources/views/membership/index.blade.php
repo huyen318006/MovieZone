@@ -68,8 +68,8 @@
         text-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
-    /* Progress Box Container */
-    .progress-box {
+    /* Box Container */
+    .membership-box {
         background: #1e293b !important;
         border: 1px solid #334155 !important;
         border-radius: 24px;
@@ -90,6 +90,26 @@
         border-radius: 999px;
         background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899) !important;
         transition: width 0.6s ease;
+    }
+
+    /* Checkin Steps Widget */
+    .checkin-step-pill {
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 16px;
+        padding: 12px;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+
+    .checkin-step-pill.active {
+        background: rgba(245, 158, 11, 0.15);
+        border-color: #f59e0b;
+    }
+
+    .checkin-step-pill.completed {
+        background: rgba(34, 197, 94, 0.15);
+        border-color: #22c55e;
     }
 
     /* 5 Tier Cards Grid */
@@ -157,7 +177,7 @@
         @endphp
 
         <!-- Membership Card & Progress Row -->
-        <div class="row g-4 mb-5">
+        <div class="row g-4 mb-4">
             <div class="col-lg-7">
                 <div class="membership-card-hero {{ $cardClass }}">
                     <div class="d-flex align-items-center justify-content-between mb-4">
@@ -191,7 +211,7 @@
 
             <!-- Progress & Target Box -->
             <div class="col-lg-5">
-                <div class="progress-box h-100 d-flex flex-column justify-content-between">
+                <div class="membership-box h-100 d-flex flex-column justify-content-between">
                     <div>
                         <div class="d-flex align-items-center justify-content-between mb-3">
                             <h5 class="fw-bold mb-0 text-white"><i class="bi bi-graph-up-arrow text-info me-2"></i>Tiến Độ Nâng Hạng</h5>
@@ -220,6 +240,61 @@
                         <span>Hạng tiếp: <strong class="text-info fw-bold">{{ $nextLevel->name ?? 'Tối đa' }}</strong></span>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Daily Check-in Widget Box -->
+        <div class="membership-box mb-5">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                <div>
+                    <h4 class="fw-bold mb-1 text-white"><i class="bi bi-calendar-check-fill text-warning me-2"></i>Điểm Danh Hằng Ngày Nhận Coin</h4>
+                    <p class="small mb-0" style="color: #cbd5e1 !important;">Điểm danh mỗi ngày để tích lũy Coin thăng hạng nhanh hơn! Chuỗi hiện tại: <strong class="text-warning">{{ $streak }} ngày</strong></p>
+                </div>
+
+                <div>
+                    @if(!$checkedToday)
+                        <form action="{{ route('coin.checkin', $user->id) }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="reward_coin" value="{{ $todayReward }}">
+                            <input type="hidden" name="todayStep" value="{{ $todayStep }}">
+                            <input type="hidden" name="checkin_date" value="{{ date('Y-m-d') }}">
+                            <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold shadow">
+                                <i class="bi bi-hand-thumbs-up-fill me-1"></i> Điểm Danh Ngay (+{{ $todayReward }} Coin)
+                            </button>
+                        </form>
+                    @else
+                        <button class="btn btn-success rounded-pill px-4 fw-bold" disabled>
+                            <i class="bi bi-check-circle-fill me-1"></i> Đã Điểm Danh Hôm Nay (+{{ $todayReward }} Coin)
+                        </button>
+                    @endif
+                </div>
+            </div>
+
+            <!-- 7-Day Steps Bar -->
+            <div class="row g-2">
+                @for ($i = 1; $i <= 7; $i++)
+                    @php
+                        $isCurrentStep = ($i == $todayStep);
+                        $isDone = ($i < $todayStep) || ($isCurrentStep && $checkedToday);
+                        $stepClass = $isDone ? 'completed' : ($isCurrentStep ? 'active' : '');
+                        $reward = $rewardTable[$i] ?? 100;
+                    @endphp
+                    <div class="col">
+                        <div class="checkin-step-pill {{ $stepClass }}">
+                            <div class="small fw-bold text-white-50 mb-1">Ngày {{ $i }}</div>
+                            <div class="fw-bold text-warning small">🪙 {{ $reward }}</div>
+                            <div class="mt-1">
+                                @if($isDone)
+                                    <i class="bi bi-check-circle-fill text-success fs-6"></i>
+                                @elseif($isCurrentStep)
+                                    <i class="bi bi-arrow-up-circle-fill text-warning fs-6"></i>
+                                @else
+                                    <i class="bi bi-circle text-white-50 fs-6"></i>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                @endfor
             </div>
         </div>
 
