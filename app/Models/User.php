@@ -62,4 +62,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(Coin::class);
     }
+
+    public function membership()
+    {
+        return $this->hasOne(UserMembership::class, 'user_id');
+    }
 }
