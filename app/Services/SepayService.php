@@ -238,6 +238,8 @@ class SepayService
                             'status' => 'SUCCESS',
                             'paid_at' => now(),
                         ]);
+                        // Tự động tích Coin Membership
+                        app(\App\Services\MembershipService::class)->awardBookingCoin($order->booking);
                     }
 
                     Log::info('SePay payment confirmed', [

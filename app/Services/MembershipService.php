@@ -2,13 +2,16 @@
 
 namespace App\Services;
 
+use App\Models\Booking;
 use App\Models\Coin;
 use App\Models\MembershipLevel;
+use App\Models\PointTransaction;
 use App\Models\User;
 use App\Models\UserMembership;
 use App\Models\Voucher;
 use App\Models\VoucherUsage;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class MembershipService
 {
@@ -37,6 +40,84 @@ class MembershipService
                 'updated_at' => now(),
             ]
         );
+    }
+
+    /**
+     * Tích Coin tự động khi booking thanh toán thành công (Tỷ lệ 10.000đ = 1 Coin).
+     */
+    public function awardBookingCoin(Booking $booking): ?PointTransaction
+    {
+        if (!$booking->user_id) {
+            return null;
+        }
+
+        // Chống tích coin trùng 2 lần cho cùng 1 đơn hàng
+        $alreadyAwarded = PointTransaction::where('booking_id', $booking->id)
+            ->where('type', 'EARN')
+            ->exists();
+
+        if ($alreadyAwarded) {
+            return null;
+        }
+
+        $amount = (float) ($booking->final_amount ?? $booking->total_price ?? 0);
+        $earnedCoin = (int) floor($amount / 10000); // 10.000đ = 1 Coin
+
+        if ($earnedCoin <= 0) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($booking, $earnedCoin, $amount) {
+            // 1. Cộng Coin vào ví
+            $coin = Coin::firstOrCreate(['user_id' => $booking->user_id], ['balance' => 0]);
+            $coin->increment('balance', $earnedCoin);
+
+            // 2. Ghi nhật ký lịch sử PointTransaction
+            $transaction = PointTransaction::create([
+                'user_id'    => $booking->user_id,
+                'booking_id' => $booking->id,
+                'points'     => $earnedCoin,
+                'type'       => 'EARN',
+                'created_at' => now(),
+            ]);
+
+            // 3. Cập nhật tổng chi tiêu và tự động tính lại Hạng
+            $userMembership = UserMembership::where('user_id', $booking->user_id)->first();
+            if ($userMembership) {
+                $userMembership->increment('total_spent', $amount);
+            }
+
+            $this->recalculateLevel($booking->user_id);
+
+            return $transaction;
+        });
+    }
+
+    /**
+     * Tự động tính lại Hạng và gia hạn thời gian duy trì hạng (6 tháng) dựa trên số Coin tích lũy.
+     */
+    public function recalculateLevel(int $userId): void
+    {
+        $coin = Coin::where('user_id', $userId)->first();
+        $balance = $coin ? $coin->balance : 0;
+
+        $levels = MembershipLevel::orderBy('min_points', 'asc')->get();
+        $matchedLevel = $levels->where('min_points', '<=', $balance)->last() ?? $levels->first();
+
+        if (!$matchedLevel) {
+            return;
+        }
+
+        $userMembership = UserMembership::where('user_id', $userId)->first();
+        if ($userMembership) {
+            $isLevelUp = ($matchedLevel->id != $userMembership->level_id);
+
+            $userMembership->update([
+                'level_id' => $matchedLevel->id,
+                'level_expired_at' => now()->addMonths(6), // Gia hạn hạng 6 tháng
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     /**

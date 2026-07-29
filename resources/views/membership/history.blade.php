@@ -19,28 +19,45 @@
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5) !important;
     }
 
-    .table-custom {
-        color: #f8fafc !important;
+    /* Continuous Single Table Row Border */
+    .custom-history-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        border-spacing: 0 !important;
+        margin-bottom: 0 !important;
     }
 
-    .table-custom th {
+    .custom-history-table th,
+    .custom-history-table td {
+        padding: 16px 20px !important;
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        text-decoration: none !important;
+    }
+
+    .custom-history-table th {
         background: #0f172a !important;
         color: #cbd5e1 !important;
+        font-weight: 700 !important;
         border-bottom: 2px solid #334155 !important;
-        padding: 16px;
-        font-weight: 700;
     }
 
-    .table-custom td {
+    .custom-history-table tbody tr {
         background: #1e293b !important;
-        color: #e2e8f0 !important;
         border-bottom: 1px solid #334155 !important;
-        padding: 16px;
-        vertical-align: middle;
+        transition: background 0.2s ease;
     }
 
-    .table-custom tr:hover td {
-        background: #334155 !important;
+    .custom-history-table tbody tr:hover {
+        background: #2d3748 !important;
+    }
+
+    .custom-history-table span,
+    .custom-history-table td * {
+        border: none !important;
+        box-shadow: none !important;
+        text-decoration: none !important;
     }
 </style>
 @endpush
@@ -63,7 +80,7 @@
         <div class="membership-box mb-4">
             @if(isset($transactions) && $transactions->isNotEmpty())
                 <div class="table-responsive">
-                    <table class="table table-custom mb-0">
+                    <table class="custom-history-table">
                         <thead>
                             <tr>
                                 <th>Thời Gian</th>
