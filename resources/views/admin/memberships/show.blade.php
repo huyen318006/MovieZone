@@ -175,7 +175,7 @@
     </div>
 
     <!-- Point Transactions Table Card -->
-    <div class="card bg-dark text-white border-secondary shadow-sm">
+    <div class="card bg-dark text-white border-secondary mb-4 shadow-sm">
         <div class="card-header bg-secondary text-white fw-bold py-3">
             <i class="bi bi-clock-history me-2"></i>Lịch Sử Biến Động Coin (Nhật Ký Tích / Trừ Point)
         </div>
@@ -227,6 +227,54 @@
                 <div class="text-center py-4">
                     <i class="bi bi-journal-x fs-2 text-muted d-block mb-2"></i>
                     <span class="text-muted small">Khách hàng chưa có lịch sử biến động Coin nào</span>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <!-- Rank Transitions History Table Card (Commit 5.2) -->
+    <div class="card bg-dark text-white border-secondary shadow-sm">
+        <div class="card-header bg-secondary text-white fw-bold py-3">
+            <i class="bi bi-graph-up-arrow me-2"></i>Lịch Sử Chuyển Đổi Hạng Thành Viên (Lưu Vết Thăng / Hạ Hạng)
+        </div>
+        <div class="card-body p-0">
+            @if(isset($levelHistories) && $levelHistories->isNotEmpty())
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle mb-0">
+                        <thead class="table-secondary text-uppercase small">
+                            <tr>
+                                <th class="ps-4">Thời Gian</th>
+                                <th>Hạng Cũ</th>
+                                <th>Hạng Mới</th>
+                                <th>Lý Do Chuyển Hạng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($levelHistories as $lh)
+                                <tr>
+                                    <td class="ps-4 small text-muted">{{ $lh->created_at ? $lh->created_at->format('H:i - d/m/Y') : 'N/A' }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary px-3 py-1 fw-bold">
+                                            {{ strtoupper($lh->oldLevel?->name ?? 'BRONZE') }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary px-3 py-1 fw-bold">
+                                            <i class="bi bi-arrow-right me-1"></i> {{ strtoupper($lh->newLevel?->name ?? 'BRONZE') }}
+                                        </span>
+                                    </td>
+                                    <td class="small text-white-50">
+                                        {{ $lh->reason }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-center py-4">
+                    <i class="bi bi-award fs-2 text-muted d-block mb-2"></i>
+                    <span class="text-muted small">Khách hàng chưa có biến động thay đổi Hạng nào</span>
                 </div>
             @endif
         </div>

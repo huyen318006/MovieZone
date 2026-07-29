@@ -4,11 +4,33 @@
 
 @section('content')
 <div class="container-fluid py-4">
-    <!-- Title -->
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    <!-- Flash Messages -->
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show border-0 rounded-3 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+    @if (session('error'))
+        <div class="alert alert-danger alert-dismissible fade show border-0 rounded-3 mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
+    <!-- Title & Scan Expired Button -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
             <h3 class="fw-bold text-white mb-1"><i class="bi bi-shield-check text-warning me-2"></i>Quản Lý Membership Khách Hàng</h3>
             <p class="text-muted small mb-0">Danh sách tài khoản khách hàng, mốc hạng thành viên, số dư Coin và tổng chi tiêu</p>
+        </div>
+        <div>
+            <form action="{{ route('admin.memberships.scan_expired') }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn quét kiểm tra và hạ hạng các tài khoản quá hạn duy trì 6 tháng không?')">
+                @csrf
+                <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-arrow-repeat me-1"></i> ⚡ Quét Hạ Hạng Tự Động (6 Tháng)
+                </button>
+            </form>
         </div>
     </div>
 

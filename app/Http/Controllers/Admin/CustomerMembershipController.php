@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\MembershipLevel;
+use App\Models\MembershipLevelHistory;
 use App\Models\PointTransaction;
 use App\Models\User;
 use App\Models\UserMembership;
@@ -59,7 +60,7 @@ class CustomerMembershipController extends Controller
     }
 
     /**
-     * Xem chi tiết Membership & Lịch sử mua vé / tích Coin của 1 Khách hàng
+     * Xem chi tiết Membership & Lịch sử mua vé / tích Coin / Lịch sử thăng hạng của 1 Khách hàng
      */
     public function show($id, MembershipService $membershipService)
     {
@@ -77,7 +78,13 @@ class CustomerMembershipController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('admin.memberships.show', compact('customer', 'bookings', 'pointTransactions'));
+        // Lịch sử biến động Hạng (Thăng / Hạ / Gia hạn hạng)
+        $levelHistories = MembershipLevelHistory::with(['oldLevel', 'newLevel'])
+            ->where('user_id', $customer->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.memberships.show', compact('customer', 'bookings', 'pointTransactions', 'levelHistories'));
     }
 
     /**
