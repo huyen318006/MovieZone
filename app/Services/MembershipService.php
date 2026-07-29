@@ -251,11 +251,35 @@ class MembershipService
     }
 
     /**
-     * Truy xuất danh sách Voucher của Customer kèm trạng thái (Chưa dùng, Đã dùng, Hết hạn) và HSD.
+     * Truy xuất danh sách Voucher của Customer phân quyền mở khóa theo Hạng thành viên hiện tại.
      */
     public function getUserVouchers(User $user)
     {
-        $allVouchers = Voucher::where('status', 'ACTIVE')->orderBy('end_date', 'asc')->get();
+        $userMembership = UserMembership::with('level')->where('user_id', $user->id)->first();
+        $levelName = strtoupper($userMembership?->level?->name ?? 'BRONZE');
+
+        // Danh sách mốc Voucher mở khóa theo Hạng
+        $allowedPrefixes = match($levelName) {
+            'SILVER'   => ['BRONZE', 'SILVER', 'WELCOME', 'MOVIE'],
+            'GOLD'     => ['BRONZE', 'SILVER', 'GOLD', 'WELCOME', 'MOVIE'],
+            'PLATINUM' => ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'WELCOME', 'MOVIE'],
+            'DIAMOND'  => ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'DIAMOND', 'WELCOME', 'MOVIE'],
+            default    => ['BRONZE', 'WELCOME', 'MOVIE'],
+        };
+
+        $allVouchers = Voucher::where('status', 'ACTIVE')
+            ->get()
+            ->filter(function ($voucher) use ($allowedPrefixes) {
+                foreach ($allowedPrefixes as $prefix) {
+                    if (str_starts_with(strtoupper($voucher->code), $prefix)) {
+                        return true;
+                    }
+                }
+                return false;
+            })
+            ->sortBy('end_date')
+            ->values();
+
         $usedVoucherIds = VoucherUsage::where('user_id', $user->id)->pluck('voucher_id')->toArray();
         $today = Carbon::today();
 
