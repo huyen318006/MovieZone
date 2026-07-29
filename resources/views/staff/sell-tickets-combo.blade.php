@@ -7,7 +7,7 @@
 <div class="sell-combo-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-white">Chọn combo / đồ ăn lẻ</h4>
-        <a href="{{ route('staff.sell-tickets') }}" class="btn btn-outline-light btn-sm">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}" class="btn btn-outline-light btn-sm">
             <i class="bi bi-arrow-left"></i> Quay lại
         </a>
     </div>
@@ -53,7 +53,7 @@
 
             {{-- RIGHT: Combo list --}}
             <div class="combo-main">
-                <form action="{{ route('staff.sell-tickets.savecombo') }}" method="POST" id="comboForm">
+                <form action="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets.savecombo') }}" method="POST" id="comboForm">
                     @csrf
 
                     {{-- giữ nguyên flow seats/showtime --}}

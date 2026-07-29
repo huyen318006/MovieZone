@@ -10,7 +10,7 @@
             <h3 class="mb-1">Sửa phòng chiếu</h3>
             <p class="text-muted mb-0">Cập nhật thông tin phòng chiếu.</p>
         </div>
-        <a href="{{ route('admin.rooms.index') }}" class="btn btn-outline-secondary">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Quay lại danh sách
         </a>
     </div>
@@ -134,7 +134,7 @@
             </div>
         </div>
         <div class="card-body">
-            <form method="POST" action="{{ route('admin.rooms.update', $room) }}">
+            <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.update', ['room' => $room]) }}">
                 @csrf
                 @method('PUT')
 
@@ -200,10 +200,10 @@
                             <i class="bi bi-check-lg me-1"></i> Cập nhật phòng chiếu
                         </button>
                     @endif
-                    <a href="{{ route('admin.rooms.seats', $room) }}" class="btn btn-outline-info">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.seats', ['room' => $room]) }}" class="btn btn-outline-info">
                         <i class="bi bi-grid-3x3-gap me-1"></i> Xem sơ đồ ghế
                     </a>
-                    <a href="{{ route('admin.rooms.index') }}" class="btn btn-outline-secondary">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.index') }}" class="btn btn-outline-secondary">
                         Huỷ bỏ
                     </a>
                 </div>

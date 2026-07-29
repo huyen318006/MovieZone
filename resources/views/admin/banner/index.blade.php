@@ -19,7 +19,7 @@
             <p class="text-muted mb-0">Quản lý các hình ảnh banner trình chiếu quảng cáo ở trang chủ và chi tiết.</p>
         </div>
         <div>
-            <a href="{{ route('admin.banners.create') }}" class="btn btn-primary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.banners.create') }}" class="btn btn-primary">
                 <i class="bi bi-plus-lg"></i> Thêm Banner
             </a>
         </div>
@@ -30,7 +30,8 @@
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-transparent d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div class="fw-semibold">Danh sách Banner</div>
-            <form method="GET" action="{{ route('admin.banners.index') }}" class="d-flex gap-2 align-items-center">
+            <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.banners.index') }}" class="d-flex gap-2 align-items-center">
+                <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                 <select name="position" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                     <option value="">Tất cả vị trí</option>
                     <option value="HOME_TOP" {{ request('position') == 'HOME_TOP' ? 'selected' : '' }}>HOME_TOP (Trang chủ đầu)</option>
@@ -42,7 +43,7 @@
                     <option value="INACTIVE" {{ request('status') == 'INACTIVE' ? 'selected' : '' }}>Ngừng hoạt động</option>
                 </select>
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i></button>
-                <a href="{{ route('admin.banners.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></a>
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.banners.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></a>
             </form>
         </div>
 
@@ -121,10 +122,10 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('admin.banners.edit', $banner->id) }}" class="btn btn-outline-primary btn-sm">
+                                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.banners.edit', $banner->id) }}" class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-pencil"></i> Sửa
                                         </a>
-                                        <form method="POST" action="{{ route('admin.banners.destroy', $banner->id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa banner này không?');" class="d-inline">
+                                        <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.banners.destroy', $banner->id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa banner này không?');" class="d-inline">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger btn-sm">

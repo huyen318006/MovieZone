@@ -29,7 +29,7 @@
             <p class="text-muted mb-0">Quản lý danh sách phòng chiếu, trạng thái và sơ đồ ghế.</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('admin.rooms.create') }}" class="btn btn-primary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.create') }}" class="btn btn-primary">
                 <i class="bi bi-plus-lg"></i>
                 Thêm phòng chiếu
             </a>
@@ -45,7 +45,8 @@
                 <div class="fw-semibold">Danh sách phòng chiếu</div>
                 <small class="text-muted">Click vào tên phòng để xem sơ đồ ghế.</small>
             </div>
-            <form method="GET" action="{{ route('admin.rooms.index') }}" class="d-flex gap-2 flex-wrap align-items-center">
+            <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.index') }}" class="d-flex gap-2 flex-wrap align-items-center">
+                <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
 
                 <input type="text"
                        name="search"
@@ -65,7 +66,7 @@
                     <i class="bi bi-search"></i>
                 </button>
 
-                <a href="{{ route('admin.rooms.index') }}" class="btn btn-outline-secondary btn-sm">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.index') }}" class="btn btn-outline-secondary btn-sm">
                     <i class="bi bi-arrow-clockwise"></i> Làm mới
                 </a>
             </form>
@@ -91,7 +92,7 @@
                             <tr>
                                 <td>{{ $rooms->firstItem() + $i }}</td>
                                 <td>
-                                    <a href="{{ route('admin.seats.index', ['room_id' => $room->id]) }}" class="fw-semibold text-decoration-none">
+                                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.seats.index', ['room_id' => $room->id]) }}" class="fw-semibold text-decoration-none">
                                         {{ $room->name }}
                                     </a>
                                     {{-- Badge trạng thái hoạt động chi tiết --}}
@@ -146,15 +147,15 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2 flex-wrap">
-                                        <a href="{{ route('admin.seats.index', ['room_id' => $room->id]) }}" class="btn btn-outline-info btn-sm">
+                                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.seats.index', ['room_id' => $room->id]) }}" class="btn btn-outline-info btn-sm">
                                             <i class="bi bi-grid-3x3-gap"></i> Sơ đồ ghế
                                         </a>
-                                        <a href="{{ route('admin.rooms.edit', $room) }}" class="btn btn-outline-primary btn-sm">
+                                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.edit', ['room' => $room]) }}" class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-pencil"></i> Sửa
                                         </a>
 
                                         @if($room->status === 'INACTIVE')
-                                            <form method="POST" action="{{ route('admin.rooms.restore', $room) }}" class="d-inline">
+                                            <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.restore', ['room' => $room]) }}" class="d-inline">
                                                 @csrf
                                                 <button type="submit" class="btn btn-outline-success btn-sm">
                                                     <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
@@ -186,7 +187,7 @@
                                 <td colspan="8" class="text-center text-muted py-5">
                                     <i class="bi bi-door-open fs-1 d-block mb-2"></i>
                                     Chưa có phòng chiếu nào.
-                                    <a href="{{ route('admin.rooms.create') }}">Thêm phòng chiếu</a>
+                                    <a href="{{ \App\Helpers\TabAuthHelper::route('admin.rooms.create') }}">Thêm phòng chiếu</a>
                                 </td>
                             </tr>
                         @endforelse

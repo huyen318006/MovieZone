@@ -80,7 +80,8 @@
 </div>
 
 <section class="panel mb-4">
-    <form method="GET" action="{{ route('admin.dashboard') }}" class="row g-3 align-items-end">
+    <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.dashboard') }}" class="row g-3 align-items-end">
+        <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
         <div class="col-md-4">
             <label class="form-label fw-bold">Ngày bắt đầu</label>
             <input type="date" name="start_date" value="{{ $startDateValue }}" class="form-control">
@@ -103,18 +104,18 @@
         </div>
         <div class="col-12 d-flex flex-wrap gap-2 justify-content-between align-items-center">
             <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('admin.dashboard', ['start_date' => now()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.dashboard', ['start_date' => now()->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
                     Hôm nay
                 </a>
-                <a href="{{ route('admin.dashboard', ['start_date' => now()->subDays(6)->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.dashboard', ['start_date' => now()->subDays(6)->format('Y-m-d'), 'end_date' => now()->format('Y-m-d'), 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
                     7 ngày gần nhất
                 </a>
-                <a href="{{ route('admin.dashboard', ['start_date' => now()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->endOfMonth()->format('Y-m-d'), 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.dashboard', ['start_date' => now()->startOfMonth()->format('Y-m-d'), 'end_date' => now()->endOfMonth()->format('Y-m-d'), 'movie_id' => $filters['movie_id'] ?? null]) }}" class="btn btn-outline-primary">
                     Tháng hiện tại
                 </a>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ route('admin.dashboard') }}" class="btn btn-light">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.dashboard') }}" class="btn btn-light">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Đặt lại
                 </a>
                 <button type="submit" class="btn btn-primary">

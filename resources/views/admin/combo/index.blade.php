@@ -27,7 +27,7 @@
             <p class="text-muted mb-0">Quản lý gói sản phẩm (combo đôi, combo gia đình...) bán kèm vé.</p>
         </div>
         <div>
-            <a href="{{ route('admin.combos.create') }}" class="btn btn-primary">
+            <a href="{{ \App\Helpers\TabAuthHelper::route('admin.combos.create') }}" class="btn btn-primary">
                 <i class="bi bi-plus-lg"></i> Thêm Combo mới
             </a>
         </div>
@@ -38,7 +38,8 @@
     <div class="card border-0 shadow-sm">
         <div class="card-header bg-transparent d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div class="fw-semibold">Danh sách combo bắp nước</div>
-            <form method="GET" action="{{ route('admin.combos.index') }}" class="d-flex gap-2 align-items-center">
+            <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.combos.index') }}" class="d-flex gap-2 align-items-center">
+                <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                 <input type="text" name="search" class="form-control form-control-sm" style="width: 200px;" placeholder="Tìm tên combo..." value="{{ request('search') }}">
                 <select name="status" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                     <option value="">Tất cả trạng thái</option>
@@ -46,7 +47,7 @@
                     <option value="INACTIVE" {{ request('status') == 'INACTIVE' ? 'selected' : '' }}>Đã ẩn</option>
                 </select>
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i></button>
-                <a href="{{ route('admin.combos.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></a>
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.combos.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-clockwise"></i></a>
             </form>
         </div>
 
@@ -101,10 +102,10 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="{{ route('admin.combos.edit', $combo->id) }}" class="btn btn-outline-primary btn-sm">
+                                        <a href="{{ \App\Helpers\TabAuthHelper::route('admin.combos.edit', $combo->id) }}" class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-pencil"></i> Sửa
                                         </a>
-                                        <form method="POST" action="{{ route('admin.combos.destroy', $combo->id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa combo này không?');" class="d-inline">
+                                        <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('admin.combos.destroy', $combo->id) }}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa combo này không?');" class="d-inline">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-outline-danger btn-sm">

@@ -54,7 +54,7 @@
                 </div>
 
                 <div class="movie-actions">
-                    <a href="{{ route('showtimes', ['movie' => $movie->id]) }}" class="btn-book">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('showtimes', ['movie' => $movie->id]) }}" class="btn-book">
                         <i class="fa-solid fa-ticket"></i> Xem Suất Chiếu
                     </a>
                     <button class="btn-trailer" data-bs-toggle="modal" data-bs-target="#trailerModal">
@@ -75,7 +75,7 @@
     <section id="movie-showtimes" class="movie-detail-section movie-showtime-section">
         <div class="section-title">
             <h2>Lịch Chiếu Liên Quan</h2>
-            <a href="{{ route('showtimes', ['movie' => $movie->id]) }}">Xem lịch chiếu đầy đủ</a>
+            <a href="{{ \App\Helpers\TabAuthHelper::route('showtimes', ['movie' => $movie->id]) }}">Xem lịch chiếu đầy đủ</a>
         </div>
 
         @if ($movie->showtimes->isEmpty())
@@ -96,7 +96,7 @@
                         <p>{{ $showtime->room?->name ?: 'Phòng đang cập nhật' }}</p>
                         <span>{{ $showtime->room?->name ?: 'Phòng đang cập nhật' }} • {{ $showtime->format }} •
                             {{ $showtime->language_type }}</span>
-                        <a href="{{ route('booking.seat', ['showtime_id' => $showtime->id]) }}">Chọn suất</a>
+                        <a href="{{ \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $showtime->id]) }}">Chọn suất</a>
                     </article>
                 @endforeach
             </div>
@@ -134,16 +134,17 @@
         </div>
         <!-- Khung hiển thị / viết đánh giá của bản thân (UC-CUS-14) -->
         <div class="my-review-container mb-5">
-            @auth
+            @php $cUser = \App\Helpers\TabAuthHelper::currentUser(); @endphp
+            @if ($cUser)
                 @php
                     $myReview = $movie
                         ->reviews()
-                        ->where('user_id', auth()->id())
+                        ->where('user_id', $cUser->id)
                         ->first();
-                    $isCustomer = \App\Models\UserRole::where('user_id', auth()->id())
+                    $isCustomer = \App\Models\UserRole::where('user_id', $cUser->id)
                         ->where('role_id', 3)
                         ->exists();
-                    $hasBooking = \App\Models\Booking::where('user_id', auth()->id())
+                    $hasBooking = \App\Models\Booking::where('user_id', $cUser->id)
                         ->whereHas('showtime', function ($query) use ($movie) {
                             $query->where('movie_id', $movie->id);
                         })
@@ -156,7 +157,7 @@
                                 });
                         })
                         ->exists();
-                    $isAdminUser = \App\Models\UserRole::where('user_id', auth()->id())
+                    $isAdminUser = \App\Models\UserRole::where('user_id', $cUser->id)
                         ->where('role_id', 1)
                         ->exists();
                 @endphp
@@ -177,7 +178,7 @@
                                 <button class="btn-edit-review" onclick="showEditForm({{ $myReview->id }})">
                                     <i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa
                                 </button>
-                                <form action="{{ route('reviews.destroy', $myReview->id) }}" method="POST" class="d-inline"
+                                <form action="{{ \App\Helpers\TabAuthHelper::route('reviews.destroy', $myReview->id) }}" method="POST" class="d-inline"
                                     onsubmit="return confirm('Bạn có chắc chắn muốn xóa đánh giá này?')">
                                     @csrf
                                     @method('DELETE')
@@ -215,7 +216,7 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('reviews.update', $myReview->id) }}" method="POST">
+                        <form action="{{ \App\Helpers\TabAuthHelper::route('reviews.update', $myReview->id) }}" method="POST">
                             @csrf
                             @method('PUT')
 
@@ -294,7 +295,7 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('movies.review.store', $movie->id) }}" method="POST">
+                        <form action="{{ \App\Helpers\TabAuthHelper::route('movies.review.store', $movie->id) }}" method="POST">
                             @csrf
                             <div class="mb-4">
                                 <label class="form-label font-weight-bold d-block text-light">Chọn số sao:</label>
@@ -340,7 +341,7 @@
                         đánh giá phim này.
                     </div>
                 </div>
-            @endauth
+            @endif
         </div>
 
         <!-- Danh sách đánh giá công khai (A4) -->
@@ -349,8 +350,9 @@
                 khác</h3>
 
             @php
-                $publicReviews = $movie->approvedReviews->filter(function ($r) {
-                    return !auth()->check() || $r->user_id !== auth()->id();
+                $cUser = \App\Helpers\TabAuthHelper::currentUser();
+                $publicReviews = $movie->approvedReviews->filter(function ($r) use ($cUser) {
+                    return !$cUser || $r->user_id !== $cUser->id;
                 });
             @endphp
 
@@ -372,10 +374,11 @@
                                     <strong
                                         class="text-white">{{ $review->user?->name ?: 'Khách hàng MovieZone' }}</strong>
 
-                                    @auth
-                                        @if (\App\Models\UserRole::where('user_id', auth()->id())->where('role_id', 1)->exists())
+                                    @php $cUser = \App\Helpers\TabAuthHelper::currentUser(); @endphp
+                                    @if($cUser)
+                                        @if (\App\Models\UserRole::where('user_id', $cUser->id)->where('role_id', 1)->exists())
                                             <!-- BR06: Xóa cứng đánh giá chỉ dành cho Admin -->
-                                            <form action="{{ route('reviews.destroy', $review->id) }}" method="POST"
+                                            <form action="{{ \App\Helpers\TabAuthHelper::route('reviews.destroy', $review->id) }}" method="POST"
                                                 class="d-inline ms-2"
                                                 onsubmit="return confirm('Quản trị viên: Bạn có chắc chắn muốn XÓA CỨNG đánh giá này?')">
                                                 @csrf
@@ -387,7 +390,7 @@
                                                 </button>
                                             </form>
                                         @endif
-                                    @endauth
+                                    @endif
                                 </div>
                                 <span class="badge-rating"><i class="fa-solid fa-star text-warning"></i>
                                     {{ $review->rating }}/5</span>

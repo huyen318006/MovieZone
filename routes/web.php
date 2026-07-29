@@ -101,7 +101,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 /* ---------------------END---------- */
 
 /* --------------------- Coin------------------ */
-Route::middleware('auth')->group(function () {
+Route::middleware('tab.auth')->group(function () {
     Route::get('/coin/{id}', [CoinController::class, 'coinIndex'])->name('coin.index');
     Route::post('/coin/{id}/checkin', [CoinController::class, 'checkin'])->name('coin.checkin');
 
@@ -114,7 +114,7 @@ Route::get('/movie-detail', function () {
 
 Route::get('/movies/{slug}', [MovieController::class, 'show'])->name('movie.detail');
 // đánh giá phim
-Route::middleware('auth')->group(function () {
+Route::middleware('tab.auth')->group(function () {
     // Luồng gửi đánh giá - Gọi vào storeReview của ReviewController
     Route::post('/movies/{movie}/review', [ReviewController::class, 'store'])->name('movies.review.store');
 
@@ -162,7 +162,7 @@ Route::get('/news', [NewsController::class, 'index'])->name('news');
 Route::get('/news/{slug}', [NewsController::class, 'show'])->name('news.detail');
 
 // Hồ sơ người dùng
-Route::middleware('auth')->group(function () { // chưa đăng nhập thì không xem được hồ sơ
+Route::middleware('tab.auth')->group(function () { // chưa đăng nhập thì không xem được hồ sơ
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile');
     // dòng mới: Trang hiển thị FORM chỉnh sửa hồ sơ
     Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -172,7 +172,7 @@ Route::middleware('auth')->group(function () { // chưa đăng nhập thì khôn
     Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password.change');
 });
 // Vé đã mua
-Route::middleware('auth')->group(function () {
+Route::middleware('tab.auth')->group(function () {
     Route::get('/my-tickets', [TicketController::class, 'index'])->name('my-tickets.index');
     Route::get('/my-tickets/{id}', [TicketController::class, 'detail'])->name('my-tickets.show');
 });
@@ -180,11 +180,11 @@ Route::middleware('auth')->group(function () {
 
 
 /* --------------------- KHU VỰC CỦA ADMIN ------------------ */
-Route::middleware(['auth', 'admin'])
+Route::middleware(['tab.auth', 'admin'])
     ->get('/admin', [AdminDashboardController::class, 'index'])
     ->name('admin.dashboard');
 // Quản lý phim - FILM MANAGEMENT
-Route::middleware(['auth', 'admin'])->controller(FilmManageController::class)->group(function () {
+Route::middleware(['tab.auth', 'admin'])->controller(FilmManageController::class)->group(function () {
     Route::get('/admin/film/management', 'listmovie')->name('admin.film');
     Route::get('/admin/film/store','formadd')->name('admin.film.add');
     Route::post('/admin/filmstore','store')->name('admin.store.film');
@@ -267,7 +267,7 @@ Route::controller(ShowtimeManageController::class)->group(function () {
 // })->name('tickets');
 
 /* --------------------- UC-08 & UC-11: ĐẶT VÉ ------------------ */
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['tab.auth'])->group(function () {
     // UC-08: Hiển thị màn hình chọn ghế (Sửa tên cho đồng bộ)
     Route::get('/booking/showtime/{showtime_id}/seat', [BookingController::class, 'showSeats'])->name('booking.seat');
 
@@ -297,7 +297,7 @@ Route::middleware(['auth'])->group(function () {
 
 //UC-04 quan ly ghe
 // Đặt trong group admin
-Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(function () {
+Route::middleware(['tab.auth'])->prefix('admin/seats')->name('admin.seats.')->group(function () {
     Route::get('/', [SeatManageController::class, 'index'])->name('index');
     Route::get('/create', [SeatManageController::class, 'create'])->name('create');
     Route::post('/store', [SeatManageController::class, 'store'])->name('store');
@@ -328,7 +328,7 @@ Route::middleware(['auth'])->prefix('admin/seats')->name('admin.seats.')->group(
 
 
 // Quản lý tài khoản - account management
-Route::middleware(['auth', 'admin'])
+Route::middleware(['tab.auth', 'admin'])
     ->controller(AccountManageController::class)
     ->group(function () {
 
@@ -380,7 +380,7 @@ Route::middleware(['auth', 'admin'])
     });
 
     /* --------------------- ADMIN COMBO, PRODUCTS, VOUCHERS, PROMOTIONS ------------------ */
-    Route::middleware(['auth', 'admin'])->group(function () {
+    Route::middleware(['tab.auth', 'admin'])->group(function () {
         Route::resource('admin/products', ProductManageController::class)->names([
             'index' => 'admin.products.index',
             'create' => 'admin.products.create',
@@ -416,14 +416,14 @@ Route::middleware(['auth', 'admin'])
     });
 
 /* --------------------- STAFF DASHBOARD ------------------ */
-Route::middleware(['auth', 'staff.permission:staff.dashboard'])
+Route::middleware(['tab.auth', 'staff.permission:staff.dashboard'])
     ->get('/staff', [StaffDashboardController::class, 'index'])
     ->name('staff.dashboard');
 
 /* --------------------- UC-STAFF-03: TRA CỨU BOOKING/VÉ ------------------ */
 use App\Http\Controllers\Staff\BookingLookupController;
 
-Route::middleware(['auth', 'staff.permission:booking.lookup'])
+Route::middleware(['tab.auth', 'staff.permission:booking.lookup'])
     ->prefix('staff')
     ->name('staff.')
     ->group(function () {
@@ -448,7 +448,7 @@ Route::middleware(['auth', 'staff.permission:booking.lookup'])
 /* --------------------- UC-STAFF-01: CHECK-IN VÉ QR ------------------ */
 use App\Http\Controllers\Staff\CheckInController;
 
-Route::middleware(['auth', 'staff.permission:ticket.checkin'])
+Route::middleware(['tab.auth', 'staff.permission:ticket.checkin'])
     ->prefix('staff')
     ->name('staff.')
     ->group(function () {
@@ -482,7 +482,7 @@ Route::middleware(['auth', 'staff.permission:ticket.checkin'])
 /* --------------------- UC-STAFF-04: HỖ TRỢ SỰ CỐ ĐẶT VÉ ------------------ */
 use App\Http\Controllers\Staff\StaffIssueSupportController;
 
-Route::middleware(['auth', 'staff.permission:booking.lookup'])
+Route::middleware(['tab.auth', 'staff.permission:booking.lookup'])
     ->prefix('staff')
     ->name('staff.')
     ->group(function () {
@@ -492,25 +492,21 @@ Route::middleware(['auth', 'staff.permission:booking.lookup'])
         Route::post('/api/issue-support/diagnose', [StaffIssueSupportController::class, 'diagnose'])
             ->name('api.issue-support.diagnose');
     });
-/* --------------------- UC-STAFF-05: BÁN VÉ ------------------ */
-Route::middleware('auth')->group(function () {
+/* UC-STAFF-05: BÁN VÉ */
+Route::middleware(['tab.auth'])->group(function () {
     Route::get('/staff/sell-tickets', [BookTicketsController::class, 'index'])->name('staff.sell-tickets');
     Route::get('/staff/sell-seat/{id}', [BookTicketsController::class, 'sell_seat'])->name('staff.sell-seat');
-    //chọn ghế -> để  chuyển sang trang combo
     Route::get('/staff/sell-tickets/submitseat', [BookTicketsController::class, 'submitseat'])->name('staff.sell-tickets.submitseat');
     Route::post('/staff/sell-tickets/savecombo', [BookTicketsController::class, 'savecombo'])->name('staff.sell-tickets.savecombo');
-    //List ra tất cả thông tin kèm theo thêm thông tin khách hàng đặt
     Route::get('/staff/sell-tickets/confirm', [BookTicketsController::class, 'confirm'])->name('staff.sell-tickets.confirm');
-    // Checkout đặt vé hộ (Staff) → tạo Booking + SepayOrder
     Route::post('/staff/sell-tickets/checkout', [BookTicketsController::class, 'checkout'])->name('staff.sell-tickets.checkout');
-    // Trang QR Payment cho Staff
     Route::get('/staff/sell-tickets/payment/{orderCode}', [BookTicketsController::class, 'payment'])->name('staff.sell-tickets.payment');
 });
 
 
 
 /* --------------------- UC-ADM-06: Quản lý booking (ĐẶT VÉ) ------------------ */
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['tab.auth', 'admin'])->group(function () {
     // Trang quản lý booking (view)
     Route::get('/admin/bookings', [BookingManageController::class, 'index'])->name('admin.bookings.index');
 
@@ -530,7 +526,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
 // Chatbot API (Menu-based - Giai đoạn 1)
 Route::post('/api/chatbot', ChatbotController::class)->name('api.chatbot');
 
-Route::middleware(['auth', 'admin'])->group(function () {
+Route::middleware(['tab.auth', 'admin'])->group(function () {
     Route::resource('admin/banners', BannerManageController::class)->names([
                 'index' => 'admin.banners.index',
                 'create' => 'admin.banners.create',

@@ -23,10 +23,10 @@
         <!-- Site Map -->
         <div class="footer-col nav-col" data-aos="fade-up" data-aos-delay="250">
             <h3>ĐIỀU HƯỚNG</h3>
-            <a href="{{ route('home') }}"><i class="fas fa-home"></i> Trang Chủ</a>
-            <a href="{{ route('movies') }}"><i class="fas fa-film"></i> Phim</a>
-            <a href="{{ route('showtimes') }}"><i class="fas fa-calendar-alt"></i> Lịch Chiếu</a>
-            <a href="{{ route('news') }}"><i class="fas fa-newspaper"></i> Tin Tức</a>
+            <a href="{{ \App\Helpers\TabAuthHelper::route('home') }}"><i class="fas fa-home"></i> Trang Chủ</a>
+            <a href="{{ \App\Helpers\TabAuthHelper::route('movies') }}"><i class="fas fa-film"></i> Phim</a>
+            <a href="{{ \App\Helpers\TabAuthHelper::route('showtimes') }}"><i class="fas fa-calendar-alt"></i> Lịch Chiếu</a>
+            <a href="{{ \App\Helpers\TabAuthHelper::route('news') }}"><i class="fas fa-newspaper"></i> Tin Tức</a>
         </div>
 
         <!-- Contact & Social -->
