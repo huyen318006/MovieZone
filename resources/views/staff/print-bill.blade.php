@@ -4,27 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
-        $singleTicket = null;
-        $singleSeat = null;
-        if (!empty($singleTicketCode)) {
-            $singleTicket = $booking->tickets->firstWhere('ticket_code', $singleTicketCode);
-            if ($singleTicket) {
-                $singleSeat = $singleTicket->bookingSeat;
-            }
-        }
-        $isSingle = !is_null($singleTicket);
-
-        // Khi in tất cả: tạo danh sách từng vé + ghế tương ứng
-        if (!$isSingle) {
-            $ticketPages = $booking->tickets->map(function ($ticket) {
-                return [
-                    'ticket' => $ticket,
-                    'seat' => $ticket->bookingSeat,
-                ];
-            });
-        }
+        // Tạo danh sách từng vé + ghế tương ứng (mỗi vé 1 trang)
+        $ticketPages = $booking->tickets->map(function ($ticket) {
+            return [
+                'ticket' => $ticket,
+                'seat' => $ticket->bookingSeat,
+            ];
+        });
     @endphp
-    <title>{{ $isSingle ? "Vé {$singleTicket->ticket_code}" : "Hoá đơn {$booking->booking_code}" }}</title>
+    <title>Hoá đơn {{ $booking->booking_code }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -125,14 +113,6 @@
         .seats-table .seat-type { text-transform: capitalize; }
         .seats-table .seat-price { text-align: right; }
 
-        /* Combos */
-        .combo-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 3px 0;
-            font-size: 12px;
-        }
-
         /* Total */
         .total-row {
             display: flex;
@@ -142,14 +122,6 @@
             border-top: 2px solid #333;
             font-size: 16px;
             font-weight: 800;
-        }
-
-        /* Ticket code section (replaced QR) */
-        .ticket-code-section {
-            text-align: center;
-            padding: 10px 0;
-            margin-top: 10px;
-            border-top: 1px dashed #ccc;
         }
 
         /* Transaction info */
@@ -202,31 +174,18 @@
     </style>
 </head>
 <body>
-    @if($isSingle)
-        {{-- ═══ CHẾ ĐỘ IN 1 VÉ ═══ --}}
-        <div class="bill-container">
+    {{-- ═══ MỖI VÉ 1 TRANG RIÊNG (1 ghế / 1 vé) ═══ --}}
+    @foreach($ticketPages as $index => $page)
+        <div class="bill-container page-break">
             @include('staff.partials.print-bill-ticket', [
                 'booking' => $booking,
-                'ticket' => $singleTicket,
-                'seat' => $singleSeat,
-                'pageIndex' => 1,
-                'totalPages' => 1,
+                'ticket' => $page['ticket'],
+                'seat' => $page['seat'],
+                'pageIndex' => $index + 1,
+                'totalPages' => $ticketPages->count(),
             ])
         </div>
-    @else
-        {{-- ═══ CHẾ ĐỘ IN TẤT CẢ — MỖI VÉ 1 TRANG ═══ --}}
-        @foreach($ticketPages as $index => $page)
-            <div class="bill-container page-break">
-                @include('staff.partials.print-bill-ticket', [
-                    'booking' => $booking,
-                    'ticket' => $page['ticket'],
-                    'seat' => $page['seat'],
-                    'pageIndex' => $index + 1,
-                    'totalPages' => $ticketPages->count(),
-                ])
-            </div>
-        @endforeach
-    @endif
+    @endforeach
 
     @if($autoPrint)
     <script>

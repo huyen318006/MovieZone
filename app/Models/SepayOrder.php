@@ -186,7 +186,17 @@ class SepayOrder extends Model
             return $this->metadata['customer_email'];
         }
 
-        // Fallback: lấy từ booking->user
+        // Lấy từ bảng booking nếu có
+        if ($this->booking && ! empty($this->booking->customer_email)) {
+            return $this->booking->customer_email;
+        }
+
+        // Nếu là đơn do staff đặt, không lấy email của staff
+        if (isset($this->metadata['booked_by']) && $this->metadata['booked_by'] === 'staff') {
+            return '';
+        }
+
+        // Fallback: lấy từ booking->user cho khách hàng tự đặt
         if ($this->booking && $this->booking->user) {
             return $this->booking->user->email ?? '';
         }
@@ -203,6 +213,14 @@ class SepayOrder extends Model
             return $this->metadata['customer_name'];
         }
 
+        if ($this->booking && ! empty($this->booking->customer_name)) {
+            return $this->booking->customer_name;
+        }
+
+        if (isset($this->metadata['booked_by']) && $this->metadata['booked_by'] === 'staff') {
+            return '';
+        }
+
         if ($this->booking && $this->booking->user) {
             return $this->booking->user->name ?? '';
         }
@@ -217,6 +235,14 @@ class SepayOrder extends Model
     {
         if (! empty($this->metadata['customer_phone'])) {
             return $this->metadata['customer_phone'];
+        }
+
+        if ($this->booking && ! empty($this->booking->customer_phone)) {
+            return $this->booking->customer_phone;
+        }
+
+        if (isset($this->metadata['booked_by']) && $this->metadata['booked_by'] === 'staff') {
+            return '';
         }
 
         if ($this->booking && $this->booking->user) {

@@ -344,7 +344,12 @@ class RoomManageController extends Controller
                 'max:255',
                 Rule::unique('rooms')->ignore($room?->id),
             ],
-            'room_type' => ['required', 'string', 'max:100'],
+            'room_type' => ['required', 'string', 'max:100', function ($attribute, $value, $fail) use ($room) {
+                // Chặn tạo mới hoặc đổi sang Goldclass, nhưng cho phép giữ nguyên nếu phòng cũ đã là Goldclass
+                if (strtolower($value) === 'goldclass' && (!$room || $room->room_type !== 'Goldclass')) {
+                    $fail('Loại phòng Goldclass đã ngừng hỗ trợ tạo mới.');
+                }
+            }],
             'total_seats' => ['required', 'integer', 'min:1'],
             'status' => ['required', 'in:ACTIVE,INACTIVE,MAINTENANCE'],
         ], [
@@ -368,7 +373,7 @@ class RoomManageController extends Controller
             '3D' => 140 + 0,              // UI: 140 (không cộng allowance theo logic bạn chốt trước đó)
             'IMAX' => 160 + 0,           // UI: 160
             '4DX' => 100 + 0,            // UI: 100
-            'Goldclass' => 40 + 0,       // UI: 40
+            'Goldclass' => 40 + 0,       // Giữ validation cho phòng cũ đã tồn tại
             default => null,
         };
 
