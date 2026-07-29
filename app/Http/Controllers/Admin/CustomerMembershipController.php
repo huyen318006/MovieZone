@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\MembershipLevel;
+use App\Models\PointTransaction;
 use App\Models\User;
 use App\Models\UserMembership;
 use App\Services\MembershipService;
@@ -53,5 +55,27 @@ class CustomerMembershipController extends Controller
         $levels = MembershipLevel::orderBy('min_points', 'asc')->get();
 
         return view('admin.memberships.index', compact('customers', 'levels', 'search', 'levelId'));
+    }
+
+    /**
+     * Xem chi tiết Membership & Lịch sử mua vé / tích Coin của 1 Khách hàng
+     */
+    public function show($id, MembershipService $membershipService)
+    {
+        $customer = User::with(['coin', 'membership.level'])->findOrFail($id);
+        $membershipService->ensureMembership($customer);
+
+        // Danh sách đơn vé đã thanh toán thành công (Lịch sử chi tiêu)
+        $bookings = Booking::where('user_id', $customer->id)
+            ->where('status', 'PAID')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        // Lịch sử biến động Coin (Lịch sử tích/trừ điểm)
+        $pointTransactions = PointTransaction::where('user_id', $customer->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('admin.memberships.show', compact('customer', 'bookings', 'pointTransactions'));
     }
 }

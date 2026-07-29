@@ -552,4 +552,5 @@ Route::middleware(['auth', 'admin'])->group(function () {
 /* --------------------- Quản lý Membership Admin ------------------ */
 Route::middleware(['auth', 'admin'])->group(function () {
     Route::get('/admin/memberships', [CustomerMembershipController::class, 'index'])->name('admin.memberships.index');
+    Route::get('/admin/memberships/{id}', [CustomerMembershipController::class, 'show'])->name('admin.memberships.show');
 });
