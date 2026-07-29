@@ -2,41 +2,45 @@
 
 @section('title', 'Membership - Thẻ Thành Viên')
 
-@push('styles')
+@section('content')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
-    .membership-page {
-        color: #f8fafc;
+    .membership-wrapper {
+        background-color: #0b1120 !important;
+        min-height: 80vh;
+        color: #f8fafc !important;
     }
 
+    /* Main Banner Card */
     .membership-card-hero {
         position: relative;
         overflow: hidden;
         border-radius: 24px;
         padding: 32px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7) !important;
+        border: 2px solid rgba(255, 255, 255, 0.25) !important;
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
 
     .membership-card-hero:hover {
         transform: translateY(-4px);
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8) !important;
     }
 
     .card-bronze {
-        background: linear-gradient(135deg, #78350f 0%, #92400e 50%, #b45309 100%);
+        background: linear-gradient(135deg, #78350f 0%, #b45309 50%, #d97706 100%) !important;
     }
     .card-silver {
-        background: linear-gradient(135deg, #334155 0%, #475569 50%, #64748b 100%);
+        background: linear-gradient(135deg, #334155 0%, #64748b 50%, #94a3b8 100%) !important;
     }
     .card-gold {
-        background: linear-gradient(135deg, #92400e 0%, #b45309 50%, #d97706 100%);
+        background: linear-gradient(135deg, #92400e 0%, #d97706 50%, #f59e0b 100%) !important;
     }
     .card-platinum {
-        background: linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #6366f1 100%);
+        background: linear-gradient(135deg, #0369a1 0%, #0284c7 50%, #6366f1 100%) !important;
     }
     .card-diamond {
-        background: linear-gradient(135deg, #581c87 0%, #7c3aed 50%, #2563eb 100%);
+        background: linear-gradient(135deg, #581c87 0%, #7c3aed 50%, #2563eb 100%) !important;
     }
 
     .membership-badge {
@@ -45,14 +49,14 @@
         gap: 8px;
         padding: 8px 18px;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.22);
+        background: rgba(0, 0, 0, 0.45) !important;
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.35) !important;
         font-size: 14px;
         font-weight: 800;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        color: #ffffff;
+        color: #ffffff !important;
     }
 
     .coin-balance-display {
@@ -60,52 +64,54 @@
         font-weight: 900;
         line-height: 1;
         letter-spacing: -0.02em;
-        color: #ffffff;
-        text-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        color: #ffffff !important;
+        text-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
+    /* Progress Box Container */
     .progress-box {
-        background: #1e293b;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
         border-radius: 24px;
         padding: 28px;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5) !important;
     }
 
     .custom-progress-bar {
-        height: 14px;
+        height: 16px;
         border-radius: 999px;
-        background: #0f172a;
+        background: #0f172a !important;
         overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
     }
 
     .custom-progress-fill {
         height: 100%;
         border-radius: 999px;
-        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899) !important;
         transition: width 0.6s ease;
     }
 
-    /* Tier Grid Styling */
+    /* 5 Tier Cards Grid */
     .tier-card {
-        background: #1e293b;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #1e293b !important;
+        border: 1px solid #334155 !important;
         border-radius: 20px;
         padding: 24px;
         transition: all 0.3s ease;
         position: relative;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
     }
 
     .tier-card:hover {
-        border-color: rgba(59, 130, 246, 0.5);
+        border-color: #3b82f6 !important;
         transform: translateY(-4px);
-        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+        box-shadow: 0 18px 36px rgba(0, 0, 0, 0.6) !important;
     }
 
     .tier-card.active-tier {
-        border: 2px solid #3b82f6;
-        background: linear-gradient(180deg, rgba(30, 41, 59, 1) 0%, rgba(30, 58, 138, 0.3) 100%);
+        border: 2px solid #3b82f6 !important;
+        background: linear-gradient(180deg, #1e293b 0%, #1e3a8a 100%) !important;
     }
 
     .tier-icon {
@@ -119,159 +125,159 @@
         margin-bottom: 16px;
     }
 
-    .icon-bronze { background: rgba(180, 83, 9, 0.2); color: #f59e0b; border: 1px solid rgba(180, 83, 9, 0.4); }
-    .icon-silver { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
-    .icon-gold { background: rgba(217, 119, 6, 0.2); color: #fbbf24; border: 1px solid rgba(217, 119, 6, 0.4); }
-    .icon-platinum { background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.4); }
-    .icon-diamond { background: rgba(124, 58, 237, 0.2); color: #c084fc; border: 1px solid rgba(124, 58, 237, 0.4); }
+    .icon-bronze { background: rgba(180, 83, 9, 0.35) !important; color: #fbbf24 !important; border: 1px solid rgba(180, 83, 9, 0.6) !important; }
+    .icon-silver { background: rgba(148, 163, 184, 0.35) !important; color: #f1f5f9 !important; border: 1px solid rgba(148, 163, 184, 0.6) !important; }
+    .icon-gold { background: rgba(217, 119, 6, 0.35) !important; color: #fbbf24 !important; border: 1px solid rgba(217, 119, 6, 0.6) !important; }
+    .icon-platinum { background: rgba(2, 132, 199, 0.35) !important; color: #38bdf8 !important; border: 1px solid rgba(2, 132, 199, 0.6) !important; }
+    .icon-diamond { background: rgba(124, 58, 237, 0.35) !important; color: #c084fc !important; border: 1px solid rgba(124, 58, 237, 0.6) !important; }
 </style>
-@endpush
 
-@section('content')
-<div class="container py-5 membership-page">
-    <!-- Hero Header -->
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
-        <div>
-            <h1 class="fw-bold mb-1"><i class="bi bi-shield-check text-warning me-2"></i>Thành Viên MovieZone</h1>
-            <p class="text-slate-400 mb-0" style="color: #94a3b8;">Quản lý hạng thành viên, theo dõi tích điểm và hưởng ưu đãi độc quyền</p>
-        </div>
-        <a href="{{ route('profile') }}" class="btn btn-outline-light rounded-pill px-4">
-            <i class="bi bi-person me-1"></i> Hồ sơ
-        </a>
-    </div>
-
-    @php
-        $levelName = strtoupper($currentLevel->name ?? 'BRONZE');
-        $cardClass = match($levelName) {
-            'SILVER' => 'card-silver',
-            'GOLD' => 'card-gold',
-            'PLATINUM' => 'card-platinum',
-            'DIAMOND' => 'card-diamond',
-            default => 'card-bronze',
-        };
-    @endphp
-
-    <!-- Membership Card & Progress Row -->
-    <div class="row g-4 mb-5">
-        <div class="col-lg-7">
-            <div class="membership-card-hero {{ $cardClass }}">
-                <div class="d-flex align-items-center justify-content-between mb-4">
-                    <span class="membership-badge">
-                        <i class="bi bi-gem"></i> HẠNG {{ $levelName }}
-                    </span>
-                    <span class="text-white-50 small fw-bold">MOVIEZONE VIP MEMBER</span>
-                </div>
-
-                <div class="mb-4">
-                    <span class="text-white-50 text-uppercase small fw-bold d-block mb-1">Số dư Coin tích lũy</span>
-                    <div class="coin-balance-display">
-                        🪙 {{ number_format($coins) }} <span class="fs-6 fw-normal text-white-50">Coin</span>
-                    </div>
-                </div>
-
-                <div class="d-flex align-items-center justify-content-between pt-3 border-top border-white-10 text-white-50 small">
-                    <div>
-                        <i class="bi bi-person-circle me-1"></i> {{ $user->name }}
-                    </div>
-                    <div>
-                        @if (!empty($userMembership->level_expired_at))
-                            <i class="bi bi-clock-history me-1"></i> Hạn duy trì: {{ $userMembership->level_expired_at->format('d/m/Y') }}
-                        @else
-                            <i class="bi bi-shield-lock me-1"></i> Thành viên chính thức
-                        @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Progress & Target Box -->
-        <div class="col-lg-5">
-            <div class="progress-box h-100 d-flex flex-column justify-content-between">
-                <div>
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <h5 class="fw-bold mb-0 text-white"><i class="bi bi-graph-up-arrow text-info me-2"></i>Tiến Độ Nâng Hạng</h5>
-                        <span class="badge bg-info text-dark fw-bold fs-6">{{ $progress }}%</span>
-                    </div>
-
-                    @if ($nextLevel)
-                        <p class="small mb-3" style="color: #cbd5e1; line-height: 1.6;">
-                            Bạn đang có <strong class="text-white">{{ number_format($coins) }} Coin</strong>.
-                            Cần tích lũy thêm <strong class="text-warning">{{ number_format($pointsNeeded) }} Coin</strong>
-                            để thăng hạng <strong class="text-info">{{ $nextLevel->name }}</strong> (Mốc {{ number_format($nextLevel->min_points) }} Coin).
-                        </p>
-                    @else
-                        <p class="text-success small mb-3">
-                            <i class="bi bi-trophy-fill me-1"></i> Tuyệt vời! Bạn đã đạt hạng thành viên cao nhất <strong>DIAMOND</strong>.
-                        </p>
-                    @endif
-
-                    <div class="custom-progress-bar mb-2">
-                        <div class="custom-progress-fill" style="width: {{ $progress }}%;"></div>
-                    </div>
-                </div>
-
-                <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between small" style="color: #94a3b8;">
-                    <span>Hạng hiện tại: <strong class="text-white">{{ $levelName }}</strong></span>
-                    <span>Hạng tiếp: <strong class="text-info">{{ $nextLevel->name ?? 'Tối đa' }}</strong></span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tiers & Perks List (Commit 2.3) -->
-    <div class="mb-4">
-        <div class="d-flex align-items-center justify-content-between mb-3">
+<div class="membership-wrapper py-5">
+    <div class="container">
+        <!-- Hero Header -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
             <div>
-                <h3 class="fw-bold mb-1"><i class="bi bi-award text-warning me-2"></i>Danh Sách Hạng & Quyền Lợi</h3>
-                <p class="small mb-0" style="color: #94a3b8;">Tích lũy Coin khi mua vé để mở khóa các mức giảm giá và đặc quyền độc quyền</p>
+                <h1 class="fw-bold mb-1 text-white"><i class="bi bi-shield-check text-warning me-2"></i>Thành Viên MovieZone</h1>
+                <p class="mb-0" style="color: #cbd5e1 !important;">Quản lý hạng thành viên, theo dõi tích điểm và hưởng ưu đãi độc quyền</p>
             </div>
+            <a href="{{ route('profile') }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
+                <i class="bi bi-person me-1"></i> Hồ sơ
+            </a>
         </div>
 
-        <div class="row g-3">
-            @foreach ($levels as $lvl)
-                @php
-                    $isCurrent = ($currentLevel && $currentLevel->id === $lvl->id);
-                    $lvlName = strtoupper($lvl->name);
-                    $iconClass = match($lvlName) {
-                        'SILVER' => 'icon-silver',
-                        'GOLD' => 'icon-gold',
-                        'PLATINUM' => 'icon-platinum',
-                        'DIAMOND' => 'icon-diamond',
-                        default => 'icon-bronze',
-                    };
-                @endphp
-                <div class="col-md-6 col-lg-4 col-xl">
-                    <div class="tier-card h-100 {{ $isCurrent ? 'active-tier' : '' }}">
-                        @if ($isCurrent)
-                            <span class="position-absolute top-0 end-0 m-3 badge bg-primary">Hạng hiện tại</span>
-                        @endif
+        @php
+            $levelName = strtoupper($currentLevel->name ?? 'BRONZE');
+            $cardClass = match($levelName) {
+                'SILVER' => 'card-silver',
+                'GOLD' => 'card-gold',
+                'PLATINUM' => 'card-platinum',
+                'DIAMOND' => 'card-diamond',
+                default => 'card-bronze',
+            };
+        @endphp
 
-                        <div class="tier-icon {{ $iconClass }}">
-                            <i class="bi bi-gem"></i>
+        <!-- Membership Card & Progress Row -->
+        <div class="row g-4 mb-5">
+            <div class="col-lg-7">
+                <div class="membership-card-hero {{ $cardClass }}">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <span class="membership-badge">
+                            <i class="bi bi-gem"></i> HẠNG {{ $levelName }}
+                        </span>
+                        <span class="text-white small fw-bold" style="letter-spacing: 1px;">MOVIEZONE VIP MEMBER</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <span class="text-white-50 text-uppercase small fw-bold d-block mb-1">Số dư Coin tích lũy</span>
+                        <div class="coin-balance-display">
+                            🪙 {{ number_format($coins) }} <span class="fs-6 fw-normal text-white-50">Coin</span>
                         </div>
+                    </div>
 
-                        <h5 class="fw-bold mb-1 text-white">{{ $lvl->name }}</h5>
-                        <div class="small fw-bold text-warning mb-3">
-                            {{ number_format($lvl->min_points) }} Coin
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top border-white-10 text-white small">
+                        <div>
+                            <i class="bi bi-person-circle me-1"></i> {{ $user->name }}
                         </div>
-
-                        <div class="pt-3 border-top border-secondary border-opacity-25">
-                            <div class="d-flex align-items-center gap-2 mb-2 text-slate-300 small" style="color: #e2e8f0;">
-                                <i class="bi bi-check-circle-fill text-success"></i>
-                                <span>Giảm <strong>{{ number_format($lvl->discount_percent, 0) }}%</strong> khi mua vé</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2 mb-2 text-slate-300 small" style="color: #e2e8f0;">
-                                <i class="bi bi-check-circle-fill text-success"></i>
-                                <span>Tích lũy 10.000đ = 1 Coin</span>
-                            </div>
-                            <div class="d-flex align-items-center gap-2 text-slate-300 small" style="color: #e2e8f0;">
-                                <i class="bi bi-check-circle-fill text-success"></i>
-                                <span>Duy trì hạng trong 6 tháng</span>
-                            </div>
+                        <div>
+                            @if (!empty($userMembership->level_expired_at))
+                                <i class="bi bi-clock-history me-1"></i> Hạn duy trì: {{ $userMembership->level_expired_at->format('d/m/Y') }}
+                            @else
+                                <i class="bi bi-shield-lock me-1"></i> Thành viên chính thức
+                            @endif
                         </div>
                     </div>
                 </div>
-            @endforeach
+            </div>
+
+            <!-- Progress & Target Box -->
+            <div class="col-lg-5">
+                <div class="progress-box h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h5 class="fw-bold mb-0 text-white"><i class="bi bi-graph-up-arrow text-info me-2"></i>Tiến Độ Nâng Hạng</h5>
+                            <span class="badge bg-info text-dark fw-bold fs-6">{{ $progress }}%</span>
+                        </div>
+
+                        @if ($nextLevel)
+                            <p class="small mb-3" style="color: #e2e8f0 !important; line-height: 1.6;">
+                                Bạn đang có <strong class="text-white">{{ number_format($coins) }} Coin</strong>.
+                                Cần tích lũy thêm <strong class="text-warning fw-bold">{{ number_format($pointsNeeded) }} Coin</strong>
+                                để thăng hạng <strong class="text-info fw-bold">{{ $nextLevel->name }}</strong> (Mốc {{ number_format($nextLevel->min_points) }} Coin).
+                            </p>
+                        @else
+                            <p class="text-success small mb-3">
+                                <i class="bi bi-trophy-fill me-1"></i> Tuyệt vời! Bạn đã đạt hạng thành viên cao nhất <strong>DIAMOND</strong>.
+                            </p>
+                        @endif
+
+                        <div class="custom-progress-bar mb-2">
+                            <div class="custom-progress-fill" style="width: {{ $progress }}%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between small" style="color: #cbd5e1 !important;">
+                        <span>Hạng hiện tại: <strong class="text-white">{{ $levelName }}</strong></span>
+                        <span>Hạng tiếp: <strong class="text-info fw-bold">{{ $nextLevel->name ?? 'Tối đa' }}</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tiers & Perks List (Commit 2.3) -->
+        <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <div>
+                    <h3 class="fw-bold mb-1 text-white"><i class="bi bi-award text-warning me-2"></i>Danh Sách Hạng & Quyền Lợi</h3>
+                    <p class="small mb-0" style="color: #cbd5e1 !important;">Tích lũy Coin khi mua vé để mở khóa các mức giảm giá và đặc quyền độc quyền</p>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                @foreach ($levels as $lvl)
+                    @php
+                        $isCurrent = ($currentLevel && $currentLevel->id === $lvl->id);
+                        $lvlName = strtoupper($lvl->name);
+                        $iconClass = match($lvlName) {
+                            'SILVER' => 'icon-silver',
+                            'GOLD' => 'icon-gold',
+                            'PLATINUM' => 'icon-platinum',
+                            'DIAMOND' => 'icon-diamond',
+                            default => 'icon-bronze',
+                        };
+                    @endphp
+                    <div class="col-md-6 col-lg-4 col-xl">
+                        <div class="tier-card h-100 {{ $isCurrent ? 'active-tier' : '' }}">
+                            @if ($isCurrent)
+                                <span class="position-absolute top-0 end-0 m-3 badge bg-primary fw-bold">Hạng hiện tại</span>
+                            @endif
+
+                            <div class="tier-icon {{ $iconClass }}">
+                                <i class="bi bi-gem"></i>
+                            </div>
+
+                            <h5 class="fw-bold mb-1 text-white">{{ $lvl->name }}</h5>
+                            <div class="small fw-bold text-warning mb-3">
+                                {{ number_format($lvl->min_points) }} Coin
+                            </div>
+
+                            <div class="pt-3 border-top border-secondary border-opacity-25">
+                                <div class="d-flex align-items-center gap-2 mb-2 small" style="color: #f1f5f9 !important;">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    <span>Giảm <strong>{{ number_format($lvl->discount_percent, 0) }}%</strong> khi mua vé</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mb-2 small" style="color: #f1f5f9 !important;">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    <span>Tích lũy 10.000đ = 1 Coin</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 small" style="color: #f1f5f9 !important;">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    <span>Duy trì hạng trong 6 tháng</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
         </div>
     </div>
 </div>

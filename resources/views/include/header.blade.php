@@ -38,7 +38,7 @@
 
 
         @auth
-            <a href="{{ route('coin.index', Auth::user()->id) }}" class="btn btn-warning rounded-pill d-flex align-items-center gap-2 fw-bold px-3">
+            <a href="{{ route('membership.index') }}" class="btn btn-warning rounded-pill d-flex align-items-center gap-2 fw-bold px-3">
                 <i class="bi bi-coin"></i>
                 <span>{{ number_format(Auth::user()->coin?->balance ?? 0) }}</span>
             </a>
@@ -51,6 +51,10 @@
                     <a href="{{ route('profile') }}" class="dropdown-item">
                         <i class="bi bi-person"></i>
                         <span>Xem hồ sơ</span>
+                    </a>
+                    <a href="{{ route('membership.index') }}" class="dropdown-item">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Membership & Coin</span>
                     </a>
                     <form action="{{ route('logout') }}" method="POST" style="margin: 0;">
                         @csrf

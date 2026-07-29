@@ -11,6 +11,10 @@
             <i class="bi bi-house-door-fill"></i>
             <span>Trang chủ</span>
         </a>
+        <a href="{{ route('membership.index') }}" class="action-btn action-btn-secondary" style="background: rgba(245, 158, 11, 0.15); border-color: rgba(245, 158, 11, 0.3); color: #fbbf24;">
+            <i class="bi bi-shield-check"></i>
+            <span>Membership</span>
+        </a>
         <a href="{{ route('my-tickets.index') }}" class="action-btn action-btn-secondary">
             <i class="bi bi-receipt-cutoff"></i>
             <span>Lịch sử giao dịch</span>
@@ -26,7 +30,12 @@
             @endif
         </div>
         <h3 class="user-display-name">{{ auth()->user()->name }}</h3>
-        <span class="user-badge">Thành viên</span>
+        @php
+            $lvlName = strtoupper(auth()->user()->membership?->level?->name ?? 'BRONZE');
+        @endphp
+        <a href="{{ route('membership.index') }}" class="user-badge text-decoration-none fw-bold" style="background: linear-gradient(135deg, #b45309, #d97706); color: #ffffff;">
+            <i class="bi bi-gem me-1"></i> HẠNG {{ $lvlName }}
+        </a>
     </div>
 
     @if(session('success'))
