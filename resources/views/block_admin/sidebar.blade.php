@@ -80,6 +80,11 @@
             Người dùng
         </a>
 
+        <a class="nav-link {{ Request::routeIs('admin.memberships.*') ? 'active' : '' }}" href="{{ route('admin.memberships.index') }}">
+            <i class="bi bi-shield-check"></i>
+            Quản lý Membership
+        </a>
+
         <a class="nav-link" href="">
             <i class="bi bi-newspaper"></i>
             Bài viết

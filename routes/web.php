@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountManageController;
+use App\Http\Controllers\Admin\CustomerMembershipController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\BannerManageController;
 use App\Http\Controllers\Admin\BookingManageController;
@@ -546,4 +547,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
                 'update' => 'admin.banners.update',
                 'destroy' => 'admin.banners.destroy',
             ]);
+});
+
+/* --------------------- Quản lý Membership Admin ------------------ */
+Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/admin/memberships', [CustomerMembershipController::class, 'index'])->name('admin.memberships.index');
 });
