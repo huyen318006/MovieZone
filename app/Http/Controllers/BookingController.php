@@ -756,4 +756,66 @@ class BookingController extends Controller
 
         return false; // Toàn bộ hàng ghế đều hợp lệ
     }
+
+    // ==========================================
+    // HỦY THANH TOÁN VÀ QUAY LẠI CHỌN GHẾ
+    // ==========================================
+
+    /**
+     * Hủy booking từ trang thanh toán, giải phóng ghế, quay lại trang chọn ghế đúng suất chiếu.
+     */
+    public function cancelBookingAndRelease(string $orderCode)
+    {
+        $order = SepayOrder::where('order_code', $orderCode)->first();
+
+        if (! $order) {
+            return redirect()->route('home')
+                ->with('error', 'Đơn hàng không tồn tại.');
+        }
+
+        $showtimeId = $order->getBookingInfo('showtime_id');
+
+        // Hủy booking nếu còn ở trạng thái chờ thanh toán
+        $booking = $order->booking;
+        if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT'])) {
+            $booking->update([
+                'status' => 'CANCELLED',
+                'payment_status' => 'CANCELLED',
+            ]);
+
+            // Giải phóng ghế trong cache (nếu còn held)
+            $bookingSeats = DB::table('booking_seats')
+                ->where('booking_id', $booking->id)
+                ->pluck('showtime_seat_id');
+
+            foreach ($bookingSeats as $showtimeSeatId) {
+                $cacheKey = 'seat_held_' . $booking->showtime_id . '_' . $showtimeSeatId;
+                Cache::forget($cacheKey);
+            }
+        }
+
+        // Hủy sepay order
+        if ($order->status === 'pending') {
+            $order->update(['status' => 'expired']);
+        }
+
+        // Xóa session hold timer
+        session()->forget('hold_expire_at');
+        session()->forget('booking_tam');
+
+        // Giải phóng master timer
+        if (Auth::check() && $showtimeId) {
+            $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtimeId;
+            Cache::forget($masterTimerKey);
+        }
+
+        // Redirect về đúng trang chọn ghế của suất chiếu
+        if ($showtimeId) {
+            return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+                ->with('success', 'Đã hủy đơn hàng. Bạn có thể chọn ghế mới.');
+        }
+
+        return redirect()->route('home')
+            ->with('success', 'Đã hủy đơn hàng thành công.');
+    }
 }

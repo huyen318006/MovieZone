@@ -154,9 +154,12 @@
             <div class="status-sub-mz" id="statusSubtext">Hệ thống tự động kiểm tra mỗi vài giây</div>
         </div>
 
-        <a href="{{ route('home') }}" class="cancel-link-mz">
-            <i class="fa-solid fa-arrow-left"></i> Huỷ và chọn ghế khác
-        </a>
+        <form action="{{ route('booking.cancel', $order->order_code) }}" method="POST" style="display: inline;">
+            @csrf
+            <button type="submit" class="cancel-link-mz" onclick="return confirm('Bạn có chắc muốn hủy đơn hàng và chọn ghế khác?')">
+                <i class="fa-solid fa-arrow-left"></i> Huỷ và chọn ghế khác
+            </button>
+        </form>
     </div>
 
 </div>

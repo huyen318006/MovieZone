@@ -98,6 +98,10 @@ Route::controller(GoogleController::class)->group(function () {
 });
 Route::post('/logout', [AuthController::class, 'logout'])
     ->name('logout');
+
+// API kiểm tra role user hiện tại (multi-tab auth detection)
+Route::get('/api/check-auth-role', [AuthController::class, 'checkAuthRole'])
+    ->name('api.check-auth-role');
 /* ---------------------END---------- */
 
 /* --------------------- Coin------------------ */
@@ -290,6 +294,9 @@ Route::middleware(['auth'])->group(function () {
 
     // UC-11: Nút "Xác nhận đặt vé" -> Tạo DB -> Chuyển thanh toán
     Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
+
+    // Hủy thanh toán và quay lại chọn ghế
+    Route::post('/booking/cancel/{orderCode}', [BookingController::class, 'cancelBookingAndRelease'])->name('booking.cancel');
 });
 
 //UC-04 quan ly ghe
