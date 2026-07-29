@@ -53,7 +53,6 @@
                             <option value="3D" {{ old('room_type') == '3D' ? 'selected' : '' }}>3D</option>
                             <option value="IMAX" {{ old('room_type') == 'IMAX' ? 'selected' : '' }}>IMAX</option>
                             <option value="4DX" {{ old('room_type') == '4DX' ? 'selected' : '' }}>4DX</option>
-                            <option value="Goldclass" {{ old('room_type') == 'Goldclass' ? 'selected' : '' }}>Goldclass</option>
                         </select>
                         @error('room_type')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -104,9 +103,7 @@ const roomCapacities = {
     '2D': 120,
     '3D': 140,
     'IMAX': 160,
-    '4DX': 100,
-    // Goldclass: giữ nguyên theo seed/UI hiện tại (bạn có thể đổi nếu muốn)
-    'Goldclass': 40
+    '4DX': 100
 };
 
 function onRoomTypeChange(type) {

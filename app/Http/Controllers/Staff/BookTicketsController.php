@@ -216,35 +216,48 @@ class BookTicketsController extends Controller
                 ->with('error', 'Phiên đặt vé đã hết hạn. Vui lòng bắt đầu lại.');
         }
 
-        $result = $this->staffBookingService->createBookingFromStaff([
-            'showtime_id'    => $booking['showtime_id'],
-            'seats'          => $booking['seats'],
-            'combos'         => $booking['combos'] ?? [],
-            'products'       => $booking['products'] ?? [],
-            'customer_name'  => $request->customer_name,
-            'customer_phone' => $request->customer_phone,
-            'customer_email' => $request->customer_email ?? '',
-            'payment_method' => $request->payment_method,
-            'staff_user_id'  => auth()->id(),
-        ]);
+        try {
+            $result = $this->staffBookingService->createBookingFromStaff([
+                'showtime_id'    => $booking['showtime_id'],
+                'seats'          => $booking['seats'],
+                'combos'         => $booking['combos'] ?? [],
+                'products'       => $booking['products'] ?? [],
+                'customer_name'  => $request->customer_name,
+                'customer_phone' => $request->customer_phone,
+                'customer_email' => $request->customer_email ?? '',
+                'payment_method' => $request->payment_method,
+                'staff_user_id'  => auth()->id(),
+            ]);
 
-        if (!$result['success']) {
+            if (!$result['success']) {
+                return redirect()->route('staff.sell-tickets.confirm')
+                    ->withInput()
+                    ->with('error', $result['message']);
+            }
+
+            // Chỉ xóa session SAU KHI tạo booking thành công
+            session()->forget('booking');
+
+            $paymentMethod = $request->payment_method;
+
+            if ($paymentMethod === 'CASH') {
+                return $this->confirmCashPayment($result['booking_code']);
+            }
+
+            // Thanh toán ONLINE → chuyển sang trang QR Payment
+            return redirect()->route('staff.sell-tickets.payment', $result['order_code']);
+
+        } catch (\Exception $e) {
+            Log::error('Staff checkout exception', [
+                'error'     => $e->getMessage(),
+                'staff_id'  => auth()->id(),
+                'trace'     => $e->getTraceAsString(),
+            ]);
+
             return redirect()->route('staff.sell-tickets.confirm')
-                ->with('error', $result['message']);
+                ->withInput()
+                ->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
         }
-
-        // Xóa session booking sau khi tạo thành công
-        session()->forget('booking');
-
-        $paymentMethod = $request->payment_method;
-
-        if ($paymentMethod === 'CASH') {
-            // Thanh toán tiền mặt → xác nhận ngay
-            return $this->confirmCashPayment($result['booking_code']);
-        }
-
-        // Thanh toán ONLINE → chuyển sang trang QR Payment
-        return redirect()->route('staff.sell-tickets.payment', $result['order_code']);
     }
 
     /**
@@ -259,6 +272,9 @@ class BookTicketsController extends Controller
             return redirect()->route('staff.sell-tickets')
                 ->with('error', 'Đơn hàng không tồn tại.');
         }
+
+        // Eager-load booking relationship để tránh null trong Blade
+        $order->load('booking');
 
         // Nếu đã thanh toán → chuyển sang in hóa đơn
         if ($order->isPaid()) {
@@ -289,7 +305,7 @@ class BookTicketsController extends Controller
 
     /**
      * Xác nhận thanh toán tiền mặt (CASH).
-     * Booking chuyển PAID ngay, sinh Tickets.
+     * Booking chuyển PAID ngay, sinh Tickets, gửi email hoá đơn.
      */
     private function confirmCashPayment(string $bookingCode): \Illuminate\Http\RedirectResponse
     {
@@ -328,13 +344,65 @@ class BookTicketsController extends Controller
                 $ticketService->generateTicketsForBooking($booking);
             });
 
+            // === GỬI EMAIL HOÁ ĐƠN CHO KHÁCH HÀNG ===
+            try {
+                $sepayOrder = SepayOrder::where('booking_id', $booking->id)->first();
+                $customerEmail = $booking->customer_email
+                    ?? $booking->user?->email
+                    ?? ($sepayOrder ? $sepayOrder->getCustomerEmail() : '');
+
+                if (!empty($customerEmail) && $sepayOrder) {
+                    // Sinh PDF vé kèm QR Code
+                    $pdfPath = null;
+                    try {
+                        $pdfService = app(\App\Services\TicketPDFService::class);
+                        $pdfPath = $pdfService->generateBookingTicketsPDF($booking->fresh());
+                    } catch (\Exception $pdfEx) {
+                        Log::warning('Failed to generate PDF for cash booking email', [
+                            'booking_code' => $bookingCode,
+                            'error'        => $pdfEx->getMessage(),
+                        ]);
+                    }
+
+                    // Gửi email
+                    $user = $booking->user;
+                    \Illuminate\Support\Facades\Mail::to($customerEmail)->send(
+                        new \App\Mail\BookingInvoiceMail($sepayOrder->fresh(), $user, $pdfPath)
+                    );
+
+                    // Đánh dấu đã gửi email trong metadata
+                    $meta = $sepayOrder->metadata ?? [];
+                    $meta['email_sent'] = true;
+                    $meta['email_sent_at'] = now()->toIso8601String();
+                    $meta['email_sent_to'] = $customerEmail;
+                    $meta['pdf_attached'] = !empty($pdfPath);
+                    $sepayOrder->update(['metadata' => $meta]);
+
+                    Log::info('Cash booking invoice email sent', [
+                        'booking_code' => $bookingCode,
+                        'email'        => $customerEmail,
+                        'pdf_attached' => !empty($pdfPath),
+                    ]);
+                } else {
+                    Log::warning('No customer email for cash booking - skipping email', [
+                        'booking_code' => $bookingCode,
+                    ]);
+                }
+            } catch (\Exception $mailEx) {
+                // Email lỗi không ảnh hưởng đến thanh toán
+                Log::error('Failed to send cash booking invoice email', [
+                    'booking_code' => $bookingCode,
+                    'error'        => $mailEx->getMessage(),
+                ]);
+            }
+
             Log::info('Staff cash payment confirmed', [
                 'booking_code' => $bookingCode,
                 'staff_id'     => auth()->id(),
             ]);
 
             return redirect()->route('staff.print-bill', $bookingCode)
-                ->with('success', 'Thanh toán tiền mặt thành công! Hóa đơn đã được tạo.');
+                ->with('success', 'Thanh toán tiền mặt thành công! Hóa đơn đã được tạo và gửi email.');
 
         } catch (\Exception $e) {
             Log::error('Staff cash payment failed', [

@@ -154,7 +154,10 @@
                             <option value="3D" {{ old('room_type', $room->room_type) == '3D' ? 'selected' : '' }}>3D</option>
                             <option value="IMAX" {{ old('room_type', $room->room_type) == 'IMAX' ? 'selected' : '' }}>IMAX</option>
                             <option value="4DX" {{ old('room_type', $room->room_type) == '4DX' ? 'selected' : '' }}>4DX</option>
-                            <option value="Goldclass" {{ old('room_type', $room->room_type) == 'Goldclass' ? 'selected' : '' }}>Goldclass</option>
+                            {{-- Goldclass: Giữ option cho phòng cũ đã có loại này, nhưng không cho tạo mới --}}
+                            @if($room->room_type == 'Goldclass')
+                                <option value="Goldclass" selected>Goldclass (Ngừng tạo mới)</option>
+                            @endif
                         </select>
                         @error('room_type')
                             <div class="invalid-feedback">{{ $message }}</div>

@@ -199,8 +199,7 @@ class CheckInController extends Controller
         }
 
         $autoPrint = request()->query('print') === 'true';
-        $singleTicketCode = request()->query('ticket');
 
-        return view('staff.print-bill', compact('booking', 'autoPrint', 'singleTicketCode'));
+        return view('staff.print-bill', compact('booking', 'autoPrint'));
     }
 }

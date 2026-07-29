@@ -81,7 +81,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         setTimeout(hideAlert, 3000);
     }
-});
-
 </script>
 </html>

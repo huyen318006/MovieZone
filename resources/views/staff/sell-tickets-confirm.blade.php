@@ -12,6 +12,14 @@
                 <p>Kiểm tra lại thông tin trước khi thanh toán</p>
             </div>
 
+            {{-- Hiển thị lỗi từ backend --}}
+            @if(session('error'))
+                <div class="alert-error-staff" style="margin: 0 30px 0; padding: 16px 20px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 10px; color: #fca5a5; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-circle-exclamation" style="color: #ef4444; font-size: 18px;"></i>
+                    <span>{{ session('error') }}</span>
+                </div>
+            @endif
+
             <!-- BẮT ĐẦU FORM BAO QUANH TOÀN BỘ THÔNG TIN -->
             <form action="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets.checkout') }}" method="POST">
                 @csrf
@@ -86,17 +94,17 @@
                                 <div>
                                     <label>Họ và tên</label>
                                     <input type="text" name="customer_name" class="form-control"
-                                        placeholder="Nhập họ và tên" required>
+                                        placeholder="Nhập họ và tên" required value="{{ old('customer_name') }}">
                                 </div>
                                 <div style="margin-top: 10px;">
                                     <label>Số điện thoại</label>
                                     <input type="text" name="customer_phone" class="form-control"
-                                        placeholder="Nhập số điện thoại" required>
+                                        placeholder="Nhập số điện thoại" required value="{{ old('customer_phone') }}">
                                 </div>
                                 <div style="margin-top: 10px;">
                                     <label>Email nhận hóa đơn</label>
                                     <input type="email" name="customer_email" class="form-control"
-                                        placeholder="Nhập email (không bắt buộc)">
+                                        placeholder="Nhập email (không bắt buộc)" value="{{ old('customer_email') }}">
                                 </div>
                             </div>
                         </div>
@@ -230,9 +238,9 @@
                         Quay lại chọn ghế
                     </a>
 
-                    <button type="submit" class="btn-confirm">
+                    <button type="submit" class="btn-confirm" id="btnStaffCheckout">
                         Xác nhận & Thanh toán
-                        <i class="fa-solid fa-check"></i>
+                        <i class="fa-solid fa-check" id="btnCheckoutIcon"></i>
                     </button>
                 </div>
 
@@ -241,6 +249,33 @@
 
         </div>
     </section>
+
+    {{-- Script chống bấm nhiều lần + loading state --}}
+    <script>
+    (function() {
+        const form = document.getElementById('staffCheckoutForm');
+        const btn = document.getElementById('btnStaffCheckout');
+        const icon = document.getElementById('btnCheckoutIcon');
+        let isSubmitting = false;
+
+        if (form && btn) {
+            form.addEventListener('submit', function(e) {
+                if (isSubmitting) {
+                    e.preventDefault();
+                    return false;
+                }
+                isSubmitting = true;
+                btn.disabled = true;
+                btn.style.opacity = '0.7';
+                btn.style.cursor = 'not-allowed';
+                if (icon) {
+                    icon.className = 'fa-solid fa-spinner fa-spin';
+                }
+                btn.childNodes[0].textContent = 'Đang xử lý... ';
+            });
+        }
+    })();
+    </script>
 
     <style>
         /* CSS Giữ nguyên theo cấu trúc giao diện của bạn */

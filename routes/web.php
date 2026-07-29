@@ -290,6 +290,9 @@ Route::middleware(['tab.auth'])->group(function () {
 
     // UC-11: Nút "Xác nhận đặt vé" -> Tạo DB -> Chuyển thanh toán
     Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
+
+    // Hủy thanh toán và quay lại chọn ghế
+    Route::post('/booking/cancel/{orderCode}', [BookingController::class, 'cancelBookingAndRelease'])->name('booking.cancel');
 });
 
 //UC-04 quan ly ghe
