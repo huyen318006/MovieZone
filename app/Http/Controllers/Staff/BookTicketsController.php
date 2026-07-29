@@ -216,35 +216,48 @@ class BookTicketsController extends Controller
                 ->with('error', 'Phiên đặt vé đã hết hạn. Vui lòng bắt đầu lại.');
         }
 
-        $result = $this->staffBookingService->createBookingFromStaff([
-            'showtime_id'    => $booking['showtime_id'],
-            'seats'          => $booking['seats'],
-            'combos'         => $booking['combos'] ?? [],
-            'products'       => $booking['products'] ?? [],
-            'customer_name'  => $request->customer_name,
-            'customer_phone' => $request->customer_phone,
-            'customer_email' => $request->customer_email ?? '',
-            'payment_method' => $request->payment_method,
-            'staff_user_id'  => auth()->id(),
-        ]);
+        try {
+            $result = $this->staffBookingService->createBookingFromStaff([
+                'showtime_id'    => $booking['showtime_id'],
+                'seats'          => $booking['seats'],
+                'combos'         => $booking['combos'] ?? [],
+                'products'       => $booking['products'] ?? [],
+                'customer_name'  => $request->customer_name,
+                'customer_phone' => $request->customer_phone,
+                'customer_email' => $request->customer_email ?? '',
+                'payment_method' => $request->payment_method,
+                'staff_user_id'  => auth()->id(),
+            ]);
 
-        if (!$result['success']) {
+            if (!$result['success']) {
+                return redirect()->route('staff.sell-tickets.confirm')
+                    ->withInput()
+                    ->with('error', $result['message']);
+            }
+
+            // Chỉ xóa session SAU KHI tạo booking thành công
+            session()->forget('booking');
+
+            $paymentMethod = $request->payment_method;
+
+            if ($paymentMethod === 'CASH') {
+                return $this->confirmCashPayment($result['booking_code']);
+            }
+
+            // Thanh toán ONLINE → chuyển sang trang QR Payment
+            return redirect()->route('staff.sell-tickets.payment', $result['order_code']);
+
+        } catch (\Exception $e) {
+            Log::error('Staff checkout exception', [
+                'error'     => $e->getMessage(),
+                'staff_id'  => auth()->id(),
+                'trace'     => $e->getTraceAsString(),
+            ]);
+
             return redirect()->route('staff.sell-tickets.confirm')
-                ->with('error', $result['message']);
+                ->withInput()
+                ->with('error', 'Lỗi hệ thống: ' . $e->getMessage());
         }
-
-        // Xóa session booking sau khi tạo thành công
-        session()->forget('booking');
-
-        $paymentMethod = $request->payment_method;
-
-        if ($paymentMethod === 'CASH') {
-            // Thanh toán tiền mặt → xác nhận ngay
-            return $this->confirmCashPayment($result['booking_code']);
-        }
-
-        // Thanh toán ONLINE → chuyển sang trang QR Payment
-        return redirect()->route('staff.sell-tickets.payment', $result['order_code']);
     }
 
     /**
@@ -259,6 +272,9 @@ class BookTicketsController extends Controller
             return redirect()->route('staff.sell-tickets')
                 ->with('error', 'Đơn hàng không tồn tại.');
         }
+
+        // Eager-load booking relationship để tránh null trong Blade
+        $order->load('booking');
 
         // Nếu đã thanh toán → chuyển sang in hóa đơn
         if ($order->isPaid()) {

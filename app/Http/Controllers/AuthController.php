@@ -63,37 +63,6 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
         return redirect('/')->with('success', 'Đăng xuất thành công!');
     }
-
-    /**
-     * API kiểm tra role của user hiện tại (dùng cho multi-tab auth detection).
-     */
-    public function checkAuthRole()
-    {
-        if (! Auth::check()) {
-            return response()->json([
-                'authenticated' => false,
-                'role' => null,
-                'name' => null,
-            ]);
-        }
-
-        $user = Auth::user();
-        $roles = $user->roles()->pluck('name')->toArray();
-
-        $role = 'customer'; // default
-        if (in_array('admin', $roles)) {
-            $role = 'admin';
-        } elseif (in_array('staff', $roles)) {
-            $role = 'staff';
-        }
-
-        return response()->json([
-            'authenticated' => true,
-            'role' => $role,
-            'name' => $user->name,
-            'user_id' => $user->id,
-        ]);
-    }
     function register(Request $request)
     {
         $validated = $request->validate([

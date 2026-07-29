@@ -496,7 +496,7 @@
 
         // Payment Polling — Reuse logic từ Customer payment.blade.php
         const checkUrl = '{{ route('booking.check', $order->order_code) }}';
-        const billUrl = '{{ route('staff.print-bill', $order->booking->booking_code ?? '') }}';
+        const billUrl = '{{ route('staff.print-bill', $order->booking?->booking_code ?? $order->order_code) }}';
         const pollMs = {{ $pollingInterval }};
 
         const statusText = document.getElementById('statusText');

@@ -188,7 +188,7 @@ class StaffBookingService
                     ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
                     ->where('booking_seats.showtime_seat_id', $showtimeSeat->id)
                     ->where('bookings.showtime_id', $id)
-                    ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                    ->whereIn('bookings.status', ['PAID', 'PENDING'])
                     ->exists();
 
                 $displayStatus = $isSold ? 'SOLD' : ($showtimeSeat->status ?? 'AVAILABLE');
@@ -278,7 +278,7 @@ class StaffBookingService
                     ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
                     ->where('booking_seats.showtime_seat_id', $seat->id)
                     ->where('bookings.showtime_id', $showtimeId)
-                    ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                    ->whereIn('bookings.status', ['PAID', 'PENDING'])
                     ->exists();
 
                 if ($isSold) {
@@ -336,7 +336,7 @@ class StaffBookingService
             $ticketService = app(TicketService::class);
             $bookingCode = $ticketService->generateUniqueBookingCode();
 
-            $status = ($paymentMethod === 'CASH') ? 'PENDING_CASH_PAYMENT' : 'PENDING_PAYMENT';
+            $status = 'PENDING';
 
             $booking = Booking::create([
                 'booking_code'       => $bookingCode,

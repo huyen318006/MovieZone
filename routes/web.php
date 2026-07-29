@@ -98,10 +98,6 @@ Route::controller(GoogleController::class)->group(function () {
 });
 Route::post('/logout', [AuthController::class, 'logout'])
     ->name('logout');
-
-// API kiểm tra role user hiện tại (multi-tab auth detection)
-Route::get('/api/check-auth-role', [AuthController::class, 'checkAuthRole'])
-    ->name('api.check-auth-role');
 /* ---------------------END---------- */
 
 /* --------------------- Coin------------------ */
@@ -497,17 +493,19 @@ Route::middleware(['auth', 'staff.permission:booking.lookup'])
             ->name('api.issue-support.diagnose');
     });
 /* --------------------- UC-STAFF-05: BÁN VÉ ------------------ */
-Route::get('/staff/sell-tickets', [BookTicketsController::class, 'index'])->name('staff.sell-tickets');
-Route::get('/staff/sell-seat/{id}', [BookTicketsController::class, 'sell_seat'])->name('staff.sell-seat');
-//chọn ghế -> để  chuyển sang trang combo
-Route::get('/staff/sell-tickets/submitseat', [BookTicketsController::class, 'submitseat'])->name('staff.sell-tickets.submitseat');
-Route::post('/staff/sell-tickets/savecombo', [BookTicketsController::class, 'savecombo'])->name('staff.sell-tickets.savecombo');
-//List ra tất cả thông tin kèm theo thêm thông tin khách hàng đặt
-Route::get('/staff/sell-tickets/confirm', [BookTicketsController::class, 'confirm'])->name('staff.sell-tickets.confirm');
-// Checkout đặt vé hộ (Staff) → tạo Booking + SepayOrder
-Route::post('/staff/sell-tickets/checkout', [BookTicketsController::class, 'checkout'])->name('staff.sell-tickets.checkout');
-// Trang QR Payment cho Staff
-Route::get('/staff/sell-tickets/payment/{orderCode}', [BookTicketsController::class, 'payment'])->name('staff.sell-tickets.payment');
+Route::middleware('auth')->group(function () {
+    Route::get('/staff/sell-tickets', [BookTicketsController::class, 'index'])->name('staff.sell-tickets');
+    Route::get('/staff/sell-seat/{id}', [BookTicketsController::class, 'sell_seat'])->name('staff.sell-seat');
+    //chọn ghế -> để  chuyển sang trang combo
+    Route::get('/staff/sell-tickets/submitseat', [BookTicketsController::class, 'submitseat'])->name('staff.sell-tickets.submitseat');
+    Route::post('/staff/sell-tickets/savecombo', [BookTicketsController::class, 'savecombo'])->name('staff.sell-tickets.savecombo');
+    //List ra tất cả thông tin kèm theo thêm thông tin khách hàng đặt
+    Route::get('/staff/sell-tickets/confirm', [BookTicketsController::class, 'confirm'])->name('staff.sell-tickets.confirm');
+    // Checkout đặt vé hộ (Staff) → tạo Booking + SepayOrder
+    Route::post('/staff/sell-tickets/checkout', [BookTicketsController::class, 'checkout'])->name('staff.sell-tickets.checkout');
+    // Trang QR Payment cho Staff
+    Route::get('/staff/sell-tickets/payment/{orderCode}', [BookTicketsController::class, 'payment'])->name('staff.sell-tickets.payment');
+});
 
 
 
