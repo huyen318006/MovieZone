@@ -26,6 +26,8 @@ return new class extends Migration
             $table->decimal('total_spent', 12, 2)
                 ->default(0);
 
+            $table->timestamp('level_expired_at')->nullable();
+
             $table->timestamp('updated_at')->nullable();
         });
     }
