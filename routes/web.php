@@ -514,10 +514,12 @@ Route::middleware(['tab.auth'])->group(function () {
     Route::get('/staff/sell-tickets/payment/{orderCode}', [BookTicketsController::class, 'payment'])->name('staff.sell-tickets.payment');
 });
 
-/* STAFF: XEM BÀI VIẾT */
+/* STAFF: BÀI VIẾT (XEM + SỬA) */
 Route::middleware(['tab.auth'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/articles', [StaffArticleController::class, 'index'])->name('articles.index');
     Route::get('/articles/{id}', [StaffArticleController::class, 'show'])->name('articles.show');
+    Route::get('/articles/{id}/edit', [StaffArticleController::class, 'edit'])->name('articles.edit');
+    Route::put('/articles/{id}', [StaffArticleController::class, 'update'])->name('articles.update');
 });
 
 
