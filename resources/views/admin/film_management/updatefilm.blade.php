@@ -36,9 +36,9 @@
 
                         {{-- TITLE --}}
                         <div class="mb-3">
-                            <label class="form-label">Tên phim</label>
+                            <label class="form-label">Tên phim <span class="text-danger">*</span></label>
                             <input type="text" name="title" value="{{ $movie_id->title }}"
-                                class="form-control @error('title') is-invalid @enderror">
+                                class="form-control @error('title') is-invalid @enderror" required>
                             @error('title')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -58,7 +58,7 @@
                             {{-- RELEASE DATE --}}
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">
-                                    Ngày khởi chiếu
+                                    Ngày khởi chiếu <span class="text-danger">*</span>
                                     @if (in_array($movie_id->status, ['NOW_SHOWING', 'ENDED']))
                                         <span class="badge bg-secondary ms-1">
                                             <i class="bi bi-lock-fill"></i> Đã khóa
@@ -72,7 +72,7 @@
 
                                 <input type="date" name="release_date" id="release_date"
                                     value="{{ $movie_id->release_date }}"
-                                    class="form-control @error('release_date') is-invalid @enderror"
+                                    class="form-control @error('release_date') is-invalid @enderror" required
                                     @if (in_array($movie_id->status, ['NOW_SHOWING', 'ENDED'])) readonly @endif
                                     @if ($movie_id->status === 'HIDDEN') min="{{ \Carbon\Carbon::today()->addDays(3)->format('Y-m-d') }}" @endif>
 
@@ -150,9 +150,9 @@
                         <div class="row">
                             {{-- DURATION --}}
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Thời lượng (phút)</label>
+                                <label class="form-label">Thời lượng (phút) <span class="text-danger">*</span></label>
                                 <input type="number" name="duration_minutes" value="{{ $movie_id->duration_minutes }}"
-                                    class="form-control @error('duration_minutes') is-invalid @enderror">
+                                    class="form-control @error('duration_minutes') is-invalid @enderror" required>
                                 @error('duration_minutes')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -193,9 +193,9 @@
 
                         {{-- LANGUAGE --}}
                         <div class="mb-3">
-                            <label class="form-label">Ngôn ngữ</label>
+                            <label class="form-label">Ngôn ngữ <span class="text-danger">*</span></label>
                             <input type="text" name="language" value="{{ $movie_id->language }}"
-                                class="form-control @error('language') is-invalid @enderror">
+                                class="form-control @error('language') is-invalid @enderror" required>
                             @error('language')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -213,10 +213,10 @@
 
                         {{-- AGE RATING --}}
                         <div class="mb-3">
-                            <label class="form-label">Độ tuổi</label>
+                            <label class="form-label">Độ tuổi <span class="text-danger">*</span></label>
                             <input type="text" name="age_rating" value="{{ $movie_id->age_rating }}"
                                 class="form-control @error('age_rating') is-invalid @enderror"
-                                placeholder="VD: P, K, T13, T16, T18">
+                                placeholder="VD: P, K, T13, T16, T18" required>
                             @error('age_rating')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -227,7 +227,7 @@
                             <label class="form-label">Quốc gia <span class="text-danger">*</span></label>
                             <input type="text" name="country" value="{{ $movie_id->country }}"
                                 class="form-control @error('country') is-invalid @enderror"
-                                placeholder="VD: Mỹ, Hàn Quốc, Việt Nam...">
+                                placeholder="VD: Mỹ, Hàn Quốc, Việt Nam..." required>
                             @error('country')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -307,7 +307,7 @@
                 {{-- THỂ LOẠI --}}
                 <div class="card shadow-sm mt-3">
                     <div class="card-header">
-                        <strong>Phân loại phim</strong>
+                        <strong>Phân loại phim <span class="text-danger">*</span></strong>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
