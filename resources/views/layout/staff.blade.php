@@ -148,6 +148,13 @@
                 <i class="bi bi-life-preserver"></i> Hỗ trợ sự cố đặt vé
             </a>
 
+            <div class="nav-label">Tiện ích</div>
+
+            <a class="nav-link {{ Request::routeIs('staff.articles.*') ? 'active' : '' }}"
+               href="{{ \App\Helpers\TabAuthHelper::route('staff.articles.index') }}">
+                <i class="bi bi-newspaper"></i> Bài viết
+            </a>
+
         </nav>
 
         <div class="sidebar-footer">
