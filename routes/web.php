@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AccountManageController;
+use App\Http\Controllers\Admin\ArticleManageController;
 use App\Http\Controllers\Admin\CustomerMembershipController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\BannerManageController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\SepayController;
 use App\Http\Controllers\ShowtimeController;
 use App\Http\Controllers\staff\BookTicketsController;
 use App\Http\Controllers\Staff\StaffDashboardController;
+use App\Http\Controllers\Staff\StaffArticleController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\ChatbotController;
@@ -512,6 +514,12 @@ Route::middleware(['tab.auth'])->group(function () {
     Route::get('/staff/sell-tickets/payment/{orderCode}', [BookTicketsController::class, 'payment'])->name('staff.sell-tickets.payment');
 });
 
+/* STAFF: XEM BÀI VIẾT */
+Route::middleware(['tab.auth'])->prefix('staff')->name('staff.')->group(function () {
+    Route::get('/articles', [StaffArticleController::class, 'index'])->name('articles.index');
+    Route::get('/articles/{id}', [StaffArticleController::class, 'show'])->name('articles.show');
+});
+
 
 
 /* --------------------- UC-ADM-06: Quản lý booking (ĐẶT VÉ) ------------------ */
@@ -545,6 +553,16 @@ Route::middleware(['tab.auth', 'admin'])->group(function () {
                 'destroy' => 'admin.banners.destroy',
             ]);
 });
+/* --------------------- Quản lý Bài viết (Articles) ------------------ */
+Route::middleware(['tab.auth', 'admin'])->group(function () {
+    Route::get('/admin/articles', [ArticleManageController::class, 'index'])->name('admin.articles.index');
+    Route::get('/admin/articles/create', [ArticleManageController::class, 'create'])->name('admin.articles.create');
+    Route::post('/admin/articles', [ArticleManageController::class, 'store'])->name('admin.articles.store');
+    Route::get('/admin/articles/{id}/edit', [ArticleManageController::class, 'edit'])->name('admin.articles.edit');
+    Route::put('/admin/articles/{id}', [ArticleManageController::class, 'update'])->name('admin.articles.update');
+    Route::delete('/admin/articles/{id}', [ArticleManageController::class, 'destroy'])->name('admin.articles.destroy');
+});
+
 /* --------------------- Quản lý Membership Admin ------------------ */
 Route::middleware(['tab.auth', 'admin'])->group(function () {
     Route::get('/admin/memberships', [CustomerMembershipController::class, 'index'])->name('admin.memberships.index');

@@ -85,7 +85,7 @@
             Quản lý Membership
         </a>
 
-        <a class="nav-link" href="#">
+<a class="nav-link {{ Request::routeIs('admin.articles.*') ? 'active' : '' }}" href="{{ \App\Helpers\TabAuthHelper::route('admin.articles.index') }}">
             <i class="bi bi-newspaper"></i>
             Bài viết
         </a>
@@ -95,10 +95,10 @@
             Banner
         </a>
 
-        <a class="nav-link" href="">
+{{-- <a class="nav-link" href="">
             <i class="bi bi-bar-chart"></i>
             Báo cáo
-        </a>
+        </a> --}}
         {{-- <button id="theme-toggle" class="btn btn-outline-secondary">
 
             <i class="bi bi-moon-stars"></i>
