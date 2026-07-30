@@ -33,7 +33,7 @@ class GoogleController extends Controller
                 return redirect()->route('login')
                     ->withErrors(['error' => 'Tài khoản của bạn đã bị khóa. Hãy quay lại trang chủ điền form hỗ trợ để mở khóa tài khoản']);
             }
-            
+
 
             // Đăng nhập
             Auth::login($finduser);
@@ -52,9 +52,12 @@ class GoogleController extends Controller
             );
             // 6. lấy role để phân quyền
             $userRole = UserRole::where('user_id', $finduser->id)->first();
+            //nếu ko có role mặc định cho là customer
+            $roleId = $userRole?->role_id ?? 3; // 3 là role_id mặc định cho khách hàng
+
 
             // 7. Chuyển hướng dựa trên role
-            $redirectRoute = match($userRole->role_id) {
+            $redirectRoute = match($roleId) {
                 1 => 'admin.dashboard',
                 2 => 'staff.dashboard',
                 3 => 'home', // Khách hàng
