@@ -15,7 +15,6 @@
                 <i class="bi bi-arrow-left"></i> Quay lại
             </a>
         </div>
-    </div>
 </div>
 
 <div class="col-12 mt-3">
@@ -81,7 +80,7 @@
                         @enderror
                     </div>
 
-<div class="col-md-6">
+                    <div class="col-md-6">
                         <label for="thumbnail" class="form-label fw-semibold">Ảnh đại diện (thumbnail)</label>
                         <input type="file" name="thumbnail" id="thumbnail" class="form-control @error('thumbnail') is-invalid @enderror" onchange="previewThumbnail(event)">
                         <small class="text-muted">Định dạng: jpg, jpeg, png, webp. Kích thước tối đa 4MB. Chọn ảnh khác nếu muốn thay đổi.</small>
@@ -95,7 +94,7 @@
                         @if($article->thumbnail_url)
                             <div class="mt-2" id="currentThumbnail">
                                 <label class="d-block form-label text-muted small">Ảnh hiện tại:</label>
-                                <img src="{{ asset('storage/' . $article->thumbnail_url) }}" alt="Current" class="img-thumbnail" style="max-height: 120px; object-fit: cover;">
+                                <img src="{{ asset($article->thumbnail_url) }}" alt="Current" class="img-thumbnail" style="max-height: 120px; object-fit: cover;">
                             </div>
                         @endif
                     </div>
@@ -120,10 +119,8 @@
                         <a href="{{ \App\Helpers\TabAuthHelper::route('admin.articles.index') }}" class="btn btn-secondary me-2">Hủy bỏ</a>
                         <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
                     </div>
-                </div>
             </form>
         </div>
-    </div>
 </div>
 
 @endsection

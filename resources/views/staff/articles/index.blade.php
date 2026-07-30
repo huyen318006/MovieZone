@@ -43,7 +43,7 @@
         <div class="col-md-6 col-lg-4">
             <div class="card h-100 border-0" style="background: var(--staff-surface); border-radius: 16px; overflow: hidden;">
                 @if($article->thumbnail_url)
-                    <img src="{{ asset('storage/' . $article->thumbnail_url) }}" alt="{{ $article->title }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                    <img src="{{ asset($article->thumbnail_url) }}" alt="{{ $article->title }}" class="card-img-top" style="height: 200px; object-fit: cover;">
                 @else
                     <div style="height: 200px; background: linear-gradient(135deg, var(--staff-primary), #2563eb); display: flex; align-items: center; justify-content: center;">
                         <i class="bi bi-newspaper" style="font-size: 48px; color: rgba(255,255,255,0.3);"></i>
@@ -72,7 +72,6 @@
                         <i class="bi bi-eye me-1"></i> Xem chi tiết
                     </a>
                 </div>
-            </div>
         </div>
     @empty
         <div class="col-12">
@@ -80,7 +79,6 @@
                 <i class="bi bi-newspaper" style="font-size: 48px;"></i>
                 <p class="mt-2">Không tìm thấy bài viết nào.</p>
             </div>
-        </div>
     @endforelse
 </div>
 

@@ -23,7 +23,6 @@
                 <i class="bi bi-plus-lg"></i> Thêm Bài viết
             </a>
         </div>
-    </div>
 </div>
 
 <div class="col-12 mt-3">
@@ -74,7 +73,7 @@
                                 <td>{{ $article->id }}</td>
                                 <td>
                                     @if($article->thumbnail_url)
-                                        <img src="{{ asset('storage/' . $article->thumbnail_url) }}" alt="{{ $article->title }}" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
+                                        <img src="{{ asset($article->thumbnail_url) }}" alt="{{ $article->title }}" class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;">
                                     @else
                                         <div class="bg-secondary text-white rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
                                             <i class="bi bi-newspaper fs-4"></i>
@@ -134,8 +133,6 @@
             <div class="d-flex justify-content-end mt-3">
                 {{ $articles->links() }}
             </div>
-        </div>
     </div>
-</div>
 
 @endsection
