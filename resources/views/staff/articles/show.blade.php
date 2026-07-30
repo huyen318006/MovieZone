@@ -15,7 +15,7 @@
     <div class="col-lg-10">
         <div class="card border-0" style="background: var(--staff-surface); border-radius: 20px; overflow: hidden;">
             @if($article->thumbnail_url)
-                <img src="{{ asset('storage/' . $article->thumbnail_url) }}" alt="{{ $article->title }}" class="card-img-top" style="max-height: 400px; object-fit: cover;">
+                <img src="{{ asset($article->thumbnail_url) }}" alt="{{ $article->title }}" class="card-img-top" style="max-height: 400px; object-fit: cover;">
             @endif
             
             <div class="card-body p-4 p-lg-5">
@@ -60,9 +60,7 @@
                 <div style="font-size: 15px; line-height: 1.8; color: var(--staff-text);">
                     {!! nl2br(e($article->content)) !!}
                 </div>
-            </div>
         </div>
-    </div>
 </div>
 
 @endsection

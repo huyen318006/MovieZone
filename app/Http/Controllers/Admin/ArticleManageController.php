@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ArticleManageController extends Controller
@@ -37,7 +36,10 @@ class ArticleManageController extends Controller
             });
         }
 
-        $articles = $query->orderBy('created_at', 'desc')->paginate(10);
+        // Sắp xếp bài viết mới nhất lên đầu (theo published_at, nếu null thì theo created_at)
+        $articles = $query->orderBy('published_at', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         // Lấy danh sách danh mục để hiển thị filter
         $categories = Article::select('category')->distinct()->pluck('category');
@@ -89,10 +91,13 @@ class ArticleManageController extends Controller
             $counter++;
         }
 
-        // Xử lý upload thumbnail
+        // Xử lý upload thumbnail (lưu trực tiếp vào public/uploads/articles/ - không cần storage:link)
         $thumbnailUrl = null;
         if ($request->hasFile('thumbnail')) {
-            $thumbnailUrl = $request->file('thumbnail')->store('articles', 'public');
+            $file = $request->file('thumbnail');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/articles'), $fileName);
+            $thumbnailUrl = 'uploads/articles/' . $fileName;
         }
 
         // Xử lý published_at
@@ -162,14 +167,17 @@ class ArticleManageController extends Controller
             $counter++;
         }
 
-        // Xử lý upload thumbnail
+        // Xử lý upload thumbnail (lưu trực tiếp vào public/uploads/articles/)
         $thumbnailUrl = $article->thumbnail_url;
         if ($request->hasFile('thumbnail')) {
             // Xóa ảnh cũ nếu có
-            if ($article->thumbnail_url && Storage::disk('public')->exists($article->thumbnail_url)) {
-                Storage::disk('public')->delete($article->thumbnail_url);
+            if ($article->thumbnail_url && file_exists(public_path($article->thumbnail_url))) {
+                unlink(public_path($article->thumbnail_url));
             }
-            $thumbnailUrl = $request->file('thumbnail')->store('articles', 'public');
+            $file = $request->file('thumbnail');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $file->move(public_path('uploads/articles'), $fileName);
+            $thumbnailUrl = 'uploads/articles/' . $fileName;
         }
 
         // Xử lý published_at
@@ -201,8 +209,8 @@ class ArticleManageController extends Controller
         $article = Article::findOrFail($id);
 
         // Xóa ảnh thumbnail nếu có
-        if ($article->thumbnail_url && Storage::disk('public')->exists($article->thumbnail_url)) {
-            Storage::disk('public')->delete($article->thumbnail_url);
+        if ($article->thumbnail_url && file_exists(public_path($article->thumbnail_url))) {
+            unlink(public_path($article->thumbnail_url));
         }
 
         $article->delete();
