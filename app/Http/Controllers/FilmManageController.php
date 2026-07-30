@@ -92,6 +92,8 @@ class FilmManageController extends Controller
 
         // paginate + giữ query khi chuyển trang
         $movieGenres = $query
+            ->orderByDesc('movies.created_at')
+            ->orderByDesc('movies.id')
             ->paginate(10)
             ->appends($request->all());
 
@@ -214,7 +216,7 @@ class FilmManageController extends Controller
         }
 
         DB::table('audit_logs')->insert([
-            'user_id'     => auth()->id(),
+            'user_id'     => auth()->user()?->id,
             'action'      => 'create_movie',
             'entity_name' => 'movies',
             'entity_id'   => (string) $movie->id,
@@ -429,7 +431,7 @@ class FilmManageController extends Controller
         $payload['room_types'] = $request->input('room_types', []);
 
         DB::table('audit_logs')->insert([
-            'user_id'     => auth()->id(),
+            'user_id'     => auth()->user()?->id,
             'action'      => 'update_movie',
             'entity_name' => 'movies',
             'entity_id'   => (string) $movie->id,

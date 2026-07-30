@@ -27,9 +27,9 @@
                     <div class="row g-3">
 
                         <div class="col-md-6">
-                            <label class="form-label">Tên phim</label>
+                            <label class="form-label">Tên phim <span class="text-danger">*</span></label>
                             <input type="text" name="title" class="form-control" value="{{ old('title') }}"
-                                placeholder="Ví dụ: Doraemon Movie 2026">
+                                placeholder="Ví dụ: Doraemon Movie 2026" required>
 
                             @error('title')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
@@ -63,9 +63,10 @@
                     <div class="row g-3">
 
                         <div class="col-md-3">
-                            <label class="form-label">Thời lượng (phút)</label>
+                            <label class="form-label">Thời lượng (phút) <span class="text-danger">*</span></label>
+                            <div class="small text-muted mb-2">&nbsp;</div>
                             <input type="number" name="duration_minutes" class="form-control"
-                                value="{{ old('duration_minutes') }}" placeholder="VD: 120">
+                                value="{{ old('duration_minutes') }}" placeholder="VD: 120" required>
 
                             @error('duration_minutes')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
@@ -76,13 +77,13 @@
                             $minReleaseDate = \Carbon\Carbon::now()->addDays(3)->format('Y-m-d');
                         @endphp
                         <div class="col-md-3">
-                            <label class="form-label">Ngày khởi chiếu</label>
-                            <small class="text-muted d-block mb-1">
+                            <label class="form-label">Ngày khởi chiếu <span class="text-danger">*</span></label>
+                            <div class="small text-muted mb-2">
                                 <i class="bi bi-info-circle"></i> Tối thiểu sau {{ \Carbon\Carbon::now()->addDays(3)->format('d/m/Y') }}
-                            </small>
+                            </div>
                             <input type="date" name="release_date" id="release_date" class="form-control"
                                 min="{{ $minReleaseDate }}"
-                                value="{{ old('release_date') }}">
+                                value="{{ old('release_date') }}" required>
 
                             @error('release_date')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
@@ -91,8 +92,9 @@
 
                         <div class="col-md-3">
                             <label class="form-label">Ngày kết thúc</label>
+                            <div class="small text-muted mb-2">&nbsp;</div>
                             <input type="date" name="end_date" id="end_date" class="form-control"
-                                value="{{ old('end_date') }}">
+                                value="{{ old('end_date') }}" min="{{ \Carbon\Carbon::today()->format('Y-m-d') }}">
 
                             @error('end_date')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
@@ -100,8 +102,9 @@
                         </div>
 
                         <div class="col-md-3">
-                            <label class="form-label">Trạng thái</label>
-                            <select name="status" class="form-select">
+                            <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                            <div class="small text-muted mb-2">&nbsp;</div>
+                            <select name="status" class="form-select" required>
 
                                 <option value="COMING_SOON" {{ old('status') == 'COMING_SOON' ? 'selected' : '' }}>Chuẩn bị
                                     chiếu</option>
@@ -152,9 +155,9 @@
                     <div class="row g-3">
 
                         <div class="col-md-4">
-                            <label class="form-label">Quốc gia</label>
+                            <label class="form-label">Quốc gia <span class="text-danger">*</span></label>
                             <input type="text" name="country" class="form-control" value="{{ old('country') }}"
-                                placeholder="Nhập quốc gia của phim VD: Nhật Bản">
+                                placeholder="Nhập quốc gia của phim VD: Nhật Bản" required>
 
                             @error('country')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
@@ -162,9 +165,9 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">Ngôn ngữ</label>
+                            <label class="form-label">Ngôn ngữ <span class="text-danger">*</span></label>
                             <input type="text" name="language" class="form-control" value="{{ old('language') }}"
-                                placeholder="VD: Tiếng Nhật">
+                                placeholder="VD: Tiếng Nhật" required>
 
                             @error('language')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
@@ -192,8 +195,8 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Độ tuổi</label>
-                            <select name="age_rating" class="form-select">
+                            <label class="form-label">Độ tuổi <span class="text-danger">*</span></label>
+                            <select name="age_rating" class="form-select" required>
                                 <option value="P" {{ old('age_rating') == 'P' ? 'selected' : '' }}>P</option>
                                 <option value="K" {{ old('age_rating') == 'K' ? 'selected' : '' }}>K</option>
                                 <option value="T13" {{ old('age_rating') == 'T13' ? 'selected' : '' }}>T13</option>
@@ -218,7 +221,7 @@
                     </div>
 
                     <!-- Thể loại -->
-                    <h5 class="border-bottom pb-2 mt-5 mb-3">Thể loại</h5>
+                    <h5 class="border-bottom pb-2 mt-5 mb-3">Thể loại <span class="text-danger">*</span></h5>
 
                     <div class="row">
                         @foreach ($genres as $genre)
