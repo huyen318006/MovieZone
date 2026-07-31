@@ -325,8 +325,13 @@
             animation: none;
         }
 
-        .sweet-seat-icon {
+.sweet-seat-icon {
             color: #ec4899 !important;
+        }
+
+        /* Row labels (A, B, C...) - bright white for readability */
+        .row-label {
+            color: #e2e8f0 !important;
         }
 
         /* === SEAT TIMER BOX (đồng bộ design mới) === */
