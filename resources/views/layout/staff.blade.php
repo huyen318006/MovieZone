@@ -143,6 +143,11 @@
                 <i class="bi bi-ticket-perforated"></i> Bán vé
             </a>
 
+            <a class="nav-link {{ Request::routeIs('staff.sell-products') ? 'active' : '' }}"
+               href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-products') }}">
+                <i class="bi bi-basket3"></i> Bán sản phẩm lẻ
+            </a>
+
             <a class="nav-link {{ Request::routeIs('staff.issue-support') ? 'active' : '' }}"
                href="{{ \App\Helpers\TabAuthHelper::route('staff.issue-support') }}">
                 <i class="bi bi-life-preserver"></i> Hỗ trợ sự cố đặt vé

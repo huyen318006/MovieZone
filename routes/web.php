@@ -27,6 +27,7 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\SepayController;
 use App\Http\Controllers\ShowtimeController;
 use App\Http\Controllers\staff\BookTicketsController;
+use App\Http\Controllers\Staff\sellproduct\SellproductController;
 use App\Http\Controllers\Staff\StaffDashboardController;
 use App\Http\Controllers\Staff\StaffArticleController;
 use App\Http\Controllers\TicketController;
@@ -514,6 +515,19 @@ Route::middleware(['tab.auth'])->group(function () {
     Route::get('/staff/sell-tickets/payment/{orderCode}', [BookTicketsController::class, 'payment'])->name('staff.sell-tickets.payment');
 });
 
+/* --------------------- UC-STAFF-06: bán sản phẩm lẻ ------------------ */
+Route::middleware(['tab.auth'])->group(function () {
+    Route::get('/staff/sell-products', [SellproductController::class, 'sell_products'])->name('staff.sell-products');
+    Route::post('/staff/sell-products/order', [SellproductController::class, 'orderProducts'])->name('staff.sell-products.order');
+    Route::post('/staff/sell-products/checkout', [SellproductController::class, 'checkout'])->name('staff.sell-products.checkout');
+    Route::get('/staff/sell-products/payment/{orderCode}', [SellproductController::class, 'payment'])->name('staff.sell-products.payment');
+    Route::post('/staff/sell-products/payment/{orderCode}/cash-confirm', [SellproductController::class, 'confirmCashPayment'])->name('staff.sell-products.cash-confirm');
+    Route::get('/staff/sell-products/check-status/{orderCode}', [SellproductController::class, 'checkStatus'])->name('staff.sell-products.check-status');
+    Route::get('/staff/sell-products/success/{orderCode}/{paymentMethod?}', [SellproductController::class, 'success'])->name('staff.sell-products.success');
+    Route::get('/staff/sell-products/invoice/{orderCode}', [SellproductController::class, 'downloadInvoice'])->name('staff.sell-products.invoice');
+});
+
+/* STAFF: XEM BÀI VIẾT */
 /* STAFF: BÀI VIẾT (XEM + SỬA) */
 Route::middleware(['tab.auth'])->prefix('staff')->name('staff.')->group(function () {
     Route::get('/articles', [StaffArticleController::class, 'index'])->name('articles.index');
