@@ -395,6 +395,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+        const tabToken = '{{ \App\Helpers\TabAuthHelper::gettoken() }}';
             let currentPage = 1;
 
             // Load bookings
@@ -416,7 +417,7 @@
                     if (val) params.append(key, val);
                 }
                 params.append('page', page);
-
+                params.append('tab_token', tabToken);
                 fetch(`/admin/api/bookings?${params.toString()}`)
                     .then(res => res.json())
                     .then(res => {
@@ -602,7 +603,7 @@
 
             // Show detail modal
             function showDetail(id) {
-                fetch(`/admin/bookings/${id}`)
+                fetch(`/admin/bookings/${id}?tab_token=${tabToken}`)
                     .then(res => res.json())
                     .then(res => {
                         if (res.success) {
@@ -814,7 +815,7 @@
                     return;
                 }
 
-                fetch(`/admin/api/bookings/tickets/${ticketId}/check-in`, {
+                fetch(`/admin/api/bookings/tickets/${ticketId}/check-in?tab_token=${tabToken}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -860,7 +861,7 @@
                 btn.disabled = true;
                 spinner.classList.remove('d-none');
 
-                fetch(`/admin/bookings/${id}/cancel`, {
+                fetch(`/admin/bookings/${id}/cancel?tab_token=${tabToken}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

@@ -46,10 +46,6 @@
             Suất chiếu
         </a>
 
-        <a class="nav-link" href="">
-            <i class="bi bi-ticket-perforated"></i>
-            Đặt vé
-        </a>
         <a class="nav-link" href="{{ \App\Helpers\TabAuthHelper::route('admin.bookings.index') }}">
             <i class="bi bi-ticket-detailed"></i>
             Quản lý đơn đặt vé

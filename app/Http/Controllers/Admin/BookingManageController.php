@@ -144,7 +144,7 @@ class BookingManageController extends Controller
 
         $booking = Booking::with([
             'user:id,name,phone,email',
-            'showtime:id,cinema_id,movie_id,room_id,start_time,end_time,format',
+            'showtime:id,cinema_id,movie_id,room_id,start_time,end_time',
             'showtime.movie:id,title,poster_url',
             'showtime.cinema:id,name,address',
             'showtime.room:id,name,room_type',
