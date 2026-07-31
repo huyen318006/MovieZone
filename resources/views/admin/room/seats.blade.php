@@ -419,5 +419,12 @@
     line-height: 1.1;
     opacity: 0.8;
 }
+
+/* Row labels (A, B, C...) - bright white in dark mode for readability */
+html[data-theme="dark"] .room-seat-row-label {
+    color: #e2e8f0;
+    background: rgba(126, 166, 255, 0.15);
+    border-color: rgba(126, 166, 255, 0.35);
+}
 </style>
 @endpush
