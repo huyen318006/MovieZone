@@ -31,7 +31,7 @@ class BookingLookupService
     {
         $query = Booking::with([
             'user:id,name,phone,email',
-            'showtime:id,movie_id,cinema_id,start_time,end_time',
+'showtime:id,movie_id,cinema_id,room_id,start_time,end_time,status',
             'showtime.movie:id,title',
             'showtime.cinema:id,name',
             'bookingSeats:id,booking_id,seat_code,seat_type',

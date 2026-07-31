@@ -138,10 +138,11 @@ class StaffIssueSupportController extends Controller
             return $this->notFoundResponse();
         }
 
-        // Lấy booking detail để evaluate trạng thái
-        $bookingDetail = $booking instanceof \App\Models\Booking
-            ? $booking
-            : $this->lookupService->getBookingDetail((int) $booking->id);
+// Luôn gọi getBookingDetail để có đầy đủ relationships (tickets, payment, showtime.status, ...)
+        $bookingId = $booking instanceof \App\Models\Booking
+            ? $booking->id
+            : (int) $booking->id;
+        $bookingDetail = $this->lookupService->getBookingDetail($bookingId);
 
         $bookingError = app(\App\Services\IssueSupportService::class)
             ->diagnoseFromBooking($bookingDetail);
