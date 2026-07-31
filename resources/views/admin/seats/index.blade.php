@@ -839,6 +839,11 @@
         font-size: 12px;
     }
 
+    /* Row labels (A, B, C...) - bright white in dark mode for readability */
+    html[data-theme="dark"] .row-label {
+        color: #e2e8f0;
+    }
+
     .seat-wrapper {
         position: relative;
         display: flex;
