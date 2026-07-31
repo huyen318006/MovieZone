@@ -249,9 +249,9 @@ class SepayService
                         'booking_id' => $order->booking_id,
                     ]);
 
-                    // === SINH MÃ VÉ (Ticket Code + QR Code) ===
+                    // Chỉ đơn mua vé mới sinh ticket/PDF vé.
                     $pdfPath = null;
-                    if ($order->booking_id && $order->booking) {
+                    if ($order->isBookingOrder() && $order->booking_id && $order->booking) {
                         try {
                             $ticketService = app(TicketService::class);
                             $tickets = DB::transaction(function () use ($ticketService, $order) {
@@ -278,12 +278,12 @@ class SepayService
                         }
                     }
 
-                    // === GỬI EMAIL HOÁ ĐƠN TỰ ĐỘNG (kèm PDF vé) ===
+                    // Email và thông báo này dành riêng cho đơn vé phim.
                     try {
                         $customerEmail = $order->getCustomerEmail();
                         $user = $order->booking ? $order->booking->user : null;
 
-                        if ($customerEmail) {
+                        if ($order->isBookingOrder() && $customerEmail) {
                             Mail::to($customerEmail)->send(
                                 new BookingInvoiceMail($order->fresh(), $user, $pdfPath)
                             );
@@ -304,7 +304,7 @@ class SepayService
                         }
 
                         // Tạo thông báo trong hệ thống cho user
-                        if ($user) {
+                        if ($order->isBookingOrder() && $user) {
                             $user->notify(new BookingPaidNotification($order->fresh()));
                         }
                     } catch (\Exception $mailEx) {

@@ -93,6 +93,32 @@ class Invoice extends Model
         ]);
     }
 
+    public static function createRetailFromOrder(SepayOrder $order): self
+    {
+        $metadata = $order->metadata ?? [];
+
+        return self::create([
+            'invoice_code'   => self::generateInvoiceCode(),
+            'sepay_order_id' => $order->id,
+            'customer_email' => $metadata['customer_email'] ?? '',
+            'customer_name'  => $metadata['customer_name'] ?? null,
+            'movie_title'    => 'Bán sản phẩm lẻ',
+            'cinema'         => '',
+            'room'           => '',
+            'showtime'       => '',
+            'show_date'      => '',
+            'format'         => 'Retail',
+            'seats'          => ['items' => $metadata['items'] ?? []],
+            'total_amount'   => $order->amount,
+            'payment_method' => ($metadata['payment_method'] ?? 'ONLINE') === 'CASH'
+                ? 'Tiền mặt'
+                : 'Thanh toán online',
+            'transaction_id' => $order->transaction_id,
+            'paid_at'        => $order->paid_at,
+            'email_status'   => 'pending',
+        ]);
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Accessors
