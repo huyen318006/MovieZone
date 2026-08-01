@@ -183,7 +183,7 @@
     <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-light">
+                <div class="modal-header bg-light" style="background-color: #1e293b !important;">
                     <h5 class="modal-title" id="detailModalLabel">
                         <i class="bi bi-ticket-detailed me-2 text-primary"></i> Chi tiết Booking: <span id="detail-booking-code" class="fw-bold"></span>
                     </h5>
@@ -254,7 +254,7 @@
                                     <h6 class="fw-bold text-uppercase text-muted mb-3 small">Chi tiết Vé & Sản phẩm đi kèm</h6>
                                     <div class="table-responsive">
                                         <table class="table table-bordered table-sm">
-                                            <thead class="table-light">
+                                            <thead class="table-dark">
                                                 <tr>
                                                     <th>Loại</th>
                                                     <th>Nội dung chi tiết</th>
@@ -303,7 +303,7 @@
                             <h6 class="fw-bold text-uppercase text-muted mb-3 small">Lịch sử giao dịch liên quan</h6>
                             <div class="table-responsive">
                                 <table class="table table-striped table-bordered">
-                                    <thead class="table-light">
+                                    <thead class="table-dark">
                                         <tr>
                                             <th>Phương thức</th>
                                             <th>Mã giao dịch</th>
@@ -324,7 +324,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light" id="detail-modal-footer"></div>
+                <div class="modal-footer" id="detail-modal-footer" style="background-color: #1e293b; color: #fff; border-top: 1px solid rgba(255, 255, 255, 0.08);"></div>
             </div>
         </div>
     </div>
@@ -354,7 +354,7 @@
                             <textarea class="form-control" name="reason" id="cancel_reason" rows="3" required placeholder="Nhập lý do hủy đơn (bắt buộc)..."></textarea>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light">
+                    <div class="modal-footer" style="background-color: #1e293b; color: #fff; border-top: 1px solid rgba(255, 255, 255, 0.08);">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                         <button type="submit" class="btn btn-danger" id="btn-confirm-cancel">
                             <span class="spinner-border spinner-border-sm me-1 d-none" id="cancel-spinner"></span>
