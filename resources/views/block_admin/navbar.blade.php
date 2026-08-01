@@ -2,10 +2,10 @@
     <div class="container-fluid">
         <form class="d-flex w-50" action="#" method="GET">
             <div class="input-group">
-                <span class="input-group-text bg-light border-end-0">
+                <span class="input-group-text bg-secondary border-end-0">
                     <i class="bi bi-search text-muted"></i>
                 </span>
-                <input type="text" class="form-control bg-light border-start-0 ps-0" placeholder="Tìm kiếm phim, vé, khách hàng...">
+                <input type="text" class="form-control bg-secondary border-start-0 ps-0" placeholder="Tìm kiếm phim, vé, khách hàng...">
             </div>
         </form>
 
