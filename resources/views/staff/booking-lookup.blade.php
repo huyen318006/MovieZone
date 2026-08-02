@@ -494,7 +494,12 @@
 <script>
 const BookingLookup = (() => {
     // ── Config ──
+    const TAB_TOKEN    = new URLSearchParams(window.location.search).get('tab_token') || '';
     const API_BASE     = '{{ url("staff/api") }}';
+    const API_URL      = (path) => {
+        const separator = path.includes('?') ? '&' : '?';
+        return API_BASE + path + (TAB_TOKEN ? separator + 'tab_token=' + TAB_TOKEN : '');
+    };
     const CSRF_TOKEN   = document.querySelector('meta[name="csrf-token"]').content;
     const RECENT_KEY   = 'mz_staff_recent_searches';
     const MAX_RECENT   = 5;
@@ -624,7 +629,7 @@ const BookingLookup = (() => {
 
         try {
             const params = new URLSearchParams(criteria);
-            const resp   = await fetch(`${API_BASE}/bookings/search?${params}`, {
+            const resp   = await fetch(API_URL(`/bookings/search?${params}`), {
                 headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
             });
 
@@ -725,7 +730,7 @@ const BookingLookup = (() => {
         body.innerHTML = '<div class="detail-loading"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
 
         try {
-            const resp = await fetch(`${API_BASE}/bookings/${bookingId}`, {
+            const resp = await fetch(API_URL(`/bookings/${bookingId}`), {
                 headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
             });
 
