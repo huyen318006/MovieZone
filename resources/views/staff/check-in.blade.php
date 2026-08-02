@@ -518,6 +518,17 @@
     <script>
         const API_BASE = '{{ url('staff/api/check-in') }}';
         const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').content;
+        const TAB_TOKEN = new URLSearchParams(window.location.search).get('tab_token') || '';
+
+        /**
+         * Build API URL with tab_token appended.
+         * @param {string} path - e.g. '/scan', '/manual', '/confirm'
+         */
+        function apiUrl(path) {
+            const url = API_BASE + path;
+            const separator = url.includes('?') ? '&' : '?';
+            return TAB_TOKEN ? url + separator + 'tab_token=' + TAB_TOKEN : url;
+        }
 
         let html5QrCode = null;
         let isScanning = false;
@@ -590,7 +601,7 @@
             status.innerHTML = '<span class="dot" style="background:var(--staff-info);"></span> Đang xử lý...';
 
             try {
-                const res = await fetch(`${API_BASE}/scan`, {
+                const res = await fetch(apiUrl('/scan'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -674,7 +685,7 @@
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Đang tra cứu...';
 
             try {
-                const res = await fetch(`${API_BASE}/manual`, {
+                const res = await fetch(apiUrl('/manual'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -910,7 +921,7 @@
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Đang xử lý...';
 
             try {
-                const res = await fetch(`${API_BASE}/confirm`, {
+                const res = await fetch(apiUrl('/confirm'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -953,7 +964,7 @@
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Đang xử lý...';
 
             try {
-                const res = await fetch(`${API_BASE}/confirm-batch`, {
+                const res = await fetch(apiUrl('/confirm-batch'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -996,7 +1007,7 @@
             if (!lastBatchBookingCode) return;
 
             try {
-                const res = await fetch(`${API_BASE}/manual`, {
+                const res = await fetch(apiUrl('/manual'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1046,7 +1057,7 @@
             btn.disabled = true;
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Đang tạo PDF...';
             try {
-                const res = await fetch(`${API_BASE}/${lastCheckedBookingId}/download-pdf`);
+                const res = await fetch(apiUrl(`/${lastCheckedBookingId}/download-pdf`));
                 if (!res.ok) {
                     const errData = await res.json().catch(() => null);
                     alert(errData?.message || 'Không thể tạo PDF. Vui lòng thử lại.');
@@ -1134,7 +1145,7 @@
 
         async function autoCheckIn(ticketId, ticketCode) {
             try {
-                const res = await fetch(`${API_BASE}/confirm`, {
+                const res = await fetch(apiUrl('/confirm'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1185,7 +1196,7 @@
             }
 
             try {
-                const res = await fetch(`${API_BASE}/confirm-batch`, {
+                const res = await fetch(apiUrl('/confirm-batch'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
