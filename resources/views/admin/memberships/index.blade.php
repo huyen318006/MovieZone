@@ -78,7 +78,7 @@
             @if(isset($customers) && $customers->isNotEmpty())
                 <div class="table-responsive">
                     <table class="table table-dark table-hover align-middle mb-0">
-                        <thead class="table-secondary text-uppercase small">
+                        <thead class="bg-secondary text-uppercase small">
                             <tr>
                                 <th class="ps-4">STT</th>
                                 <th>Khách Hàng</th>

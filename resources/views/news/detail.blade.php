@@ -1,7 +1,7 @@
 @extends('layout.app')
 
 @section('content')
-<main class="movie-list-page" style="padding-top: 110px;">
+<main class="movie-list-page"->
     {{-- Decorative Glows --}}
     <div class="movie-list-hero__glow" style="top: 150px; right: 10%;"></div>
 

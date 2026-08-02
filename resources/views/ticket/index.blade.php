@@ -142,7 +142,7 @@
 
                     {{-- Hành động chuyển hướng sang trang chi tiết --}}
                     <td style="text-align: center;">
-                        <a href="{{ route('my-tickets.show', $booking->id) }}" class="btn-detail-custom" style="text-decoration: none;">
+                        <a href="{{ \App\Helpers\TabAuthHelper::route('my-tickets.show', $booking->id) }}" class="btn-detail-custom" style="text-decoration: none;">
                             <i class="bi bi-eye"></i> Chi tiết
                         </a>
                     </td>

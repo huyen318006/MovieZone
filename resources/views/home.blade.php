@@ -1,5 +1,12 @@
 @extends('layout.app')
 
+@push('styles')
+<style>
+    body {
+        padding-top: 0 !important;
+    }
+</style>
+@endpush
 @section('content')
 
 {{-- HERO SECTION --}}
@@ -113,10 +120,10 @@
                 <div class="banner-item mb-3">
                     @if($banner->link_url)
                         <a href="{{ $banner->link_url }}" target="_blank">
-                            <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}" style="width: 100%; max-height: 600px; object-fit: cover; border-radius: 12px;">
+                            <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}" style="width: 100%; max-height: 700px; object-fit: cover; border-radius: 12px;">
                         </a>
                     @else
-                        <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}" style="width: 100%; max-height: 600px; object-fit: cover; border-radius: 12px;">
+                        <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}" style="width: 100%; max-height: 700px; object-fit: cover; border-radius: 12px;">
                     @endif
                 </div>
             @endforeach
