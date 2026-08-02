@@ -73,8 +73,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const closeButton = alertBox.querySelector('.btn-close');
         const hideAlert = () => {
             alertBox.style.opacity = '0';
+            const container = alertBox.parentElement;
+            if (container && container.classList.contains('flash-message-container')) {
+                container.style.maxHeight = '0px';
+                container.style.paddingTop = '0px';
+                container.style.paddingBottom = '0px';
+                container.style.marginTop = '0px';
+                container.style.marginBottom = '0px';
+                container.style.overflow = 'hidden';
+            }
             setTimeout(() => {
-                alertBox.remove();
+                if (container && container.classList.contains('flash-message-container')) {
+                    container.remove();
+                } else {
+                    alertBox.remove();
+                }
             }, 300);
         };
         if (closeButton) {
@@ -82,5 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         setTimeout(hideAlert, 3000);
     }
+});
 </script>
 </html>
