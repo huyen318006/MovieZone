@@ -348,7 +348,7 @@ class BookingController extends Controller
             session()->put('booking_tam', $bookingTam);
         }
 
-        return view('booking.combo', compact('combos', 'secondsLeft'));
+return view('booking.combo', compact('combos', 'secondsLeft', 'bookingTam'));
     }
 
     public function saveCombo(Request $request)
@@ -447,7 +447,8 @@ class BookingController extends Controller
                 ->with('error', 'Hết thời gian giữ ghế (5 phút). Vui lòng chọn lại.');
         }
 
-        $showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_id']);
+$showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_id']);
+        $showtime_id = $bookingTam['showtime_id'];
         $seats = ShowtimeSeat::with('seat')
             ->whereIn('id', $bookingTam['seats'])
             ->get();
@@ -470,8 +471,8 @@ class BookingController extends Controller
         $coinService = app(CoinRedemptionService::class);
         $coinInfo = $coinService->calculateMaxRedeemable(Auth::id(), $afterVoucher);
 
-        return view('booking.confirm', compact(
-            'showtime', 'seats', 'totalTicketPrice', 'combos',
+return view('booking.confirm', compact(
+            'showtime', 'showtime_id', 'seats', 'totalTicketPrice', 'combos',
             'totalComboPrice', 'discountAmount', 'totalPrice', 'secondsLeft',
             'coinUsed', 'coinDiscountAmount', 'coinInfo'
         ));
