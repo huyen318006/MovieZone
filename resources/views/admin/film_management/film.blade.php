@@ -19,7 +19,7 @@
 
         {{-- Header --}}
         <div class="col-12">
-            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2" style="margin-bottom: 10px;">
                 <div>
                     <h3 class="mb-1">Quản lý phim</h3>
                     {{-- <div class="text-muted">Giao diện tạm thời (demo UI): thêm / cập nhật / phân loại / ẩn-ngừng chiếu</div> --}}
