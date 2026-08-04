@@ -45,8 +45,8 @@
 
                     <div class="col-md-4 col-xl-3 text-center mb-4">
                         <div class="position-relative overflow-hidden rounded-4 shadow-sm mx-auto" style="aspect-ratio: 1/1; max-width: 250px;">
-                            <img src="{{ $user->avatar ? asset('storage/' . $user->avatar) : asset('public/images/avatar.png') }}" 
-                                class="w-100 h-100 object-fit-cover" 
+                            <img src="{{ $user->avatar ? asset('storage/' . $user->avatar) : asset('public/images/avatar.png') }}"
+                                class="w-100 h-100 object-fit-cover"
                                 alt="Avatar"
                                 onerror="this.src='https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&size=250&background=random'">
                         </div>
@@ -160,9 +160,13 @@
                                 </a>
                             @else
                                 @if ($user->status == 'ACTIVE')
-                                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#lockModal">
-                                       Khóa Tài Khoản
-                                    </button>
+                                    @if (($user->role_name ?? '') === 'ADMIN')
+                                        <span class="text-muted">Không thể khóa tài khoản Admin.</span>
+                                    @else
+                                        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#lockModal">
+                                            Khóa Tài Khoản
+                                        </button>
+                                    @endif
                                 @else
                                     <a href="{{ \App\Helpers\TabAuthHelper::route('admin.users.open',$user->id  ) }}" class="btn btn-success" onclick="return confirm('Hãy xác nhận mở lại quyền cho tài khoản chứ?')">
                                         Mở khóa tài khoản
