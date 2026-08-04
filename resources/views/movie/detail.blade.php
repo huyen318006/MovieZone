@@ -2,13 +2,13 @@
 
 @section('content')
     @php
-        $poster = $movie->poster_url ? asset($movie->poster_url) : asset('assets/hero/avatar.jpg');
-        $banner = $movie->banner_url ? asset($movie->banner_url) : asset('assets/hero/avatar2.jpg');
+        $poster = $movie->poster;
+        $banner = $movie->banner;
         $averageRating = $movie->approvedReviews->avg('rating');
     @endphp
 
     <section class="movie-detail"
-        style="background-image: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(20,20,20,0.95) 100%), url('{{ $movie->banner_url ? asset('assets/' . $movie->banner_url) : asset('assets/hero/avatar2.jpg') }}'); background-size: cover; background-position: center;">
+        style="background-image: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(20,20,20,0.95) 100%), url('{{ $banner }}'); background-size: cover; background-position: center;">
         <div class="movie-detail-card" data-aos="fade-up">
             <div class="movie-content">
                 <h1 class="movie-title">{{ $movie->title }}</h1>

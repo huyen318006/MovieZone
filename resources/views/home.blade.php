@@ -46,7 +46,7 @@
 @foreach($showingMovies as $m)
     <div class="movie-card">
 
-        <img src="{{ $m->poster_url ? asset('assets/' . $m->poster_url) : asset('assets/hero/avatar.jpg') }}" alt="{{ $m->title }}">
+        <img src="{{ $m->poster }}" alt="{{ $m->title }}">
 
         <div class="info">
 

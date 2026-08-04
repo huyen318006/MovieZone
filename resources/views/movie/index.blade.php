@@ -104,7 +104,7 @@
                 <div class="movie-list-grid">
                     @foreach ($movies as $movie)
                         @php
-                            $poster = $movie->poster_url ? asset($movie->poster_url) : asset('assets/movies/dune.jpg');
+                            $poster = $movie->poster;
                         @endphp
                         <article class="movie-list-card" data-aos="fade-up">
                             <div class="movie-list-poster">
