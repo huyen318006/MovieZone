@@ -236,7 +236,7 @@
                     </div>
 
                     <div class="mb-4">
-                        <span class="text-white-50 text-uppercase small fw-bold d-block mb-1">Số dư Coin tích lũy</span>
+                        <span class="text-white-50 text-uppercase small fw-bold d-block mb-1">Số dư Ví Coin (1 Coin = 1 VNĐ)</span>
                         <div class="coin-balance-display">
                             🪙 {{ number_format($coins) }} <span class="fs-6 fw-normal text-white-50">Coin</span>
                         </div>
@@ -268,7 +268,7 @@
 
                         @if ($nextLevel)
                             <p class="small mb-3" style="color: #e2e8f0 !important; line-height: 1.6;">
-                                Chi tiêu mua vé tích lũy: <strong class="text-white">{{ number_format($userMembership->total_spent ?? 0) }}đ</strong>.<br>
+                                Tổng chi tiêu mua vé: <strong class="text-white">{{ number_format($userMembership->total_spent ?? 0) }}đ</strong>.<br>
                                 Cần chi tiêu thêm <strong class="text-warning fw-bold">{{ number_format($pointsNeeded) }}đ</strong>
                                 để thăng hạng <strong class="text-info fw-bold">{{ $nextLevel->name }}</strong> (Mốc {{ number_format($nextLevel->min_points) }}đ).
                             </p>
@@ -279,7 +279,7 @@
                         @endif
 
                         <div class="d-flex justify-content-between align-items-center mb-1 small fw-bold">
-                            <span class="text-white-50">Tiến độ thăng hạng:</span>
+                            <span class="text-white-50">Tiến độ nâng hạng:</span>
                             <span class="text-warning fw-bold">{{ $progress }}%</span>
                         </div>
                         <div class="custom-progress-bar mb-2">
@@ -287,9 +287,8 @@
                         </div>
                     </div>
 
-                    <div class="pt-3 border-top border-secondary border-opacity-25 d-flex justify-content-between small" style="color: #cbd5e1 !important;">
-                        <span>Hạng hiện tại: <strong class="text-white">{{ $levelName }}</strong></span>
-                        <span>Hạng tiếp: <strong class="text-info fw-bold">{{ $nextLevel->name ?? 'Tối đa' }}</strong></span>
+                    <div class="pt-3 border-top border-secondary border-opacity-25 small" style="color: #94a3b8 !important;">
+                        <i class="bi bi-info-circle me-1"></i> Tiền mua vé tích lũy tự động cộng dồn. Duy trì hạng 6 tháng.
                     </div>
                 </div>
             </div>
