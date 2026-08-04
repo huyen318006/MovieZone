@@ -68,8 +68,13 @@ Route::get('/', function () {
 
     $showingMovies = Movie::where('status', 'NOW_SHOWING')->get();
     $upcomingMovies = Movie::where('status', 'COMING_SOON')->get();
-
-    return view('home', compact('banners', 'showingMovies', 'upcomingMovies'));
+//Tin tức
+    $latestArticles = \App\Models\Article::where('status', 'PUBLISHED')
+        ->orderBy('created_at', 'desc')
+        ->orderBy('id', 'desc')
+        ->limit(5)
+        ->get();    
+    return view('home', compact('banners', 'showingMovies', 'upcomingMovies', 'latestArticles'));
 })->name('home');
 /* ------------ Đăng nhập / Đăng ký / forgot*------------------ */
 Route::controller(AuthController::class)->group(function () {
