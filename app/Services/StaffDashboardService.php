@@ -26,7 +26,8 @@ class StaffDashboardService
                 'support_issues' => 0,
             ],
             'recent_checkins' => $this->recentCheckins($startDate, $endDate),
-            'recent_cash_payments' => $this->recentCashPayments($startDate, $endDate),
+            'recent_cash_payments' => $this->recentPaidBookings($startDate, $endDate),
+            'recent_paid_bookings' => $this->recentPaidBookings($startDate, $endDate),
         ];
     }
 
@@ -46,6 +47,7 @@ class StaffDashboardService
             ],
             'recent_checkins' => collect(),
             'recent_cash_payments' => collect(),
+            'recent_paid_bookings' => collect(),
         ];
     }
 
@@ -101,14 +103,13 @@ class StaffDashboardService
             ->get();
     }
 
-    private function recentCashPayments(Carbon $startOfDay, Carbon $endOfDay): Collection
+    private function recentPaidBookings(Carbon $startOfDay, Carbon $endOfDay): Collection
     {
-        return Payment::query()
-            ->with(['booking.user'])
-            ->where('payment_method', 'CASH')
-            ->where('status', 'SUCCESS')
-            ->whereBetween('paid_at', [$startOfDay, $endOfDay])
-            ->latest('paid_at')
+        return Booking::query()
+            ->with(['user', 'showtime.movie', 'payment'])
+            ->whereIn('status', ['PAID', 'COMPLETED'])
+            ->whereBetween('created_at', [$startOfDay, $endOfDay])
+            ->latest('created_at')
             ->limit(8)
             ->get();
     }

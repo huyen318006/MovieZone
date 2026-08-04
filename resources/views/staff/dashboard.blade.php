@@ -456,25 +456,33 @@
 
     <section class="staff-panel">
         <div class="staff-panel-header">
-            <h2><i class="bi bi-cash-stack me-2"></i>Thanh toán tiền mặt gần đây</h2>
+            <h2><i class="bi bi-clock-history me-2"></i>Lịch Sử Booking Gần Đây</h2>
             <a class="staff-panel-link" href="{{ \App\Helpers\TabAuthHelper::route('staff.booking-lookup') }}">Tra cứu booking</a>
         </div>
 
         <div class="staff-panel-list">
-            @forelse ($recentCashPayments as $payment)
+            @forelse ($recentCashPayments as $booking)
+                @php
+                    $bCode = $booking->booking_code ?? ($booking->booking?->booking_code ?? 'BK-UNK');
+                    $custName = $booking->user?->name ?? ($booking->customer_name ?? 'Khách hàng');
+                    $movieTitle = $booking->showtime?->movie?->title ?? '';
+                    $amount = $booking->final_amount ?? ($booking->total_price ?? ($booking->amount ?? 0));
+                    $createdAt = $booking->created_at ? $booking->created_at->format('H:i') : '--:--';
+                    $payMethod = $booking->payment?->payment_method ?? ($booking->payment_method ?? 'ONLINE');
+                @endphp
                 <a class="staff-list-item" href="{{ \App\Helpers\TabAuthHelper::route('staff.booking-lookup') }}">
                     <div class="staff-list-main">
-                        <strong>{{ $payment->booking?->booking_code ?? 'Booking không xác định' }}</strong>
-                        <span>{{ $payment->booking?->user?->name ?? 'Khách hàng' }} · {{ number_format($payment->amount) }}đ</span>
+                        <strong>{{ $bCode }} <span class="badge bg-secondary ms-1 small fw-normal">{{ $payMethod }}</span></strong>
+                        <span>{{ $custName }}{{ $movieTitle ? ' · ' . $movieTitle : '' }} · <strong class="text-warning">{{ number_format($amount) }}đ</strong></span>
                     </div>
                     <div class="staff-list-meta">
-                        {{ optional($payment->paid_at)->format('H:i') ?? '--:--' }}
+                        {{ $createdAt }}
                     </div>
                 </a>
             @empty
                 <div class="staff-empty-state">
-                    <i class="bi bi-wallet2"></i>
-                    <div>Chưa có thanh toán tiền mặt thành công trong ngày.</div>
+                    <i class="bi bi-receipt"></i>
+                    <div>Chưa có đơn hàng nào thanh toán thành công trong ngày.</div>
                 </div>
             @endforelse
         </div>

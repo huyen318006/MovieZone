@@ -82,4 +82,72 @@ class Movie extends Model
         $this->rating = $avg ? round($avg, 2) : 0.00;
         $this->save();
     }
+
+    /**
+     * Accessor thông minh cho Poster Phim (hỗ trợ cả storage/ và assets/)
+     */
+    public function getPosterAttribute(): string
+    {
+        $path = trim($this->poster_url ?? '');
+
+        if (empty($path)) {
+            return asset('assets/movies/dune.jpg');
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'storage/')) {
+            return asset($path);
+        }
+
+        if (str_starts_with($path, 'assets/')) {
+            return asset($path);
+        }
+
+        if (file_exists(public_path('storage/' . $path))) {
+            return asset('storage/' . $path);
+        }
+
+        if (file_exists(public_path('assets/' . $path))) {
+            return asset('assets/' . $path);
+        }
+
+        return asset('storage/' . $path);
+    }
+
+    /**
+     * Accessor thông minh cho Banner Phim
+     */
+    public function getBannerAttribute(): string
+    {
+        $path = trim($this->banner_url ?? '');
+
+        if (empty($path)) {
+            return asset('assets/hero/avatar2.jpg');
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'storage/')) {
+            return asset($path);
+        }
+
+        if (str_starts_with($path, 'assets/')) {
+            return asset($path);
+        }
+
+        if (file_exists(public_path('storage/' . $path))) {
+            return asset('storage/' . $path);
+        }
+
+        if (file_exists(public_path('assets/' . $path))) {
+            return asset('assets/' . $path);
+        }
+
+        return asset('storage/' . $path);
+    }
 }
