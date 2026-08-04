@@ -13,6 +13,8 @@ use App\Models\SepayOrder;
 use App\Models\Showtime;
 use App\Models\ShowtimeSeat;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -247,6 +249,144 @@ class StaffBookingService
         ];
     }
 
+    public function validateSeatSelection(int $showtimeId, array $seatIds): array
+    {
+        $showtime = Showtime::with(['movie', 'room'])->find($showtimeId);
+        if (! $showtime) {
+            throw new \Exception('Suất chiếu không tồn tại.');
+        }
+
+        if (now()->greaterThan($showtime->start_time)) {
+            throw new \Exception('Suất chiếu đã bắt đầu, không thể đặt vé.');
+        }
+
+        $seatIds = array_values(array_unique(array_filter(array_map('intval', $seatIds))));
+        if (empty($seatIds)) {
+            throw new \Exception('Vui lòng chọn ít nhất 1 ghế.');
+        }
+
+        $seats = ShowtimeSeat::with('seat')->whereIn('id', $seatIds)->get();
+        if ($seats->count() !== count($seatIds)) {
+            throw new \Exception('Một số ghế không tồn tại.');
+        }
+
+        foreach ($seats as $seat) {
+            $baseSeatStatus = $seat->seat->status ?? 'ACTIVE';
+            if (in_array($baseSeatStatus, ['BLOCKED', 'BROKEN'])) {
+                throw new \Exception("Ghế {$seat->seat->seat_code} đang bị khóa hoặc hỏng.");
+            }
+
+            $heldBy = Cache::get('seat_held_' . $showtimeId . '_' . $seat->id);
+            if ($heldBy && $heldBy != Auth::id()) {
+                throw new \Exception("Ghế {$seat->seat->seat_code} đang được khách khác giữ.");
+            }
+
+            $isSold = DB::table('booking_seats')
+                ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                ->where('booking_seats.showtime_seat_id', $seat->id)
+                ->where('bookings.showtime_id', $showtimeId)
+                ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                ->exists();
+
+            if ($isSold) {
+                throw new \Exception("Ghế {$seat->seat->seat_code} đã được đặt.");
+            }
+        }
+
+        if ($this->hasSingleSeatGap($showtimeId, $seatIds)) {
+            throw new \Exception('Vị trí chọn không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống ở giữa hoặc ở đầu/cuối hàng.');
+        }
+
+        return [
+            'showtime' => $showtime,
+            'seats' => $seats,
+        ];
+    }
+
+    private function hasSingleSeatGap(int $showtimeId, array $selectedSeatIds): bool
+    {
+        $allShowtimeSeats = ShowtimeSeat::with('seat')
+            ->where('showtime_id', $showtimeId)
+            ->get();
+
+        $soldSeatIds = DB::table('booking_seats')
+            ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+            ->where('bookings.showtime_id', $showtimeId)
+            ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+            ->pluck('booking_seats.showtime_seat_id')
+            ->all();
+
+        $matrix = [];
+        foreach ($allShowtimeSeats as $seat) {
+            $row = $seat->seat->row_label ?? null;
+            $num = $seat->seat->seat_number ?? null;
+            if (! $row || $num === null) {
+                continue;
+            }
+
+            if (in_array($seat->id, $selectedSeatIds)) {
+                $status = 'SELECTED';
+            } else {
+                $baseSeatStatus = $seat->seat->status ?? 'ACTIVE';
+                if (in_array($baseSeatStatus, ['BLOCKED', 'BROKEN'])) {
+                    $status = 'BLOCKED';
+                } elseif (in_array($seat->id, $soldSeatIds)) {
+                    $status = 'SOLD';
+                } else {
+                    $heldBy = Cache::get('seat_held_' . $showtimeId . '_' . $seat->id);
+                    if ($heldBy && $heldBy != Auth::id()) {
+                        $status = 'HELD';
+                    } else {
+                        $status = 'AVAILABLE';
+                    }
+                }
+            }
+
+            $matrix[$row][$num] = $status;
+        }
+
+        foreach ($matrix as $row => $rowSeats) {
+            ksort($rowSeats);
+            $seatNumbers = array_keys($rowSeats);
+            $totalInRow = count($seatNumbers);
+
+            for ($i = 0; $i < $totalInRow; $i++) {
+                $currentNum = $seatNumbers[$i];
+                if ($rowSeats[$currentNum] === 'AVAILABLE') {
+                    $leftBlocked = false;
+                    if ($i === 0) {
+                        $leftBlocked = true;
+                    } else {
+                        $prevNum = $seatNumbers[$i - 1];
+                        if ($prevNum != $currentNum - 1) {
+                            $leftBlocked = true;
+                        } else {
+                            $leftBlocked = ($rowSeats[$prevNum] !== 'AVAILABLE');
+                        }
+                    }
+
+                    $rightBlocked = false;
+                    if ($i === $totalInRow - 1) {
+                        $rightBlocked = true;
+                    } else {
+                        $nextNum = $seatNumbers[$i + 1];
+                        if ($nextNum != $currentNum + 1) {
+                            $rightBlocked = true;
+                        } else {
+                            $rightBlocked = ($rowSeats[$nextNum] !== 'AVAILABLE');
+                        }
+                    }
+
+                    if ($leftBlocked && $rightBlocked) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Tạo Booking từ Staff (Đặt vé hộ).
      *
@@ -271,35 +411,10 @@ class StaffBookingService
 
         DB::beginTransaction();
         try {
-            // ── VALIDATE: Suất chiếu còn mở ──
-            $showtime = Showtime::with(['movie', 'room'])->findOrFail($showtimeId);
-            if (now()->greaterThan($showtime->start_time)) {
-                throw new \Exception('Suất chiếu đã bắt đầu, không thể đặt vé.');
-            }
-
-            // ── VALIDATE: Tất cả ghế chưa bán ──
-            $seats = ShowtimeSeat::with('seat')->whereIn('id', $seatIds)->get();
-            if ($seats->count() !== count($seatIds)) {
-                throw new \Exception('Một số ghế không tồn tại.');
-            }
-
-            foreach ($seats as $seat) {
-                $baseSeatStatus = $seat->seat->status ?? 'ACTIVE';
-                if (in_array($baseSeatStatus, ['BLOCKED', 'BROKEN'])) {
-                    throw new \Exception("Ghế {$seat->seat->seat_code} đang bị khóa hoặc hỏng.");
-                }
-
-                $isSold = DB::table('booking_seats')
-                    ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
-                    ->where('booking_seats.showtime_seat_id', $seat->id)
-                    ->where('bookings.showtime_id', $showtimeId)
-                    ->whereIn('bookings.status', ['PAID', 'PENDING'])
-                    ->exists();
-
-                if ($isSold) {
-                    throw new \Exception("Ghế {$seat->seat->seat_code} đã được đặt.");
-                }
-            }
+            // ── VALIDATE: Suất chiếu còn mở + ghế hợp lệ + không tạo khe trống đơn lẻ ──
+            $validatedSelection = $this->validateSeatSelection($showtimeId, $seatIds);
+            $showtime = $validatedSelection['showtime'];
+            $seats = $validatedSelection['seats'];
 
             // ── TÍNH TOÁN TỔNG TIỀN TỪ BACKEND ──
             $totalTicketAmount = $seats->sum('price');
