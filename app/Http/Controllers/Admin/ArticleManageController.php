@@ -36,9 +36,8 @@ class ArticleManageController extends Controller
             });
         }
 
-        // Sắp xếp bài viết mới nhất lên đầu (theo created_at và id)
+        // Sắp xếp bài viết mới nhất lên đầu (theo created_at)
         $articles = $query->orderBy('created_at', 'desc')
-            ->orderBy('id', 'desc')
             ->paginate(10);
 
         // Lấy danh sách danh mục để hiển thị filter
