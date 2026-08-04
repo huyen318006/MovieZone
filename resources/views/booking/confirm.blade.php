@@ -102,13 +102,25 @@
                 </div>
                 @endif
 
-                {{-- Giảm giá (nếu có) --}}
+                {{-- Giảm giá Voucher (nếu có) --}}
                 @if($discountAmount > 0)
                 <div class="ticket-section">
                     <div class="price-breakdown">
                         <div class="price-row discount-row">
-                            <span>🎫 Giảm giá</span>
+                            <span>🎟️ Voucher giảm</span>
                             <span>-{{ number_format($discountAmount, 0, ',', '.') }}đ</span>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                {{-- GIẢM GIÁ XU --}}
+                @if($coinDiscountAmount > 0)
+                <div class="ticket-section">
+                    <div class="price-breakdown">
+                        <div class="price-row coin-discount-row">
+                            <span>🪙 Xu giảm ({{ number_format($coinUsed) }} xu)</span>
+                            <span>-{{ number_format($coinDiscountAmount, 0, ',', '.') }}đ</span>
                         </div>
                     </div>
                 </div>
@@ -124,6 +136,92 @@
 
             </div>
 
+        </div>
+
+        {{-- SECTION: SỬ DỤNG XU --}}
+        <div class="payment-method-box coin-redemption-box">
+            <h4>
+                <i class="fa-solid fa-coins" style="color: #f59e0b;"></i>
+                Sử dụng Xu để giảm giá
+            </h4>
+
+            @if(($coinInfo['balance'] ?? 0) <= 0)
+                {{-- Không có xu --}}
+                <div class="coin-empty-state">
+                    <i class="fa-solid fa-piggy-bank"></i>
+                    <p>Bạn chưa có xu nào. Hãy <a href="{{ \App\Helpers\TabAuthHelper::route('coin.index', ['id' => auth()->id()]) }}">diểm danh hàng ngày</a> hoặc mua vé để tích xu!</p>
+                </div>
+            @else
+                {{-- Có xu --}}
+                <div class="coin-info-grid">
+                    <div class="coin-stat">
+                        <span class="coin-stat-label">Số dư hiện tại</span>
+                        <span class="coin-stat-value">
+                            <i class="fa-solid fa-coins" style="color: #f59e0b; margin-right: 4px;"></i>
+                            {{ number_format($coinInfo['balance']) }} xu
+                        </span>
+                    </div>
+                    <div class="coin-stat">
+                        <span class="coin-stat-label">Tối đa có thể dùng</span>
+                        <span class="coin-stat-value">
+                            {{ number_format($coinInfo['maxRedeemable']) }} xu
+                            <small style="color: #9ca3af; font-weight: 400;">(= {{ number_format($coinInfo['maxDiscountVND']) }}đ)</small>
+                        </span>
+                    </div>
+                </div>
+
+                @if(($coinUsed ?? 0) > 0)
+                    {{-- Đã áp dụng xu --}}
+                    <div class="coin-applied-badge">
+                        <div class="coin-applied-info">
+                            <i class="fa-solid fa-check-circle" style="color: #34d399; font-size: 18px;"></i>
+                            <span>Đã dùng <strong>{{ number_format($coinUsed) }} xu</strong> = Giảm <strong>{{ number_format($coinDiscountAmount) }}đ</strong></span>
+                        </div>
+                        <form action="{{ \App\Helpers\TabAuthHelper::route('booking.coin.remove') }}" method="POST" style="margin: 0;">
+                            @csrf
+                            <button type="submit" class="btn-coin-remove">
+                                <i class="fa-solid fa-xmark"></i> Huỷ
+                            </button>
+                        </form>
+                    </div>
+                @else
+                    {{-- Form nhập xu --}}
+                    @if(($coinInfo['maxRedeemable'] ?? 0) > 0)
+                    <form action="{{ \App\Helpers\TabAuthHelper::route('booking.coin.apply') }}" method="POST" class="coin-apply-form">
+                        @csrf
+                        <div class="coin-input-group">
+                            <div class="coin-input-wrapper">
+                                <i class="fa-solid fa-coins coin-input-icon"></i>
+                                <input type="number"
+                                       name="coin_amount"
+                                       id="coinAmountInput"
+                                       min="1"
+                                       max="{{ $coinInfo['maxRedeemable'] }}"
+                                       placeholder="Nhập số xu muốn dùng..."
+                                       class="coin-input"
+                                       value="{{ old('coin_amount') }}">
+                                <span class="coin-input-hint" id="coinHint"></span>
+                            </div>
+                            <button type="submit" class="btn-coin-apply">
+                                <i class="fa-solid fa-coins"></i> Áp dụng
+                            </button>
+                        </div>
+                        <button type="button" class="btn-coin-use-all" id="btnUseAllCoins"
+                                data-max="{{ $coinInfo['maxRedeemable'] }}"
+                                data-discount="{{ $coinInfo['maxDiscountVND'] }}">
+                            Dùng tất cả {{ number_format($coinInfo['maxRedeemable']) }} xu (giảm {{ number_format($coinInfo['maxDiscountVND']) }}đ)
+                        </button>
+                    </form>
+                    @else
+                    <div class="coin-empty-state" style="padding: 12px;">
+                        <p style="margin: 0; color: #9ca3af; font-size: 14px;">
+                            <i class="fa-solid fa-info-circle" style="margin-right: 4px;"></i>
+                            Không thể dùng xu cho đơn hàng này (giá trị đơn hàng đã được giảm hết bởi voucher).
+                        </p>
+                    </div>
+                    @endif
+                @endif
+            @endif
         </div>
 
         <form action="{{ \App\Helpers\TabAuthHelper::route('booking.checkout') }}" method="POST">
@@ -352,6 +450,11 @@
     font-weight: 600;
 }
 
+.coin-discount-row span:last-child {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
 .total-price {
     color: #ef4444;
     font-size: 36px;
@@ -378,6 +481,207 @@
 }
 
 .payment-method-box h4 i { color: #3b82f6; }
+
+/* === COIN REDEMPTION STYLES === */
+.coin-redemption-box {
+    border-color: rgba(245, 158, 11, 0.3);
+    background: linear-gradient(135deg, #1f2937 0%, rgba(245, 158, 11, 0.05) 100%);
+}
+
+.coin-redemption-box h4 i { color: #f59e0b !important; }
+
+.coin-empty-state {
+    text-align: center;
+    padding: 20px;
+    color: #9ca3af;
+}
+
+.coin-empty-state i {
+    font-size: 32px;
+    color: #4b5563;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.coin-empty-state a {
+    color: #f59e0b;
+    text-decoration: underline;
+}
+
+.coin-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.coin-stat {
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.coin-stat-label {
+    font-size: 12px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.coin-stat-value {
+    font-size: 16px;
+    color: #f59e0b;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.coin-applied-badge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(52, 211, 153, 0.08);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    border-radius: 10px;
+    padding: 14px 18px;
+}
+
+.coin-applied-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #d1fae5;
+    font-size: 15px;
+}
+
+.btn-coin-remove {
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-coin-remove:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+}
+
+.coin-apply-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.coin-input-group {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.coin-input-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.coin-input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #f59e0b;
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.coin-input {
+    width: 100%;
+    padding: 12px 90px 12px 38px; /* Increased right padding to prevent text overlap with hint */
+    border-radius: 8px;
+    border: 1px solid #374151;
+    background: #111827;
+    color: #f8fafc;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+/* Ẩn nút mũi tên tăng giảm của input number */
+.coin-input::-webkit-outer-spin-button,
+.coin-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.coin-input[type=number] {
+    -moz-appearance: textfield;
+}
+
+.coin-input:focus {
+    border-color: #f59e0b;
+}
+
+.coin-input-hint {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.btn-coin-apply {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #111827;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-coin-apply:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-coin-use-all {
+    width: 100%;
+    background: rgba(245, 158, 11, 0.08);
+    color: #f59e0b;
+    border: 1px dashed rgba(245, 158, 11, 0.4);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-coin-use-all:hover {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+}
+/* === END COIN STYLES === */
 
 .payment-options-grid {
     gap: 15px;
@@ -463,7 +767,41 @@
     .payment-options-grid { grid-template-columns: 1fr; }
     .confirm-actions { flex-direction: column-reverse; gap: 15px; }
     .btn-back, .btn-confirm { width: 100%; justify-content: center; }
+    .coin-info-grid { grid-template-columns: 1fr; }
+    .coin-input-group { flex-direction: column; }
 }
 </style>
+
+{{-- Coin Input JS --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const coinInput = document.getElementById('coinAmountInput');
+    const coinHint = document.getElementById('coinHint');
+    const btnUseAll = document.getElementById('btnUseAllCoins');
+
+    if (coinInput && coinHint) {
+        coinInput.addEventListener('input', function() {
+            const val = parseInt(this.value) || 0;
+            if (val > 0) {
+                coinHint.textContent = '= ' + val.toLocaleString('vi-VN') + 'đ';
+            } else {
+                coinHint.textContent = '';
+            }
+        });
+    }
+
+    if (btnUseAll && coinInput) {
+        btnUseAll.addEventListener('click', function() {
+            const max = parseInt(this.dataset.max) || 0;
+            coinInput.value = max;
+            if (coinHint) {
+                coinHint.textContent = '= ' + max.toLocaleString('vi-VN') + 'đ';
+            }
+            // Auto submit
+            coinInput.closest('form').submit();
+        });
+    }
+});
+</script>
 
 @endsection

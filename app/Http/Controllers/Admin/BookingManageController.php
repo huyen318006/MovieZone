@@ -238,6 +238,18 @@ class BookingManageController extends Controller
             // 2. Hủy các vé liên quan (Cập nhật trạng thái vé sang CANCELLED)
             Ticket::where('booking_id', $booking->id)->update(['status' => 'CANCELLED']);
 
+            // 2.5. Hoàn xu nếu khách đã dùng xu để giảm giá
+            $redeemTx = \App\Models\PointTransaction::where('booking_id', $booking->id)
+                ->where('type', 'REDEEM')
+                ->first();
+            if ($redeemTx && $booking->user_id) {
+                app(\App\Services\CoinRedemptionService::class)->refundCoins(
+                    $booking->user_id,
+                    abs($redeemTx->points),
+                    $booking->id
+                );
+            }
+
             // 3. Giải phóng ghế (Nếu ghế chưa SOLD, hệ thống giải phóng ghế)
             // Nếu trạng thái thanh toán cũ là UNPAID thì ghế chưa được coi là SOLD chính thức
             if ($booking->payment_status !== 'PAID') {

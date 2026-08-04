@@ -302,6 +302,10 @@ Route::middleware(['tab.auth'])->group(function () {
     Route::post('/booking/voucher/apply', [VoucherController::class, 'apply'])->name('voucher.apply');
     Route::post('/booking/voucher/remove', [VoucherController::class, 'remove'])->name('voucher.remove');
 
+    // COIN REDEMPTION: Áp dụng / Huỷ xu tại trang xác nhận
+    Route::post('/booking/coin/apply', [BookingController::class, 'applyCoin'])->name('booking.coin.apply');
+    Route::post('/booking/coin/remove', [BookingController::class, 'removeCoin'])->name('booking.coin.remove');
+
     // UC-11: Hiển thị màn hình xác nhận đặt vé
     Route::get('/booking/confirm', [BookingController::class, 'showConfirm'])->name('booking.confirm');
 
