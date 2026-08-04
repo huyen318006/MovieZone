@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class SeatManageController extends Controller
 {
@@ -71,8 +72,12 @@ class SeatManageController extends Controller
      * Chặn thao tác trên ghế nếu ghế đang HELD (khách đang giữ) hoặc SOLD (đã bán) 
      * trong bất kỳ suất chiếu tương lai nào.
      */
-    private function assertSeatNotUsed(Seat $seat): void
+    private function assertSeatNotUsed($seat): void
     {
+        if (! $seat instanceof Seat) {
+            throw new \InvalidArgumentException('Ghế không hợp lệ.');
+        }
+
         // Kiểm tra trong showtime_seats của suất tương lai có status SOLD/HELD không
         $hasActiveUsage = $seat->showtimeSeats()
             ->whereHas('showtime', function ($q) {
@@ -319,13 +324,17 @@ class SeatManageController extends Controller
                 $selectedShowtime = $showtimes->firstWhere('id', (int) $request->showtime_id);
             }
 
-            // Map dynamic status nếu có suất chiếu
-            $dynamicStatuses = []; // seat_id => status
-            if ($selectedShowtime) {
-                $selectedShowtime->load(['showtimeSeats' => function ($q) {
+            if ($selectedShowtime instanceof Showtime) {
+                $selectedShowtime = $selectedShowtime->load(['showtimeSeats' => function ($q) {
                     $q->with('seat');
                 }]);
+            } else {
+                $selectedShowtime = null;
+            }
 
+            // Map dynamic status nếu có suất chiếu
+            $dynamicStatuses = []; // seat_id => status
+            if ($selectedShowtime instanceof Showtime instanceof Showtime) {
                 $showtimeSeats = $selectedShowtime->showtimeSeats;
                 $showtimeSeatsBySeatId = $showtimeSeats->keyBy('seat_id');
 
@@ -573,7 +582,15 @@ class SeatManageController extends Controller
     {
         $this->ensureAdminAccess();
 
-        $seat = Seat::findOrFail($id);
+        $seat = Seat::withTrashed()->find($id);
+
+        if (! $seat) {
+            return back()->withErrors(['error' => 'Không tìm thấy ghế này.']);
+        }
+
+        if ($seat->trashed()) {
+            return back()->withErrors(['error' => 'Ghế này đã bị xóa mềm trước đó.']);
+        }
 
         // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
         try {
@@ -1027,7 +1044,12 @@ class SeatManageController extends Controller
         $blocked = [];
 
         foreach ($seatIds as $seatId) {
-            $seat = Seat::withTrashed()->findOrFail($seatId);
+            $seat = Seat::withTrashed()->find($seatId);
+
+            if (! $seat) {
+                $blocked[] = 'ID '.$seatId;
+                continue;
+            }
 
             // Chặn nếu ghế đang được khách đặt/giữ (SOLD/HELD)
             try {
@@ -1059,7 +1081,15 @@ class SeatManageController extends Controller
     {
         $this->ensureAdminAccess();
 
-        $seat = Seat::findOrFail($id);
+        $seat = Seat::withTrashed()->find($id);
+
+        if (! $seat) {
+            return back()->withErrors(['error' => 'Không tìm thấy ghế này.']);
+        }
+
+        if ($seat->trashed()) {
+            return back()->withErrors(['error' => 'Ghế này đã bị xóa mềm trước đó.']);
+        }
 
         // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
         try {
@@ -1224,7 +1254,15 @@ class SeatManageController extends Controller
     {
         $this->ensureAdminAccess();
 
-        $seat = Seat::findOrFail($id);
+        $seat = Seat::withTrashed()->find($id);
+
+        if (! $seat) {
+            return back()->withErrors(['error' => 'Không tìm thấy ghế này.']);
+        }
+
+        if ($seat->trashed()) {
+            return back()->withErrors(['error' => 'Ghế này đã bị xóa mềm trước đó.']);
+        }
 
         // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
         try {
