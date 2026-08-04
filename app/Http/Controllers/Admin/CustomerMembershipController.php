@@ -141,4 +141,65 @@ class CustomerMembershipController extends Controller
             "Quét kiểm tra thành công! Đã xử lý {$result['processed']} tài khoản quá hạn duy trì ({$result['extended']} tài khoản được gia hạn, {$result['downgraded']} tài khoản tự động hạ hạng)."
         );
     }
+
+    /**
+     * Admin Reset Hạng về BRONZE nhưng GIỮ NGUYÊN tổng chi tiêu lịch sử mua vé (total_spent)
+     */
+    public function resetLevel(Request $request, $id, MembershipService $membershipService)
+    {
+        try {
+            $customer = User::with('membership.level')->findOrFail($id);
+            $membershipService->ensureMembership($customer);
+
+            $userMembership = $customer->membership;
+            $oldLevelId = $userMembership->level_id;
+            $oldLevelName = $userMembership->level?->name ?? 'BRONZE';
+
+            $bronzeLevel = MembershipLevel::where('name', 'BRONZE')->first();
+            $bronzeLevelId = $bronzeLevel ? $bronzeLevel->id : $oldLevelId;
+
+            $resetSpent = $request->boolean('reset_spent', false);
+            $newSpent = $resetSpent ? 0 : $userMembership->total_spent;
+
+            // Reset level_id về BRONZE, giữ nguyên hoặc reset total_spent theo yêu cầu
+            $userMembership->update([
+                'level_id' => $bronzeLevelId,
+                'total_spent' => $newSpent,
+                'level_expired_at' => now()->addMonths(6),
+                'updated_at' => now(),
+            ]);
+
+            $reasonNote = $resetSpent
+                ? 'Admin reset hạng về BRONZE và đặt tổng chi tiêu về 0đ thủ công'
+                : 'Admin reset hạng về BRONZE (Giữ nguyên lịch sử chi tiêu mua vé thực tế)';
+
+            // Ghi nhận nhật ký biến động Hạng
+            MembershipLevelHistory::create([
+                'user_id'      => $customer->id,
+                'old_level_id' => $oldLevelId,
+                'new_level_id' => $bronzeLevelId,
+                'reason'       => $reasonNote,
+            ]);
+
+            // Ghi nhận Audit Log
+            $adminUser = \App\Helpers\TabAuthHelper::currentUser() ?? Auth::user();
+            $adminUserId = $adminUser ? $adminUser->id : Auth::id();
+
+            if (class_exists(\App\Models\AuditLog::class)) {
+                \App\Models\AuditLog::create([
+                    'user_id'     => $adminUserId,
+                    'action'      => 'RESET_MEMBERSHIP_LEVEL',
+                    'entity_name' => 'UserMembership',
+                    'entity_id'   => $customer->id,
+                    'old_value'   => "Hạng: {$oldLevelName}, Chi tiêu: " . number_format($userMembership->total_spent ?? 0) . "đ",
+                    'new_value'   => "Reset về Hạng BRONZE (Chi tiêu: " . number_format($newSpent) . "đ)",
+                    'created_at'  => now(),
+                ]);
+            }
+
+            return redirect()->back()->with('success', "Đã reset hạng của khách hàng {$customer->name} về BRONZE thành công (Tổng chi tiêu thực tế: " . number_format($newSpent) . "đ)!");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Có lỗi xảy ra khi reset hạng: ' . $e->getMessage());
+        }
+    }
 }
