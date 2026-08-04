@@ -105,9 +105,12 @@
                         </div>
                     </div>
 
-                    <div class="pt-3 border-top border-secondary d-flex justify-content-end">
+                    <div class="pt-3 border-top border-secondary d-flex justify-content-end gap-2">
                         <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#adjustCoinModal">
                             <i class="bi bi-sliders me-1"></i> Điều chỉnh Coin thủ công
+                        </button>
+                        <button type="button" class="btn btn-outline-danger rounded-pill px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#resetLevelModal">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Hạng về BRONZE
                         </button>
                     </div>
                 </div>
@@ -321,6 +324,47 @@
                     <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Hủy bỏ</button>
                     <button type="submit" class="btn btn-warning fw-bold">
                         <i class="bi bi-check-circle me-1"></i> Xác Nhận Điều Chỉnh
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Reset Hạng Về BRONZE -->
+<div class="modal fade" id="resetLevelModal" tabindex="-1" aria-labelledby="resetLevelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold text-white" id="resetLevelModalLabel">
+                    <i class="bi bi-arrow-counterclockwise text-danger me-2"></i>Xác Nhận Reset Hạng Thành Viên
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.reset_level', $customer->id) }}" method="POST">
+                @csrf
+                <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
+                <div class="modal-body">
+                    <div class="alert alert-info border-0 small mb-3">
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        Hành động này sẽ <strong>chuyển Hạng thành viên về BRONZE</strong>. Mặc định <strong>lịch sử mua vé & doanh thu thực tế vẫn được bảo toàn nguyên vẹn</strong>.
+                    </div>
+                    <p class="small text-muted mb-3">
+                        Khách hàng: <strong class="text-white">{{ $customer->name }}</strong> ({{ $customer->email }})<br>
+                        Hạng hiện tại: <strong class="text-warning">{{ strtoupper($customer->membership?->level?->name ?? 'BRONZE') }}</strong><br>
+                        Tổng chi tiêu tích lũy: <strong class="text-info">{{ number_format($customer->membership?->total_spent ?? 0) }}đ</strong>
+                    </p>
+                    <div class="form-check bg-secondary bg-opacity-25 p-2 ps-4 rounded border border-secondary border-opacity-25">
+                        <input class="form-check-input" type="checkbox" name="reset_spent" value="1" id="resetSpentCheck">
+                        <label class="form-check-label small text-warning fw-bold" for="resetSpentCheck">
+                            Tùy chọn Demo: Đặt cả Tổng chi tiêu tích lũy về 0đ
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-danger fw-bold">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Xác Nhận Reset Về BRONZE
                     </button>
                 </div>
             </form>

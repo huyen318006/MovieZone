@@ -585,4 +585,5 @@ Route::middleware(['tab.auth', 'admin'])->group(function () {
     Route::post('/admin/memberships/scan-expired', [CustomerMembershipController::class, 'scanExpired'])->name('admin.memberships.scan_expired');
     Route::get('/admin/memberships/{id}', [CustomerMembershipController::class, 'show'])->name('admin.memberships.show');
     Route::post('/admin/memberships/{id}/adjust-coin', [CustomerMembershipController::class, 'adjustCoin'])->name('admin.memberships.adjust_coin');
+    Route::post('/admin/memberships/{id}/reset-level', [CustomerMembershipController::class, 'resetLevel'])->name('admin.memberships.reset_level');
 });
