@@ -205,70 +205,89 @@
 <section class="news-section">
 
     <div class="section-title">
-        <h2>Tin Tức Điện Ảnh</h2>
-        <a href="#">Xem tất cả</a>
+        <h2>Tin Tức & Khuyến Mãi</h2>
+        <a href="{{ \App\Helpers\TabAuthHelper::route('news') }}">Xem tất cả</a>
     </div>
 
     <div class="news-grid">
 
         <article class="news-feature">
-
-            <div class="news-slide active">
-                <img src="{{ asset('assets/news/batman.jpg') }}" alt="">
-                <div class="news-overlay">
-                    <span class="news-tag">Tin nổi bật</span>
-                    <h3>Avatar 3 chính thức tung trailer đầu tiên</h3>
-                    <p>Bộ phim bom tấn tiếp theo của James Cameron sẽ ra mắt cuối năm nay.</p>
+            @forelse($latestArticles->take(3) as $index => $article)
+                <div class="news-slide {{ $index === 0 ? 'active' : '' }}">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" style="text-decoration: none; color: inherit; display: block; height: 100%;">
+                        <img src="{{ $article->thumbnail_url ? asset($article->thumbnail_url) : asset('assets/news/batman.jpg') }}" alt="{{ $article->title }}">
+                        <div class="news-overlay">
+                            <span class="news-tag">{{ $article->category }}</span>
+                            <h3>{{ $article->title }}</h3>
+                            <p>{{ $article->summary }}</p>
+                        </div>
+                    </a>
                 </div>
-            </div>
-
-            <div class="news-slide">
-                <img src="{{ asset('assets/news/mechanic.jpg') }}" alt="">
-                <div class="news-overlay">
-                    <span class="news-tag">Điện ảnh</span>
-                    <h3>Dune Part Three xác nhận khởi quay</h3>
-                    <p>Phần tiếp theo của thương hiệu Dune đang được sản xuất.</p>
+            @empty
+                <div class="news-slide active">
+                    <img src="{{ asset('assets/news/batman.jpg') }}" alt="No news">
+                    <div class="news-overlay">
+                        <span class="news-tag">Thông báo</span>
+                        <h3>Chưa có tin tức nào được đăng tải</h3>
+                        <p>Vui lòng quay lại sau để cập nhật các tin tức điện ảnh mới nhất.</p>
+                    </div>
                 </div>
-            </div>
+            @endforelse
 
-            <div class="news-slide">
-                <img src="{{ asset('assets/news/deadpool.jpg') }}" alt="">
-                <div class="news-overlay">
-                    <span class="news-tag">Bom tấn</span>
-                    <h3>Deadpool & Wolverine lập kỷ lục doanh thu</h3>
-                    <p>Bộ đôi Marvel tiếp tục thống trị phòng vé toàn cầu.</p>
+            @if($latestArticles->take(3)->count() > 1)
+                <div class="news-dots">
+                    @foreach($latestArticles->take(3) as $index => $article)
+                        <span class="{{ $index === 0 ? 'active' : '' }}"></span>
+                    @endforeach
                 </div>
-            </div>
-
-            <div class="news-dots">
-                <span class="active"></span>
-                <span></span>
-                <span></span>
-            </div>
+            @endif
 
         </article>
 
         <div class="news-side">
-
-            <article class="news-small">
-                <img src="{{ asset('assets/news/conan.jpg') }}" alt="">
-                <div class="news-content">
-                    <span>03/06/2026</span>
-                    <h4>Dune Part Three xác nhận khởi quay</h4>
-                </div>
-            </article>
-
-            <article class="news-small">
-                <img src="{{ asset('assets/news/deadpool.jpg') }}" alt="">
-                <div class="news-content">
-                    <span>02/06/2026</span>
-                    <h4>John Wick trở lại với phần phim mới</h4>
-                </div>
-            </article>
-
+            @foreach($latestArticles->slice(3) as $article)
+                <article class="news-small">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" class="d-flex gap-3 text-decoration-none w-100" style="color: inherit;">
+                        <img src="{{ $article->thumbnail_url ? asset($article->thumbnail_url) : asset('assets/news/batman.jpg') }}" alt="{{ $article->title }}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px;">
+                        <div class="news-content">
+                            <span>{{ $article->created_at->format('d/m/Y') }}</span>
+                            <h4 style="margin: 0; font-size: 14px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ $article->title }}</h4>
+                        </div>
+                    </a>
+                </article>
+            @endforeach
         </div>
 
     </div>
 
 </section>
+<style>
+    .news-slide img {
+        object-fit: contain !important;
+        background-color: #0b0f19 !important;
+    }
+    .news-side {
+        height: 778px !important;
+    }
+    .news-small {
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+    }
+    .news-small a {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        color: inherit !important;
+        text-decoration: none !important;
+    }
+    .news-small img {
+        width: 100% !important;
+        flex: 1 !important;
+        min-height: 0 !important;
+        object-fit: contain !important;
+        background-color: #0b0f19 !important;
+    }
+</style>
 @endsection

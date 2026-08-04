@@ -49,7 +49,7 @@
 .booking-countdown-bar {
     position: sticky;
     top: 0;
-    z-index: 1000;
+    z-index: 900;
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     border-bottom: 2px solid #f59e0b;
     padding: 14px 24px;

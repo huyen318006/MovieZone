@@ -14,7 +14,8 @@ class NewsController extends Controller
     {
         $articles = Article::query()
             ->where('status', 'PUBLISHED')
-            ->orderBy('published_at', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->paginate(6);
 
         return view('news.index', compact('articles'));
@@ -34,7 +35,8 @@ class NewsController extends Controller
         $otherArticles = Article::query()
             ->where('id', '!=', $article->id)
             ->where('status', 'PUBLISHED')
-            ->orderBy('published_at', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
             ->limit(5)
             ->get();
 
