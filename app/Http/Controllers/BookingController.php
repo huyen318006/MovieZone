@@ -413,6 +413,10 @@ class BookingController extends Controller
         $bookingTam['subtotal'] = $seatTotal + $comboTotal;
         $bookingTam['total'] = max(0, $bookingTam['subtotal'] - $discount);
 
+        // 🔥 Reset lại Xu nếu khách hàng quay lại đổi Combo (tránh lệch tổng tiền)
+        $bookingTam['coin_used'] = 0;
+        $bookingTam['coin_discount_amount'] = 0;
+
         // 🔥 QUAN TRỌNG NHẤT: dùng put (KHÔNG dùng session([...]) kiểu overwrite)
         session()->put('booking_tam', $bookingTam);
 
