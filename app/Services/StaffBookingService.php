@@ -201,14 +201,19 @@ class StaffBookingService
             if (in_array($baseStatus, ['BLOCKED', 'BROKEN'])) {
                 $displayStatus = $baseStatus;
             } else {
-                $isSold = DB::table('booking_seats')
-                    ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
-                    ->where('booking_seats.showtime_seat_id', $showtimeSeat->id)
-                    ->where('bookings.showtime_id', $id)
-                    ->whereIn('bookings.status', ['PAID', 'PENDING'])
-                    ->exists();
+                $heldBy = Cache::get('seat_held_' . $id . '_' . $showtimeSeat->id);
+                if ($heldBy) {
+                    $displayStatus = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
+                } else {
+                    $isSold = DB::table('booking_seats')
+                        ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                        ->where('booking_seats.showtime_seat_id', $showtimeSeat->id)
+                        ->where('bookings.showtime_id', $id)
+                        ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                        ->exists();
 
-                $displayStatus = $isSold ? 'SOLD' : ($showtimeSeat->status ?? 'AVAILABLE');
+                    $displayStatus = $isSold ? 'SOLD' : ($showtimeSeat->status ?? 'AVAILABLE');
+                }
             }
 
             $seatType = $seat->seat_type ?? 'STANDARD';
@@ -226,8 +231,8 @@ class StaffBookingService
                 $seatMap[$row] = [];
             }
 
-            // label để view staff hiển thị: admin render theo seat_number, nên label = seat_number-1
-            $labelIndex = (int)$seatNum - 1;
+            // label để view staff hiển thị: bắt đầu từ 1 thay vì 0
+            $labelIndex = (int) $seatNum;
 
             $seatMap[$row][] = [
                 'id'     => $showtimeSeat->id,
@@ -237,7 +242,7 @@ class StaffBookingService
                 'type'   => $mappedType,
                 'label'  => $labelIndex,
                 // Đồng bộ aisle theo mỗi 10 ghế/hàng như rule admin
-                'is_aisle' => ((($labelIndex + 1) % 10) === 0),
+                'is_aisle' => (($labelIndex % 10) === 0),
             ];
         }
         // (đã thay bằng build seatMap theo kiểu admin ở trên)
