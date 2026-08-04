@@ -31,6 +31,7 @@
 
                     <form action="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets.submitseat') }}" method="GET" id="bookingForm">
                         @csrf
+                        <input type="hidden" id="staffSeatCsrf" value="{{ csrf_token() }}">
                         <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
                         <input type="hidden" name="showtime_id" value="{{ $showtime->id }}">
                         <div id="hidden-seat-inputs"></div>
@@ -529,6 +530,13 @@
         font-size: 24px;
     }
 
+    .seat.HELD_BY_ME {
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%) !important;
+        color: #fff !important;
+        border-color: #4ade80 !important;
+        box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35);
+    }
+
     /* Responsive */
     @media(max-width:1200px) {
         .seat-wrapper {
@@ -549,8 +557,53 @@
         const totalPriceEl = document.getElementById('totalPrice');
         const hiddenSeatInputs = document.getElementById('hidden-seat-inputs');
         const btnPayment = document.getElementById('btnPayment');
+        const csrfToken = document.getElementById('staffSeatCsrf')?.value || '';
+        const showtimeId = {{ $showtime->id }};
 
-        document.querySelector('.seat-map').addEventListener('click', (e) => {
+        async function refreshSeatStates() {
+            try {
+                const response = await fetch(`{{ route('staff.sell-seat', $showtime->id) }}?refresh=1`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newSeatMap = doc.querySelector('.seat-map');
+                if (!newSeatMap) return;
+
+                const currentSeatMap = document.querySelector('.seat-map');
+                if (currentSeatMap) {
+                    currentSeatMap.innerHTML = newSeatMap.innerHTML;
+                }
+            } catch (error) {
+                console.error('Refresh seat states failed', error);
+            }
+        }
+
+        setInterval(refreshSeatStates, 2500);
+
+        async function syncSeatHold(seatIds, action) {
+            const requests = seatIds.map((seatId) => {
+                const formData = new FormData();
+                formData.append('showtime_id', showtimeId);
+                formData.append('seat_id', seatId);
+                formData.append('action', action);
+                formData.append('_token', csrfToken);
+
+                return fetch('{{ \App\Helpers\TabAuthHelper::route('booking.holdSeat') }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: formData,
+                }).then((res) => res.json());
+            });
+
+            return Promise.all(requests);
+        }
+
+        document.querySelector('.seat-map').addEventListener('click', async (e) => {
             const btn = e.target.closest('.seat');
             if (!btn || btn.disabled) return;
 
@@ -558,21 +611,37 @@
             const seatCode = btn.dataset.seat;
             const seatType = btn.dataset.type;
             const seatPrice = parseInt(btn.dataset.price);
+            const seatIds = seatIdAttr.split(',').map((id) => id.trim()).filter(Boolean);
 
             const isSelecting = !btn.classList.contains('HELD_BY_ME');
 
-            if (isSelecting) {
-                selectedSeats.set(seatCode, {
-                    id: seatIdAttr,
-                    code: seatCode,
-                    type: seatType,
-                    price: seatPrice
-                });
-                btn.classList.add('HELD_BY_ME');
-            } else {
-                selectedSeats.delete(seatCode);
-                btn.classList.remove('HELD_BY_ME');
+            try {
+                const results = await syncSeatHold(seatIds, isSelecting ? 'hold' : 'release');
+                const hasSuccess = results.every((result) => result.success);
+
+                if (!hasSuccess) {
+                    alert('Không thể cập nhật trạng thái ghế lúc này.');
+                    return;
+                }
+
+                if (isSelecting) {
+                    selectedSeats.set(seatCode, {
+                        id: seatIdAttr,
+                        code: seatCode,
+                        type: seatType,
+                        price: seatPrice
+                    });
+                    btn.classList.add('HELD_BY_ME');
+                } else {
+                    selectedSeats.delete(seatCode);
+                    btn.classList.remove('HELD_BY_ME');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Không thể cập nhật trạng thái ghế lúc này.');
+                return;
             }
+
             updateUI();
         });
 
