@@ -268,9 +268,9 @@
 
                         @if ($nextLevel)
                             <p class="small mb-3" style="color: #e2e8f0 !important; line-height: 1.6;">
-                                Bạn đang có <strong class="text-white">{{ number_format($coins) }} Coin</strong>.
-                                Cần tích lũy thêm <strong class="text-warning fw-bold">{{ number_format($pointsNeeded) }} Coin</strong>
-                                để thăng hạng <strong class="text-info fw-bold">{{ $nextLevel->name }}</strong> (Mốc {{ number_format($nextLevel->min_points) }} Coin).
+                                Chi tiêu mua vé tích lũy: <strong class="text-white">{{ number_format($userMembership->total_spent ?? 0) }}đ</strong>.<br>
+                                Cần chi tiêu thêm <strong class="text-warning fw-bold">{{ number_format($pointsNeeded) }}đ</strong>
+                                để thăng hạng <strong class="text-info fw-bold">{{ $nextLevel->name }}</strong> (Mốc {{ number_format($nextLevel->min_points) }}đ).
                             </p>
                         @else
                             <p class="text-success small mb-3">
@@ -466,7 +466,7 @@
                                 </div>
                                 <div class="d-flex align-items-center gap-2 mb-2 small" style="color: #f1f5f9 !important;">
                                     <i class="bi bi-check-circle-fill text-success"></i>
-                                    <span>Tích lũy 10.000đ = 1 Coin</span>
+                                    <span>Tích lũy 10.000đ = 1 Coin (1 Coin = 1 VNĐ)</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2 small" style="color: #f1f5f9 !important;">
                                     <i class="bi bi-check-circle-fill text-success"></i>

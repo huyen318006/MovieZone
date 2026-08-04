@@ -180,7 +180,7 @@ class MembershipService
         }
 
         $amount = (float) ($booking->final_amount ?? $booking->total_price ?? 0);
-        $earnedCoin = (int) floor($amount / 10000); // 10.000đ = 1 Coin
+        $earnedCoin = (int) floor($amount / 10000); // Tích thưởng 10.000đ = 1 Coin
 
         if ($earnedCoin <= 0) {
             return null;
@@ -213,40 +213,40 @@ class MembershipService
     }
 
     /**
-     * Tự động tính lại Hạng và gia hạn thời gian duy trì hạng (6 tháng) dựa trên số Coin tích lũy.
+     * Tự động tính lại Hạng và gia hạn thời gian duy trì hạng (6 tháng) dựa trên Tổng tiền chi tiêu tích lũy (total_spent).
      */
     public function recalculateLevel(int $userId, string $reason = 'Thay đổi hạng tự động'): void
     {
-        $coin = Coin::where('user_id', $userId)->first();
-        $balance = $coin ? $coin->balance : 0;
+        $userMembership = UserMembership::where('user_id', $userId)->first();
+        if (!$userMembership) {
+            return;
+        }
 
+        $totalSpent = (float) $userMembership->total_spent;
         $levels = MembershipLevel::orderBy('min_points', 'asc')->get();
-        $matchedLevel = $levels->where('min_points', '<=', $balance)->last() ?? $levels->first();
+        $matchedLevel = $levels->where('min_points', '<=', $totalSpent)->last() ?? $levels->first();
 
         if (!$matchedLevel) {
             return;
         }
 
-        $userMembership = UserMembership::where('user_id', $userId)->first();
-        if ($userMembership) {
-            $oldLevelId = $userMembership->level_id;
-            $isLevelChanged = ($matchedLevel->id != $oldLevelId);
+        $oldLevelId = $userMembership->level_id;
+        $isLevelChanged = ($matchedLevel->id != $oldLevelId);
 
-            $userMembership->update([
-                'level_id' => $matchedLevel->id,
-                'level_expired_at' => now()->addMonths(6), // Gia hạn hạng 6 tháng
-                'updated_at' => now(),
+        $userMembership->update([
+            'level_id' => $matchedLevel->id,
+            'level_expired_at' => now()->addMonths(6), // Gia hạn hạng 6 tháng
+            'updated_at' => now(),
+        ]);
+
+        // Nếu có sự thay đổi hạng, ghi nhận lịch sử biến động Hạng
+        if ($isLevelChanged) {
+            MembershipLevelHistory::create([
+                'user_id'      => $userId,
+                'old_level_id' => $oldLevelId,
+                'new_level_id' => $matchedLevel->id,
+                'reason'       => $reason,
             ]);
-
-            // Nếu có sự thay đổi hạng, ghi nhận lịch sử biến động Hạng
-            if ($isLevelChanged) {
-                MembershipLevelHistory::create([
-                    'user_id'      => $userId,
-                    'old_level_id' => $oldLevelId,
-                    'new_level_id' => $matchedLevel->id,
-                    'reason'       => $reason,
-                ]);
-            }
         }
     }
 
