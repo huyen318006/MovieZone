@@ -214,9 +214,13 @@
                         {{-- AGE RATING --}}
                         <div class="mb-3">
                             <label class="form-label">Độ tuổi <span class="text-danger">*</span></label>
-                            <input type="text" name="age_rating" value="{{ $movie_id->age_rating }}"
-                                class="form-control @error('age_rating') is-invalid @enderror"
-                                placeholder="VD: P, K, T13, T16, T18" required>
+                            <select name="age_rating" class="form-select @error('age_rating') is-invalid @enderror" required>
+                                <option value="P" {{ old('age_rating', $movie_id->age_rating) == 'P' ? 'selected' : '' }}>P</option>
+                                <option value="K" {{ old('age_rating', $movie_id->age_rating) == 'K' ? 'selected' : '' }}>K</option>
+                                <option value="T13" {{ old('age_rating', $movie_id->age_rating) == 'T13' ? 'selected' : '' }}>T13</option>
+                                <option value="T16" {{ old('age_rating', $movie_id->age_rating) == 'T16' ? 'selected' : '' }}>T16</option>
+                                <option value="T18" {{ old('age_rating', $movie_id->age_rating) == 'T18' ? 'selected' : '' }}>T18</option>
+                            </select>
                             @error('age_rating')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror

@@ -10,6 +10,7 @@ use App\Services\TicketService;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Services\StaffBookingService as ServicesStaffBookingService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -51,6 +52,17 @@ class BookTicketsController extends Controller
             'seats' => 'required|array|min:1',
         ]);
 
+        $selectedSeatIds = array_values(array_unique(array_filter(array_map('intval', $request->input('seats', [])))));
+        if (empty($selectedSeatIds)) {
+            return back()->withInput()->with('error', 'Vui lòng chọn ít nhất 1 ghế.');
+        }
+
+        try {
+            $this->staffBookingService->validateSeatSelection((int) $request->showtime_id, $selectedSeatIds);
+        } catch (\Exception $e) {
+            return back()->withInput()->with('error', $e->getMessage());
+        }
+
         // Lấy thông tin suất chiếu
         $showtime = \App\Models\Showtime::with(['movie', 'room'])
             ->findOrFail($request->showtime_id);
@@ -67,7 +79,7 @@ class BookTicketsController extends Controller
                 'start_time'  => $showtime->start_time,
                 'end_time'    => $showtime->end_time,
                 'room'        => $showtime->room,
-                'seats'       => $request->input('seats'),
+                'seats'       => $selectedSeatIds,
             ]
         ]);
 
@@ -226,7 +238,7 @@ class BookTicketsController extends Controller
                 'customer_phone' => $request->customer_phone,
                 'customer_email' => $request->customer_email ?? '',
                 'payment_method' => $request->payment_method,
-                'staff_user_id'  => auth()->id(),
+                'staff_user_id'  => Auth::id(),
             ]);
 
             if (!$result['success']) {
@@ -250,7 +262,7 @@ class BookTicketsController extends Controller
         } catch (\Exception $e) {
             Log::error('Staff checkout exception', [
                 'error'     => $e->getMessage(),
-                'staff_id'  => auth()->id(),
+                'staff_id'  => Auth::id(),
                 'trace'     => $e->getTraceAsString(),
             ]);
 
@@ -401,7 +413,7 @@ class BookTicketsController extends Controller
 
             Log::info('Staff cash payment confirmed', [
                 'booking_code' => $bookingCode,
-                'staff_id'     => auth()->id(),
+                'staff_id'     => Auth::id(),
             ]);
 
             return redirect()->route('staff.print-bill', $bookingCode)
