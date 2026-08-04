@@ -217,7 +217,7 @@
                                 {{ session('booking_tam.voucher_code') }}
                             </span>
 
-                            <form action="{{ route('voucher.remove') }}"method="POST">
+                            <form action="{{ \App\Helpers\TabAuthHelper::route('voucher.remove') }}" method="POST">
                                 @csrf
                                 <button type="submit">Huỷ</button>
                             </form>
@@ -225,7 +225,7 @@
                     @else
 
                         <form
-                            action="{{ route('voucher.apply') }}"
+                            action="{{ \App\Helpers\TabAuthHelper::route('voucher.apply') }}"
                             method="POST"
                         >
                             @csrf
