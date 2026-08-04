@@ -36,13 +36,13 @@ class AccountManageController {
     if ($tab === 'all') {
         // TAB TẤT CẢ: Lấy hết, không filter role và status
         // (không thêm where nào cả)
-    } 
+    }
     elseif ($tab === 'locked') {
         $query->where('users.status', 'LOCK');
         if ($lockedRole) {
             $query->where('roles.name', strtoupper($lockedRole));
         }
-    } 
+    }
     else {
         // Tab Admin, Staff, Customer
         $query->where('roles.name', strtoupper($tab))
@@ -102,10 +102,9 @@ class AccountManageController {
             return back()->with('error', 'Bạn không thể tự khóa tài khoản của mình');
         }
 
-        // // Không cho khóa Admin
-        // if (strtoupper($user->role_name ?? '') === 'ADMIN') {
-        //     return back()->with('error', 'Không thể khóa tài khoản admin');
-        // }
+        if (strtoupper($user->role_name ?? '') === 'ADMIN') {
+            return back()->with('error', 'Không thể khóa tài khoản admin khác');
+        }
 
         $oldStatus = $user->status;
 
@@ -189,9 +188,9 @@ class AccountManageController {
             return back()->with('error', 'Không tìm thấy vai trò của người dùng.');
         }
 
-        // Chỉ cho phép CUSTOMER lên STAFF
+        // Cho phép CUSTOMER lên STAFF, nhưng không cho phép ADMIN/STAFF khác
         if ($userRole->role_id != 3) {
-            return back()->with('error', 'Chỉ khách hàng mới được nâng lên Staff.');
+            return back()->with('error', 'Chỉ tài khoản CUSTOMER mới được nâng lên STAFF.');
         }
         // Lưu role cũ
         $oldRole = $userRole->role_id;
@@ -247,9 +246,9 @@ class AccountManageController {
             return back()->with('error', 'Không thể thay đổi quyền chính bạn');
         }
 
-        // ❌ Chỉ staff mới được hạ
+        // ❌ Chỉ staff mới được hạ về customer
         if ($userRole->role_id != 2) {
-            return back()->with('error', 'Chỉ có thể hạ quyền STAFF');
+            return back()->with('error', 'Chỉ có thể hạ quyền STAFF về CUSTOMER');
         }
 
         $oldRole = $userRole->role_id;
@@ -270,7 +269,7 @@ class AccountManageController {
 
         return back()->with('success', 'Hạ quyền thành công');
         }
-        
+
 
         //hạ quyền admin
         public function demoteAdmin(Request $request)
@@ -285,6 +284,13 @@ class AccountManageController {
         return back()->with(
             'error',
             'Không thể thay đổi quyền chính mình.'
+        );
+    }
+
+    if ($userRole->role_id != 1) {
+        return back()->with(
+            'error',
+            'Chỉ có thể hạ quyền tài khoản ADMIN khác.'
         );
     }
 
@@ -342,7 +348,7 @@ public function update(Request $request, $id)
         'name' => 'required|string|max:255',
         'phone' => 'required|string|max:15',
     ]);
-    //kiểm tra xem ảnh có được gửi 
+    //kiểm tra xem ảnh có được gửi
     if($request->hasFile('avatar'))
     {
         //kiểm tra xem tệp có tồn tại trong storage không
@@ -395,7 +401,7 @@ public function updatepassword(Request $request, $id)
     {
         return back()->with('error', 'Mật khẩu cũ không đúng');
     }
-    
+
 
     $user->update([
         'password' => bcrypt($request->password),
@@ -452,13 +458,24 @@ public function storeAccount(Request $request)
     {
         $avatar = null;
     }
-    // Kiểm tra giới hạn tối đa 5 Admin
+    // Kiểm tra giới hạn tối đa 3 tài khoản do admin hiện tại tạo
+    $createdAccountCount = DB::table('audit_logs')
+        ->where('user_id', auth()->id())
+        ->where('action', 'create_user')
+        ->count();
+
+    if ($createdAccountCount >= 3) {
+        return back()
+            ->withInput()
+            ->with('error', 'Bạn chỉ được tạo tối đa 3 tài khoản.');
+    }
+
     if ((int)$request->role_id === 1) {
         $adminCount = DB::table('user_roles')->where('role_id', 1)->count();
-        if ($adminCount >= 5) {
+        if ($adminCount >= 3) {
             return back()
                 ->withInput()
-                ->with('error', 'Hệ thống đã đạt tối đa 5 tài khoản Admin. Vui lòng chọn vai trò khác.');
+                ->with('error', 'Hệ thống đã đạt tối đa 3 tài khoản Admin. Vui lòng chọn vai trò khác.');
         }
     }
 

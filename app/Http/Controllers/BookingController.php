@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\BookingCombo;
 use App\Models\Combo;
+use App\Models\PointTransaction;
 use App\Models\Seat;
 use App\Models\SepayOrder;
 use App\Models\Showtime;
 use App\Models\ShowtimeSeat;
+use App\Services\CoinRedemptionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -346,7 +348,7 @@ class BookingController extends Controller
             session()->put('booking_tam', $bookingTam);
         }
 
-        return view('booking.combo', compact('combos', 'secondsLeft'));
+return view('booking.combo', compact('combos', 'secondsLeft', 'bookingTam'));
     }
 
     public function saveCombo(Request $request)
@@ -411,6 +413,10 @@ class BookingController extends Controller
         $bookingTam['subtotal'] = $seatTotal + $comboTotal;
         $bookingTam['total'] = max(0, $bookingTam['subtotal'] - $discount);
 
+        // 🔥 Reset lại Xu nếu khách hàng quay lại đổi Combo (tránh lệch tổng tiền)
+        $bookingTam['coin_used'] = 0;
+        $bookingTam['coin_discount_amount'] = 0;
+
         // 🔥 QUAN TRỌNG NHẤT: dùng put (KHÔNG dùng session([...]) kiểu overwrite)
         session()->put('booking_tam', $bookingTam);
 
@@ -441,7 +447,8 @@ class BookingController extends Controller
                 ->with('error', 'Hết thời gian giữ ghế (5 phút). Vui lòng chọn lại.');
         }
 
-        $showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_id']);
+$showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_id']);
+        $showtime_id = $bookingTam['showtime_id'];
         $seats = ShowtimeSeat::with('seat')
             ->whereIn('id', $bookingTam['seats'])
             ->get();
@@ -449,15 +456,25 @@ class BookingController extends Controller
         $totalTicketPrice = $seats->sum('price');
         $combos = $bookingTam['combos'] ?? [];
         $totalComboPrice = $bookingTam['total_combo_amount'] ?? 0;
-        $discountAmount = $bookingTam['discount_amount'] ?? 0;
-        $totalPrice = $totalTicketPrice + $totalComboPrice - $discountAmount;
-        if ($totalPrice < 0) {
-            $totalPrice = 0;
-        }
+        $discountAmount = $bookingTam['discount_amount'] ?? 0; // Voucher discount
 
-        return view('booking.confirm', compact(
-            'showtime', 'seats', 'totalTicketPrice', 'combos',
-            'totalComboPrice', 'discountAmount', 'totalPrice', 'secondsLeft'
+        // Coin discount (từ session nếu đã áp dụng)
+        $coinUsed = $bookingTam['coin_used'] ?? 0;
+        $coinDiscountAmount = $bookingTam['coin_discount_amount'] ?? 0;
+
+        // Tính tổng: subtotal - voucher - xu
+        $subtotal = $totalTicketPrice + $totalComboPrice;
+        $afterVoucher = max(0, $subtotal - $discountAmount);
+        $totalPrice = max(0, $afterVoucher - $coinDiscountAmount);
+
+        // Tính thông tin xu cho UI
+        $coinService = app(CoinRedemptionService::class);
+        $coinInfo = $coinService->calculateMaxRedeemable(Auth::id(), $afterVoucher);
+
+return view('booking.confirm', compact(
+            'showtime', 'showtime_id', 'seats', 'totalTicketPrice', 'combos',
+            'totalComboPrice', 'discountAmount', 'totalPrice', 'secondsLeft',
+            'coinUsed', 'coinDiscountAmount', 'coinInfo'
         ));
     }
 
@@ -514,9 +531,15 @@ class BookingController extends Controller
 
             $totalTicketAmount = $seats->sum('price');
             $totalComboAmount = $bookingTam['total_combo_amount'] ?? 0;
-            $discountAmount = $bookingTam['discount_amount'] ?? 0;
+            $voucherDiscount = $bookingTam['discount_amount'] ?? 0;
 
-            $finalAmount = $totalTicketAmount + $totalComboAmount - $discountAmount;
+            // Coin discount (intent từ session)
+            $coinUsed = $bookingTam['coin_used'] ?? 0;
+            $coinDiscountVND = $bookingTam['coin_discount_amount'] ?? 0;
+
+            // Tổng giảm giá = voucher + xu
+            $totalDiscount = $voucherDiscount + $coinDiscountVND;
+            $finalAmount = $totalTicketAmount + $totalComboAmount - $totalDiscount;
 
             if ($finalAmount < 0) {
                 $finalAmount = 0;
@@ -544,7 +567,7 @@ class BookingController extends Controller
                 'customer_phone' => $customerPhone,
                 'total_ticket_amount' => $totalTicketAmount,
                 'total_combo_amount' => $totalComboAmount,
-                'discount_amount' => $discountAmount,
+                'discount_amount' => $totalDiscount,
                 'final_amount' => $finalAmount,
                 'status' => 'PENDING',
                 'payment_status' => 'UNPAID',
@@ -637,11 +660,20 @@ class BookingController extends Controller
                     'customer_email' => $customerEmail,
                     'customer_name' => $customerName,
                     'customer_phone' => $customerPhone,
+                    'coin_used' => $coinUsed,
+                    'coin_discount_amount' => $coinDiscountVND,
+                    'voucher_code' => $bookingTam['voucher_code'] ?? null,
+                    'discount_amount' => $voucherDiscount,
                 ],
             ]);
 
             DB::commit();
             session()->forget('booking_tam');
+
+            // Nếu tổng thanh toán = 0 (xu cover 100%) → tự động xác nhận PAID
+            if ($finalAmount <= 0) {
+                return $this->handleZeroAmountBooking($booking, $coinUsed);
+            }
 
             return redirect()->route('booking.payment', ['orderCode' => $bookingCode]);
 
@@ -783,6 +815,18 @@ class BookingController extends Controller
                 'payment_status' => $booking->payment_status === 'PAID' ? 'REFUNDED' : 'FAILED',
             ]);
 
+            // Hoàn xu nếu đã trừ
+            $redeemTx = PointTransaction::where('booking_id', $booking->id)
+                ->where('type', 'REDEEM')
+                ->first();
+            if ($redeemTx && $booking->user_id) {
+                app(CoinRedemptionService::class)->refundCoins(
+                    $booking->user_id,
+                    abs($redeemTx->points),
+                    $booking->id
+                );
+            }
+
             // Giải phóng ghế trong cache (nếu còn held)
             $bookingSeats = DB::table('booking_seats')
                 ->where('booking_id', $booking->id)
@@ -817,5 +861,150 @@ class BookingController extends Controller
 
         return redirect()->route('home')
             ->with('success', 'Đã hủy đơn hàng thành công.');
+    }
+
+    // ==========================================
+    // COIN REDEMPTION: ÁP DỤNG / HUỶ XU
+    // ==========================================
+
+    /**
+     * Áp dụng xu giảm giá tại trang xác nhận đặt vé.
+     */
+    public function applyCoin(Request $request)
+    {
+        $request->validate([
+            'coin_amount' => 'required|integer|min:1',
+        ]);
+
+        $bookingTam = session('booking_tam');
+        if (! $bookingTam) {
+            return back()->with('error', 'Không tìm thấy thông tin booking.');
+        }
+
+        $coinService = app(CoinRedemptionService::class);
+        $result = $coinService->applyCoinDiscount(
+            Auth::id(),
+            (int) $request->coin_amount,
+            $bookingTam
+        );
+
+        if (! $result['success']) {
+            return back()->with('error', $result['message']);
+        }
+
+        session()->put('booking_tam', $result['bookingData']);
+
+        return back()->with('success', $result['message']);
+    }
+
+    /**
+     * Huỷ xu giảm giá đã áp dụng.
+     */
+    public function removeCoin()
+    {
+        $bookingTam = session('booking_tam');
+        if (! $bookingTam) {
+            return back();
+        }
+
+        $coinService = app(CoinRedemptionService::class);
+        $bookingTam = $coinService->removeCoinDiscount($bookingTam);
+
+        session()->put('booking_tam', $bookingTam);
+
+        return back()->with('success', 'Đã huỷ sử dụng xu.');
+    }
+
+    /**
+     * Xử lý khi tổng thanh toán = 0 (xu cover 100%).
+     * Tự động xác nhận PAID, trừ xu, sinh vé.
+     */
+    private function handleZeroAmountBooking(Booking $booking, int $coinUsed)
+    {
+        try {
+            DB::transaction(function () use ($booking, $coinUsed) {
+                // Cập nhật booking sang PAID
+                $booking->update([
+                    'status' => 'PAID',
+                    'payment_status' => 'PAID',
+                    'paid_at' => now(),
+                ]);
+
+                // Tạo Payment record
+                \App\Models\Payment::create([
+                    'booking_id' => $booking->id,
+                    'amount' => 0,
+                    'payment_method' => 'COIN',
+                    'status' => 'SUCCESS',
+                    'paid_at' => now(),
+                ]);
+
+                // Trừ xu
+                if ($coinUsed > 0) {
+                    app(CoinRedemptionService::class)->deductCoins(
+                        $booking->user_id,
+                        $coinUsed,
+                        $booking->id
+                    );
+                }
+
+                // Tích xu membership (dù final_amount = 0, vẫn ghi nhận)
+                app(\App\Services\MembershipService::class)->awardBookingCoin($booking);
+
+                // Sinh vé
+                $ticketService = app(TicketService::class);
+                $ticketService->generateTicketsForBooking($booking);
+            });
+
+            // Cập nhật SepayOrder nếu có
+            $sepayOrder = SepayOrder::where('booking_id', $booking->id)->first();
+            if ($sepayOrder) {
+                $sepayOrder->update([
+                    'status' => 'paid',
+                    'paid_at' => now(),
+                    'transaction_id' => 'COIN_' . time(),
+                ]);
+
+                // Sinh PDF vé và gửi email (giống SepayService flow)
+                try {
+                    $pdfPath = null;
+                    $pdfService = app(\App\Services\TicketPDFService::class);
+                    $pdfPath = $pdfService->generateBookingTicketsPDF($booking->fresh());
+
+                    $customerEmail = $sepayOrder->getCustomerEmail();
+                    $user = $booking->user;
+
+                    if ($customerEmail) {
+                        \Illuminate\Support\Facades\Mail::to($customerEmail)->send(
+                            new \App\Mail\BookingInvoiceMail($sepayOrder->fresh(), $user, $pdfPath)
+                        );
+
+                        // Đánh dấu đã gửi email
+                        $meta = $sepayOrder->metadata ?? [];
+                        $meta['email_sent'] = true;
+                        $meta['email_sent_at'] = now()->toIso8601String();
+                        $meta['email_sent_to'] = $customerEmail;
+                        $meta['pdf_attached'] = !empty($pdfPath);
+                        $sepayOrder->update(['metadata' => $meta]);
+                    }
+
+                    if ($user) {
+                        $user->notify(new \App\Notifications\BookingPaidNotification($sepayOrder->fresh()));
+                    }
+                } catch (\Exception $mailEx) {
+                    \Illuminate\Support\Facades\Log::error('Failed to send email for coin payment', [
+                        'booking_id' => $booking->id,
+                        'error' => $mailEx->getMessage(),
+                    ]);
+                }
+            }
+
+            return redirect()->route('booking.bill', ['orderCode' => $booking->booking_code])
+                ->with('success', 'Thanh toán bằng xu thành công!');
+
+        } catch (\Exception $e) {
+            return redirect()->route('home')
+                ->with('error', 'Lỗi xử lý thanh toán: ' . $e->getMessage());
+        }
     }
 }

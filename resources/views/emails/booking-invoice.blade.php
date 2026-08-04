@@ -140,6 +140,29 @@
                     </tr>
                     @endif
 
+                    {{-- DISCOUNT --}}
+                    @if (!empty($order->metadata['voucher_code']) || !empty($order->metadata['coin_discount_amount']))
+                    <tr>
+                        <td style="padding: 0 30px 20px;">
+                            <h3 style="color: #f1f5f9; margin: 0 0 16px; font-size: 18px;">💸 Khuyến mãi & Giảm giá</h3>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                @if (!empty($order->metadata['voucher_code']))
+                                <tr>
+                                    <td style="color: #4ade80; padding: 6px 0; font-size: 14px;">🎟️ Voucher ({{ $order->metadata['voucher_code'] }})</td>
+                                    <td style="color: #4ade80; padding: 6px 0; font-size: 14px; text-align: right; font-weight: 500;">-{{ number_format($order->metadata['discount_amount'] ?? 0, 0, ',', '.') }}đ</td>
+                                </tr>
+                                @endif
+                                @if (!empty($order->metadata['coin_discount_amount']) && $order->metadata['coin_discount_amount'] > 0)
+                                <tr>
+                                    <td style="color: #facc15; padding: 6px 0; font-size: 14px;">🪙 Đổi xu ({{ number_format($order->metadata['coin_used'] ?? 0, 0, ',', '.') }} xu)</td>
+                                    <td style="color: #facc15; padding: 6px 0; font-size: 14px; text-align: right; font-weight: 500;">-{{ number_format($order->metadata['coin_discount_amount'], 0, ',', '.') }}đ</td>
+                                </tr>
+                                @endif
+                            </table>
+                        </td>
+                    </tr>
+                    @endif
+
                     {{-- TOTAL --}}
                     <tr>
                         <td style="padding: 0 30px 25px;">

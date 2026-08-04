@@ -73,6 +73,8 @@ class VoucherController extends Controller
             'voucher_code' => $result['voucher']->code,
             'discount_amount' => $result['discount'],
             'total' => $result['total'],
+            'coin_used' => 0,
+            'coin_discount_amount' => 0,
         ]);
         session(['booking_tam' => $booking]);
 

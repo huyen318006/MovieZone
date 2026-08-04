@@ -1,14 +1,5 @@
 <nav class="navbar admin-navbar navbar-expand bg-white border-bottom py-2">
     <div class="container-fluid">
-        <form class="d-flex w-50" action="#" method="GET">
-            <div class="input-group">
-                <span class="input-group-text bg-secondary border-end-0">
-                    <i class="bi bi-search text-muted"></i>
-                </span>
-                <input type="text" class="form-control bg-secondary border-start-0 ps-0" placeholder="Tìm kiếm phim, vé, khách hàng...">
-            </div>
-        </form>
-
         <div class="ms-auto d-flex align-items-center gap-2">
             <button class="btn btn-light rounded-circle p-2 position-relative" style="width: 40px; height: 40px;">
                 <i class="bi bi-bell fs-5"></i>

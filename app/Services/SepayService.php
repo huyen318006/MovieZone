@@ -240,6 +240,16 @@ class SepayService
                         ]);
                         // Tự động tích Coin Membership
                         app(\App\Services\MembershipService::class)->awardBookingCoin($order->booking);
+
+                        // Trừ xu nếu khách dùng xu để giảm giá
+                        $coinUsed = (int) ($order->metadata['coin_used'] ?? 0);
+                        if ($coinUsed > 0 && $order->booking->user_id) {
+                            app(\App\Services\CoinRedemptionService::class)->deductCoins(
+                                $order->booking->user_id,
+                                $coinUsed,
+                                $order->booking_id
+                            );
+                        }
                     }
 
                     Log::info('SePay payment confirmed', [
