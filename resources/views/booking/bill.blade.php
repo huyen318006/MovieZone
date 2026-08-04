@@ -14,14 +14,14 @@
             </div>
 
             {{-- Thông báo email đã gửi --}}
-            @if($order->isEmailSent())
-            <div class="bill-email-notice">
-                <i class="fa-solid fa-envelope-circle-check"></i>
-                <div>
-                    <strong>📧 Hoá đơn đã được gửi tới email</strong>
-                    <span>{{ $order->metadata['email_sent_to'] ?? $order->getCustomerEmail() }}</span>
+            @if ($order->isEmailSent())
+                <div class="bill-email-notice">
+                    <i class="fa-solid fa-envelope-circle-check"></i>
+                    <div>
+                        <strong>📧 Hoá đơn đã được gửi tới email</strong>
+                        <span>{{ $order->metadata['email_sent_to'] ?? $order->getCustomerEmail() }}</span>
+                    </div>
                 </div>
-            </div>
             @endif
 
             {{-- Bill Card --}}
@@ -107,17 +107,21 @@
                 </div>
 
                 {{-- Thông tin khách hàng --}}
-                <div class="bill-customer-section" style="padding: 20px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2); margin-bottom: 25px;">
-                    <h4 style="margin: 0 0 15px 0; color: #60a5fa; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
+                <div class="bill-customer-section"
+                    style="padding: 20px; background: rgba(59, 130, 246, 0.05); border-radius: 12px; border: 1px solid rgba(59, 130, 246, 0.2); margin-bottom: 25px;">
+                    <h4
+                        style="margin: 0 0 15px 0; color: #60a5fa; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px;">
                         <i class="fa-solid fa-user"></i> Thông tin khách hàng
                     </h4>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
-                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Họ và Tên</span>
+                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Họ và
+                                Tên</span>
                             <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerName() }}</strong>
                         </div>
                         <div>
-                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Số điện thoại</span>
+                            <span style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px;">Số điện
+                                thoại</span>
                             <strong style="color: #f8fafc; font-size: 14px;">{{ $order->getCustomerPhone() }}</strong>
                         </div>
                         <div style="grid-column: span 2;">
@@ -146,14 +150,31 @@
                         </div>
                     @endforeach
 
-                    @if(!empty($order->metadata['combos']))
+                    @if (!empty($order->metadata['combos']))
                         <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1);">
-                            @foreach($order->metadata['combos'] as $combo)
+                            @foreach ($order->metadata['combos'] as $combo)
                                 <div class="bill-price-row">
                                     <span>🍿 {{ $combo['name'] }} x{{ $combo['quantity'] }}</span>
                                     <span>{{ number_format($combo['total_price'], 0, ',', '.') }}đ</span>
                                 </div>
                             @endforeach
+                        </div>
+                    @endif
+
+                    @if (!empty($order->metadata['voucher_code']) || !empty($order->metadata['coin_discount_amount']))
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1);">
+                            @if (!empty($order->metadata['voucher_code']))
+                                <div class="bill-price-row" style="color: #4ade80;">
+                                    <span>🎟️ Voucher ({{ $order->metadata['voucher_code'] }})</span>
+                                    <span>-{{ number_format($order->metadata['discount_amount'] ?? 0, 0, ',', '.') }}đ</span>
+                                </div>
+                            @endif
+                            @if (!empty($order->metadata['coin_discount_amount']) && $order->metadata['coin_discount_amount'] > 0)
+                                <div class="bill-price-row" style="color: #facc15; margin-top: 8px;">
+                                    <span>🪙 Đổi xu ({{ number_format($order->metadata['coin_used'] ?? 0, 0, ',', '.') }} xu)</span>
+                                    <span>-{{ number_format($order->metadata['coin_discount_amount'], 0, ',', '.') }}đ</span>
+                                </div>
+                            @endif
                         </div>
                     @endif
 
@@ -199,11 +220,11 @@
         </div>
     </section>
 
-    @if(request()->query('print') == 'true')
-    <script>
-        window.onload = function() {
-            window.print();
-        }
-    </script>
+    @if (request()->query('print') == 'true')
+        <script>
+            window.onload = function() {
+                window.print();
+            }
+        </script>
     @endif
 @endsection

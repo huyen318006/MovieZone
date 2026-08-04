@@ -660,6 +660,9 @@ class BookingController extends Controller
                     'customer_name' => $customerName,
                     'customer_phone' => $customerPhone,
                     'coin_used' => $coinUsed,
+                    'coin_discount_amount' => $coinDiscountVND,
+                    'voucher_code' => $bookingTam['voucher_code'] ?? null,
+                    'discount_amount' => $voucherDiscount,
                 ],
             ]);
 

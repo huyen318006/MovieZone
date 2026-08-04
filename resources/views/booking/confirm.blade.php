@@ -609,7 +609,7 @@
 
 .coin-input {
     width: 100%;
-    padding: 12px 14px 12px 38px;
+    padding: 12px 90px 12px 38px; /* Increased right padding to prevent text overlap with hint */
     border-radius: 8px;
     border: 1px solid #374151;
     background: #111827;
@@ -617,6 +617,16 @@
     font-size: 15px;
     outline: none;
     transition: border-color 0.2s;
+}
+
+/* Ẩn nút mũi tên tăng giảm của input number */
+.coin-input::-webkit-outer-spin-button,
+.coin-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.coin-input[type=number] {
+    -moz-appearance: textfield;
 }
 
 .coin-input:focus {

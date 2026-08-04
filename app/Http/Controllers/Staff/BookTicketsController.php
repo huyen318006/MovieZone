@@ -359,65 +359,13 @@ class BookTicketsController extends Controller
                 $ticketService->generateTicketsForBooking($booking);
             });
 
-            // === GỬI EMAIL HOÁ ĐƠN CHO KHÁCH HÀNG ===
-            try {
-                $sepayOrder = SepayOrder::where('booking_id', $booking->id)->first();
-                $customerEmail = $booking->customer_email
-                    ?? $booking->user?->email
-                    ?? ($sepayOrder ? $sepayOrder->getCustomerEmail() : '');
-
-                if (!empty($customerEmail) && $sepayOrder) {
-                    // Sinh PDF vé kèm QR Code
-                    $pdfPath = null;
-                    try {
-                        $pdfService = app(\App\Services\TicketPDFService::class);
-                        $pdfPath = $pdfService->generateBookingTicketsPDF($booking->fresh());
-                    } catch (\Exception $pdfEx) {
-                        Log::warning('Failed to generate PDF for cash booking email', [
-                            'booking_code' => $bookingCode,
-                            'error'        => $pdfEx->getMessage(),
-                        ]);
-                    }
-
-                    // Gửi email
-                    $user = $booking->user;
-                    \Illuminate\Support\Facades\Mail::to($customerEmail)->send(
-                        new \App\Mail\BookingInvoiceMail($sepayOrder->fresh(), $user, $pdfPath)
-                    );
-
-                    // Đánh dấu đã gửi email trong metadata
-                    $meta = $sepayOrder->metadata ?? [];
-                    $meta['email_sent'] = true;
-                    $meta['email_sent_at'] = now()->toIso8601String();
-                    $meta['email_sent_to'] = $customerEmail;
-                    $meta['pdf_attached'] = !empty($pdfPath);
-                    $sepayOrder->update(['metadata' => $meta]);
-
-                    Log::info('Cash booking invoice email sent', [
-                        'booking_code' => $bookingCode,
-                        'email'        => $customerEmail,
-                        'pdf_attached' => !empty($pdfPath),
-                    ]);
-                } else {
-                    Log::warning('No customer email for cash booking - skipping email', [
-                        'booking_code' => $bookingCode,
-                    ]);
-                }
-            } catch (\Exception $mailEx) {
-                // Email lỗi không ảnh hưởng đến thanh toán
-                Log::error('Failed to send cash booking invoice email', [
-                    'booking_code' => $bookingCode,
-                    'error'        => $mailEx->getMessage(),
-                ]);
-            }
-
             Log::info('Staff cash payment confirmed', [
                 'booking_code' => $bookingCode,
                 'staff_id'     => Auth::id(),
             ]);
 
             return redirect()->route('staff.print-bill', $bookingCode)
-                ->with('success', 'Thanh toán tiền mặt thành công! Hóa đơn đã được tạo và gửi email.');
+                ->with('success', 'Thanh toán tiền mặt thành công! Hóa đơn đã được tạo.');
 
         } catch (\Exception $e) {
             Log::error('Staff cash payment failed', [
