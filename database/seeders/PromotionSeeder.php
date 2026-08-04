@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Promotion;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class PromotionSeeder extends Seeder
@@ -15,27 +14,25 @@ class PromotionSeeder extends Seeder
     {
         Promotion::query()->delete();
 
-        Promotion::insert([
-            [
-                'title' => 'Summer Sale',
-                'description' => 'Save on tickets this summer',
-                'banner_url' => 'promotions/summer-sale.jpg',
-                'start_date' => now(),
-                'end_date' => now()->addMonth(),
-                'status' => 'ACTIVE',
+        $promotions = [
+            ['title' => 'Siêu khuyến mãi hè', 'description' => 'Giảm giá vé xem phim vào các ngày cuối tuần.', 'banner_url' => 'uploads/promotions/summer-sale.svg', 'start_date' => now(), 'end_date' => now()->addMonth(), 'status' => 'ACTIVE'],
+            ['title' => 'Ngày hội phim Việt', 'description' => 'Ưu đãi đặc biệt cho các bộ phim Việt Nam.', 'banner_url' => 'uploads/promotions/vietnam-movie-day.svg', 'start_date' => now()->addDays(2), 'end_date' => now()->addDays(15), 'status' => 'ACTIVE'],
+            ['title' => 'Combo xem phim rẻ', 'description' => 'Mua combo bắp nước tiết kiệm hơn 20%.', 'banner_url' => 'uploads/promotions/combo-deal.svg', 'start_date' => now()->addDays(5), 'end_date' => now()->addDays(20), 'status' => 'ACTIVE'],
+            ['title' => 'Thành viên thân thiết', 'description' => 'Ưu đãi riêng cho thành viên có hạng vàng.', 'banner_url' => 'uploads/promotions/member-exclusive.svg', 'start_date' => now()->addDays(7), 'end_date' => now()->addMonth(2), 'status' => 'ACTIVE'],
+            ['title' => 'Khuyến mãi cuối tháng', 'description' => 'Giảm giá vé cho suất chiếu buổi tối.', 'banner_url' => 'uploads/promotions/month-end.svg', 'start_date' => now()->addDays(10), 'end_date' => now()->addDays(25), 'status' => 'ACTIVE'],
+        ];
+
+        foreach ($promotions as $promotion) {
+            Promotion::create([
+                'title' => $promotion['title'],
+                'description' => $promotion['description'],
+                'banner_url' => $promotion['banner_url'],
+                'start_date' => $promotion['start_date'],
+                'end_date' => $promotion['end_date'],
+                'status' => $promotion['status'],
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-            [
-                'title' => 'Weekend Sale',
-                'description' => 'Discounts every weekend',
-                'banner_url' => 'promotions/weekend-sale.jpg',
-                'start_date' => now()->addDays(1),
-                'end_date' => now()->addWeeks(2),
-                'status' => 'ACTIVE',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ]);
+            ]);
+        }
     }
 }

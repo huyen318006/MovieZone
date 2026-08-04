@@ -86,9 +86,7 @@
                         @php
                             $startTime = \Carbon\Carbon::parse($showtime->start_time);
                             $endTime = \Carbon\Carbon::parse($showtime->end_time);
-                            $poster = $showtime->movie?->poster_url
-                                ? asset($showtime->movie->poster_url)
-                                : asset('assets/movies/dune.jpg');
+                            $poster = $showtime->movie?->poster ?? asset('assets/movies/dune.jpg');
                         @endphp
 
                         <article class="showtime-card">

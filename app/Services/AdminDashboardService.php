@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Article;
 use App\Models\Booking;
 use App\Models\Movie;
 use App\Models\Payment;
+use App\Models\Promotion;
 use App\Models\ShowtimeSeat;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;

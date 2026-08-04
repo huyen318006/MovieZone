@@ -18,7 +18,7 @@
             {{-- LEFT --}}
             <div class="confirm-movie">
 
-                <img src="{{ $showtime->movie->poster_url ? asset($showtime->movie->poster_url) : asset('assets/hero/avatar.jpg') }}"
+                <img src="{{ $showtime->movie->poster }}"
                      alt="{{ $showtime->movie->title }}"
                      class="movie-poster">
 
