@@ -892,6 +892,7 @@ class ShowtimeManageController extends Controller
                 'title'            => $movie->title,
                 'original_title'   => $movie->original_title,
                 'poster_url'       => $movie->poster_url,
+                'poster'           => $movie->poster,
                 'duration_minutes' => (int) $movie->duration_minutes,
                 'age_rating'       => $movie->age_rating,
                 'release_date'     => $movie->release_date,

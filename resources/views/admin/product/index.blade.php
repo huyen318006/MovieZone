@@ -44,7 +44,6 @@
                 <select name="status" class="form-select form-select-sm" style="width: 150px;" onchange="this.form.submit()">
                     <option value="">Tất cả trạng thái</option>
                     <option value="ACTIVE" {{ request('status') == 'ACTIVE' ? 'selected' : '' }}>Hoạt động</option>
-                    <option value="INACTIVE" {{ request('status') == 'INACTIVE' ? 'selected' : '' }}>Đã ẩn</option>
                     <option value="OUT_OF_STOCK" {{ request('status') == 'OUT_OF_STOCK' ? 'selected' : '' }}>Hết hàng</option>
                 </select>
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i></button>

@@ -73,28 +73,29 @@
     <aside class="promo-sidebar">
 
         <h3>Khuyến Mãi</h3>
-        <div class="promo-card">
-            <img
-                src="{{ asset('assets/promo/1.jpg') }}"
-                alt="">
-            <div class="promo-info">
-                Giảm 50% vé thứ 2
-            </div>
-        </div>
-
-        <div class="promo-card">
-
-            <img
-                src="{{ asset('assets/promo/2.jpg') }}"
-                alt="">
-
-            <div class="promo-info">
-
-                Combo bắp nước chỉ từ 49K
-
+        @if(isset($promoCombos) && $promoCombos->isNotEmpty())
+            @foreach($promoCombos as $combo)
+                <div class="promo-card">
+                    <a href="{{ route('booking.combo') }}" style="text-decoration: none; color: inherit;">
+                        <img src="{{ $combo->image_url ? asset($combo->image_url) : asset('assets/promo/1.jpg') }}" alt="{{ $combo->name }}">
+                        <div class="promo-info">
+                            <strong style="display:block; margin-bottom:4px;">{{ $combo->name }}</strong>
+                            <small>{{ number_format($combo->price ?? 0, 0, ',', '.') }} VNĐ</small>
+                        </div>
+                    </a>
+                </div>
+            @endforeach
+        @else
+            <div class="promo-card">
+                <img src="{{ asset('assets/promo/1.jpg') }}" alt="">
+                <div class="promo-info">Giảm 50% vé thứ 2</div>
             </div>
 
-        </div>
+            <div class="promo-card">
+                <img src="{{ asset('assets/promo/2.jpg') }}" alt="">
+                <div class="promo-info">Combo bắp nước chỉ từ 49K</div>
+            </div>
+        @endif
 
     </aside>
 
@@ -201,93 +202,117 @@
     </aside>
 
 </section>
-{{-- NEWS SECTION --}}
-<section class="news-section">
+{{-- NEWS SECTION - bên cạnh phim --}}
+<section class="home-layout">
 
-    <div class="section-title">
-        <h2>Tin Tức & Khuyến Mãi</h2>
-        <a href="{{ \App\Helpers\TabAuthHelper::route('news') }}">Xem tất cả</a>
-    </div>
+    <div class="movie-content">
 
-    <div class="news-grid">
+        <div class="section-title">
+            <h2>Tin Tức &amp; Khuyến Mãi</h2>
+            <a href="{{ \App\Helpers\TabAuthHelper::route('news') }}">Xem tất cả</a>
+        </div>
 
-        <article class="news-feature">
-            @forelse($latestArticles->take(3) as $index => $article)
-                <div class="news-slide {{ $index === 0 ? 'active' : '' }}">
-                    <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" style="text-decoration: none; color: inherit; display: block; height: 100%;">
+        <div class="news-inline-grid">
+            @forelse($latestArticles as $article)
+                <article class="news-inline-card">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" class="news-inline-link">
                         <img src="{{ $article->thumbnail_url ? asset($article->thumbnail_url) : asset('assets/news/batman.jpg') }}" alt="{{ $article->title }}">
-                        <div class="news-overlay">
-                            <span class="news-tag">{{ $article->category }}</span>
-                            <h3>{{ $article->title }}</h3>
-                            <p>{{ $article->summary }}</p>
-                        </div>
-                    </a>
-                </div>
-            @empty
-                <div class="news-slide active">
-                    <img src="{{ asset('assets/news/batman.jpg') }}" alt="No news">
-                    <div class="news-overlay">
-                        <span class="news-tag">Thông báo</span>
-                        <h3>Chưa có tin tức nào được đăng tải</h3>
-                        <p>Vui lòng quay lại sau để cập nhật các tin tức điện ảnh mới nhất.</p>
-                    </div>
-                </div>
-            @endforelse
-
-            @if($latestArticles->take(3)->count() > 1)
-                <div class="news-dots">
-                    @foreach($latestArticles->take(3) as $index => $article)
-                        <span class="{{ $index === 0 ? 'active' : '' }}"></span>
-                    @endforeach
-                </div>
-            @endif
-
-        </article>
-
-        <div class="news-side">
-            @foreach($latestArticles->slice(3) as $article)
-                <article class="news-small">
-                    <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" class="d-flex gap-3 text-decoration-none w-100" style="color: inherit;">
-                        <img src="{{ $article->thumbnail_url ? asset($article->thumbnail_url) : asset('assets/news/batman.jpg') }}" alt="{{ $article->title }}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px;">
-                        <div class="news-content">
-                            <span>{{ $article->created_at->format('d/m/Y') }}</span>
-                            <h4 style="margin: 0; font-size: 14px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ $article->title }}</h4>
+                        <div class="news-inline-content">
+                            <span class="news-inline-date">{{ optional($article->created_at)->format('d/m/Y') }}</span>
+                            <h4>{{ $article->title }}</h4>
+                            <p>{{ Str::limit($article->summary, 100) }}</p>
                         </div>
                     </a>
                 </article>
-            @endforeach
+            @empty
+                <div style="grid-column: 1/-1; padding: 40px; text-align: center; color: #aaa;">
+                    <h4>Chưa có tin tức</h4>
+                    <p>Vui lòng quay lại sau để xem những cập nhật mới nhất.</p>
+                </div>
+            @endforelse
         </div>
 
     </div>
 
+    <aside class="promo-sidebar">
+
+        <h3>Khuyến Mãi Nổi Bật</h3>
+
+        @forelse($promotions as $promotion)
+            <div class="promo-card">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('promotion.show', $promotion->id) }}" style="text-decoration: none; color: inherit;">
+                    <img src="{{ $promotion->banner_url ? asset($promotion->banner_url) : asset('assets/promo/1.jpg') }}" alt="{{ $promotion->title }}">
+                    <div class="promo-info">
+                        <strong style="display:block; margin-bottom:4px; color:#fff;">{{ $promotion->title }}</strong>
+                        <small>{{ optional($promotion->start_date)->format('d/m/Y') }} - {{ optional($promotion->end_date)->format('d/m/Y') }}</small>
+                    </div>
+                </a>
+            </div>
+        @empty
+            <div class="promo-card" style="padding: 20px; text-align: center; color: #aaa;">
+                <p>Hiện không có chương trình nào đang chạy.</p>
+            </div>
+        @endforelse
+
+    </aside>
+
 </section>
 <style>
-    .news-slide img {
-        object-fit: contain !important;
-        background-color: #0b0f19 !important;
+    /* NEWS INLINE GRID */
+    .news-inline-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
     }
-    .news-side {
-        height: 778px !important;
+    .news-inline-card {
+        background: var(--card, #1a2035);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: transform 0.25s, box-shadow 0.25s;
+        display: flex;
+        flex-direction: column;
     }
-    .news-small {
-        flex: 1 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100% !important;
+    .news-inline-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 30px rgba(126, 166, 255, 0.15);
     }
-    .news-small a {
-        display: flex !important;
-        flex-direction: column !important;
-        height: 100% !important;
-        color: inherit !important;
-        text-decoration: none !important;
+    .news-inline-link {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        text-decoration: none;
+        color: inherit;
     }
-    .news-small img {
-        width: 100% !important;
-        flex: 1 !important;
-        min-height: 0 !important;
-        object-fit: contain !important;
-        background-color: #0b0f19 !important;
+    .news-inline-card img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    .news-inline-content {
+        padding: 14px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    .news-inline-date {
+        font-size: 12px;
+        color: var(--text-soft, #9ca3af);
+        margin-bottom: 6px;
+        display: block;
+    }
+    .news-inline-content h4 {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: #fff;
+        line-height: 1.4;
+    }
+    .news-inline-content p {
+        font-size: 13px;
+        color: var(--text-soft, #9ca3af);
+        line-height: 1.5;
+        margin: 0;
     }
 </style>
 @endsection

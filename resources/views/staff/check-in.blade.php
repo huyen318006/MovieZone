@@ -718,6 +718,22 @@
 
         // ══════ CONFIRM CARD ══════
 
+        function resolvePosterPath(posterUrl) {
+            if (!posterUrl) {
+                return '';
+            }
+            if (posterUrl.startsWith('http://') || posterUrl.startsWith('https://')) {
+                return posterUrl;
+            }
+            if (posterUrl.startsWith('/')) {
+                return posterUrl;
+            }
+            if (posterUrl.startsWith('storage/') || posterUrl.startsWith('assets/') || posterUrl.startsWith('uploads/')) {
+                return '/' + posterUrl;
+            }
+            return '/storage/' + posterUrl;
+        }
+
         function showConfirmCard(data) {
             const card = document.getElementById('confirmCard');
             const ticket = data.data;
@@ -739,7 +755,7 @@
             const headerText = data.can_checkin ? 'Vé hợp lệ — Sẵn sàng check-in' : (data.error?.message ||
                 'Không thể check-in');
 
-            const posterSrc = ticket.movie?.poster_url ? `/storage/${ticket.movie.poster_url}` : '';
+            const posterSrc = resolvePosterPath(ticket.movie?.poster_url);
             const posterImg = posterSrc ? `<img src="${posterSrc}" class="movie-poster" alt="poster">` :
                 `<div class="movie-poster" style="display:flex;align-items:center;justify-content:center;color:var(--staff-text-muted);font-size:24px;"><i class="bi bi-film"></i></div>`;
 
@@ -853,7 +869,7 @@
     `
             }).join('');
 
-            const posterSrc = booking?.poster_url ? `/storage/${booking.poster_url}` : '';
+            const posterSrc = resolvePosterPath(booking?.poster_url);
             const posterImg = posterSrc ?
                 `<img src="${posterSrc}" style="width:60px; height:90px; border-radius:8px; object-fit:cover; flex-shrink:0;" alt="poster">` :
                 `<div style="width:60px; height:90px; border-radius:8px; background:var(--staff-bg); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--staff-text-muted); font-size:20px;"><i class="bi bi-film"></i></div>`;

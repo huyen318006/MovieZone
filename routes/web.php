@@ -35,6 +35,7 @@ use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\ChatbotController;
 use App\Models\Banner;
 use App\Models\Movie;
+use App\Models\Combo;
 use Illuminate\Support\Facades\Route;
 
 // Trang chủ
@@ -68,13 +69,40 @@ Route::get('/', function () {
 
     $showingMovies = Movie::where('status', 'NOW_SHOWING')->get();
     $upcomingMovies = Movie::where('status', 'COMING_SOON')->get();
-//Tin tức
+
     $latestArticles = \App\Models\Article::where('status', 'PUBLISHED')
         ->orderBy('created_at', 'desc')
         ->orderBy('id', 'desc')
         ->limit(5)
-        ->get();    
-    return view('home', compact('banners', 'showingMovies', 'upcomingMovies', 'latestArticles'));
+        ->get();
+
+    $promotions = \App\Models\Promotion::where('status', 'ACTIVE')
+        ->where(function ($q) use ($now) {
+            $q->whereNull('start_date')->orWhere('start_date', '<=', $now);
+        })
+        ->where(function ($q) use ($now) {
+            $q->whereNull('end_date')->orWhere('end_date', '>=', $now);
+        })
+        ->orderBy('start_date')
+        ->limit(4)
+        ->get();
+
+    // Nếu có chương trình khuyến mãi liên quan tới combo (theo tiêu đề/mô tả),
+    // lấy một vài combo ACTIVE để hiển thị trong sidebar khuyến mãi.
+    $promoCombos = collect();
+    $hasComboPromotion = $promotions->contains(function ($p) {
+        $text = ($p->title ?? '') . ' ' . ($p->description ?? '');
+        return stripos($text, 'combo') !== false || stripos($text, 'bắp') !== false;
+    });
+
+    if ($hasComboPromotion) {
+        $promoCombos = Combo::where('status', 'ACTIVE')
+            ->orderBy('name')
+            ->limit(4)
+            ->get();
+    }
+
+    return view('home', compact('banners', 'showingMovies', 'upcomingMovies', 'latestArticles', 'promotions', 'promoCombos'));
 })->name('home');
 /* ------------ Đăng nhập / Đăng ký / forgot*------------------ */
 Route::controller(AuthController::class)->group(function () {

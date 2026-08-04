@@ -4,6 +4,7 @@
 
 @section('content')
 @php
+    use Illuminate\Support\Str;
     $dashboard = $dashboard ?? [];
     $metrics = $dashboard['metrics'] ?? [];
     $topMovies = $dashboard['top_movies'] ?? collect();
@@ -80,6 +81,71 @@
 </div>
 
 <section class="panel mb-4">
+    <div class="panel-header">
+        <div class="section-title">
+            <i class="bi bi-link-45deg"></i>
+            <div>
+                <h5 class="mb-0">Truy cập nhanh</h5>
+                <p class="text-muted mb-0">Đi tới các trang quản lý chính ngay trên dashboard.</p>
+            </div>
+        </div>
+    </div>
+    <div class="panel-body">
+        <div class="row g-2">
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.film') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-film me-2"></i> Quản lý phim
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.showtime') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-calendar3 me-2"></i> Quản lý suất chiếu
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.products.index') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-basket me-2"></i> Sản phẩm lẻ
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.combos.index') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-box-seam me-2"></i> Quản lý combo
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.promotions.index') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-tag me-2"></i> Khuyến mãi
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.banners.index') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-card-image me-2"></i> Banner
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.list_account') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-people me-2"></i> Tài khoản
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.bookings.index') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-receipt me-2"></i> Booking
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.articles.index') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-journal-text me-2"></i> Tin tức
+                </a>
+            </div>
+            <div class="col-6 col-md-4 col-lg-3">
+                <a href="{{ \App\Helpers\TabAuthHelper::route('admin.vouchers.index') }}" class="btn btn-outline-secondary w-100 text-start">
+                    <i class="bi bi-ticket-perforated me-2"></i> Voucher
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
     <form method="GET" action="{{ \App\Helpers\TabAuthHelper::route('admin.dashboard') }}" class="row g-3 align-items-end">
         <input type="hidden" name="tab_token" value="{{ \App\Helpers\TabAuthHelper::gettoken() }}">
         <div class="col-md-4">

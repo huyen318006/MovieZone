@@ -25,9 +25,7 @@
                 {{-- Khu vực hiển thị thông tin phim trực quan --}}
                 @if(isset($booking->showtime->movie))
                     <div class="movie-info-header">
-                        @if($booking->showtime->movie->poster_url)
-                            <img class="movie-poster" src="{{ asset('storage/' . $booking->showtime->movie->poster_url) }}" alt="{{ $booking->showtime->movie->title }}">
-                        @endif
+                        <img class="movie-poster" src="{{ $booking->showtime->movie->poster }}" alt="{{ $booking->showtime->movie->title }}">
                         <div class="movie-text-details">
                             <h4 class="movie-title">{{ $booking->showtime->movie->title }}</h4>
                             <div class="movie-meta-tags">
