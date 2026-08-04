@@ -68,8 +68,13 @@ Route::get('/', function () {
 
     $showingMovies = Movie::where('status', 'NOW_SHOWING')->get();
     $upcomingMovies = Movie::where('status', 'COMING_SOON')->get();
-
-    return view('home', compact('banners', 'showingMovies', 'upcomingMovies'));
+//Tin tức
+    $latestArticles = \App\Models\Article::where('status', 'PUBLISHED')
+        ->orderBy('created_at', 'desc')
+        ->orderBy('id', 'desc')
+        ->limit(5)
+        ->get();    
+    return view('home', compact('banners', 'showingMovies', 'upcomingMovies', 'latestArticles'));
 })->name('home');
 /* ------------ Đăng nhập / Đăng ký / forgot*------------------ */
 Route::controller(AuthController::class)->group(function () {
@@ -589,4 +594,5 @@ Route::middleware(['tab.auth', 'admin'])->group(function () {
     Route::post('/admin/memberships/scan-expired', [CustomerMembershipController::class, 'scanExpired'])->name('admin.memberships.scan_expired');
     Route::get('/admin/memberships/{id}', [CustomerMembershipController::class, 'show'])->name('admin.memberships.show');
     Route::post('/admin/memberships/{id}/adjust-coin', [CustomerMembershipController::class, 'adjustCoin'])->name('admin.memberships.adjust_coin');
+    Route::post('/admin/memberships/{id}/reset-level', [CustomerMembershipController::class, 'resetLevel'])->name('admin.memberships.reset_level');
 });

@@ -50,25 +50,26 @@ class MembershipController extends Controller
         $todayStep = max(1, min(7, (int) $todayStep));
         $todayReward = $rewardTable[$todayStep] ?? $rewardTable[1];
 
-        // 2. Tất cả 5 mốc hạng
+        // 2. Tất cả 5 mốc hạng & Tính toán thăng hạng dựa theo Tổng chi tiêu (total_spent)
+        $totalSpent = (float) ($userMembership->total_spent ?? 0);
         $levels = MembershipLevel::orderBy('min_points', 'asc')->get();
 
-        // Tìm hạng hiện tại dựa theo số dư Coin
-        $currentLevel = $levels->where('min_points', '<=', $coins)->last() ?? $levels->first();
+        // Tìm hạng hiện tại dựa theo Tổng chi tiêu mua vé
+        $currentLevel = $levels->where('min_points', '<=', $totalSpent)->last() ?? $levels->first();
 
-        // Cập nhật lại level_id nếu số dư coin phù hợp với mốc hạng lớn hơn
+        // Cập nhật lại level_id nếu tổng chi tiêu phù hợp với mốc hạng lớn hơn
         if ($currentLevel && $currentLevel->id != $userMembership->level_id) {
             $userMembership->update(['level_id' => $currentLevel->id]);
             $userMembership->level = $currentLevel;
         }
 
         // Tìm hạng tiếp theo
-        $nextLevel = $levels->where('min_points', '>', $coins)->first();
+        $nextLevel = $levels->where('min_points', '>', $totalSpent)->first();
 
-        // Tính số coin còn thiếu và phần trăm tiến độ
+        // Tính số tiền còn thiếu và phần trăm tiến độ
         if ($nextLevel && $nextLevel->min_points > 0) {
-            $pointsNeeded = max(0, $nextLevel->min_points - $coins);
-            $progress = min(100, max(0, round(($coins / $nextLevel->min_points) * 100)));
+            $pointsNeeded = max(0, $nextLevel->min_points - $totalSpent);
+            $progress = min(100, max(0, round(($totalSpent / $nextLevel->min_points) * 100)));
         } else {
             $pointsNeeded = 0;
             $progress = 100;
