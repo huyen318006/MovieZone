@@ -152,7 +152,7 @@
 @foreach($upcomingMovies as $m)
     <div class="movie-card">
 
-        <img src="{{ $m->poster_url ? asset('assets/' . $m->poster_url) : asset('assets/hero/avatar.jpg') }}" alt="{{ $m->title }}">
+        <img src="{{ $m->poster }}" alt="{{ $m->title }}">
 
         <div class="info">
 
@@ -212,24 +212,54 @@
             <a href="{{ \App\Helpers\TabAuthHelper::route('news') }}">Xem tất cả</a>
         </div>
 
-        <div class="news-inline-grid">
-            @forelse($latestArticles as $article)
-                <article class="news-inline-card">
-                    <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" class="news-inline-link">
-                        <img src="{{ $article->thumbnail_url ? asset($article->thumbnail_url) : asset('assets/news/batman.jpg') }}" alt="{{ $article->title }}">
-                        <div class="news-inline-content">
-                            <span class="news-inline-date">{{ optional($article->created_at)->format('d/m/Y') }}</span>
-                            <h4>{{ $article->title }}</h4>
-                            <p>{{ Str::limit($article->summary, 100) }}</p>
+        <div class="news-slider-wrapper">
+            <div id="newsSliderCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="4000">
+                @if(count($latestArticles ?? []) > 1)
+                    <div class="carousel-indicators news-carousel-indicators">
+                        @foreach($latestArticles as $index => $article)
+                            <button type="button" data-bs-target="#newsSliderCarousel" data-bs-slide-to="{{ $index }}" class="{{ $index === 0 ? 'active' : '' }}" aria-current="{{ $index === 0 ? 'true' : 'false' }}" aria-label="Slide {{ $index + 1 }}"></button>
+                        @endforeach
+                    </div>
+                @endif
+
+                <div class="carousel-inner news-carousel-inner">
+                    @forelse($latestArticles as $index => $article)
+                        <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
+                            <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" class="news-slide-card">
+                                <div class="news-slide-img-box">
+                                    <img src="{{ $article->thumbnail }}" alt="{{ $article->title }}">
+                                    <div class="news-slide-overlay"></div>
+                                </div>
+                                <div class="news-slide-info">
+                                    <span class="news-slide-date">
+                                        <i class="fa-regular fa-calendar-days"></i> {{ optional($article->created_at)->format('d/m/Y') }}
+                                    </span>
+                                    <h3 class="news-slide-title">{{ $article->title }}</h3>
+                                    @if($article->summary)
+                                        <p class="news-slide-summary">{{ Str::limit($article->summary, 120) }}</p>
+                                    @endif
+                                </div>
+                            </a>
                         </div>
-                    </a>
-                </article>
-            @empty
-                <div style="grid-column: 1/-1; padding: 40px; text-align: center; color: #aaa;">
-                    <h4>Chưa có tin tức</h4>
-                    <p>Vui lòng quay lại sau để xem những cập nhật mới nhất.</p>
+                    @empty
+                        <div class="news-slide-empty">
+                            <h4>Chưa có tin tức</h4>
+                            <p>Vui lòng quay lại sau để xem những cập nhật mới nhất.</p>
+                        </div>
+                    @endforelse
                 </div>
-            @endforelse
+
+                @if(count($latestArticles ?? []) > 1)
+                    <button class="carousel-control-prev news-carousel-btn prev-btn" type="button" data-bs-target="#newsSliderCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next news-carousel-btn next-btn" type="button" data-bs-target="#newsSliderCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                @endif
+            </div>
         </div>
 
     </div>
@@ -241,7 +271,7 @@
         @forelse($promotions as $promotion)
             <div class="promo-card">
                 <a href="{{ \App\Helpers\TabAuthHelper::route('promotion.show', $promotion->id) }}" style="text-decoration: none; color: inherit;">
-                    <img src="{{ $promotion->banner_url ? asset($promotion->banner_url) : asset('assets/promo/1.jpg') }}" alt="{{ $promotion->title }}">
+                    <img src="{{ $promotion->banner }}" alt="{{ $promotion->title }}">
                     <div class="promo-info">
                         <strong style="display:block; margin-bottom:4px; color:#fff;">{{ $promotion->title }}</strong>
                         <small>{{ optional($promotion->start_date)->format('d/m/Y') }} - {{ optional($promotion->end_date)->format('d/m/Y') }}</small>
@@ -258,61 +288,159 @@
 
 </section>
 <style>
-    /* NEWS INLINE GRID */
-    .news-inline-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-    }
-    .news-inline-card {
-        background: var(--card, #1a2035);
-        border-radius: 12px;
+    /* NEWS SINGLE BOX SLIDER */
+    .news-slider-wrapper {
+        width: 100%;
+        border-radius: 20px;
         overflow: hidden;
-        transition: transform 0.25s, box-shadow 0.25s;
-        display: flex;
-        flex-direction: column;
+        background: var(--card, #161d2f);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        position: relative;
     }
-    .news-inline-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 10px 30px rgba(126, 166, 255, 0.15);
-    }
-    .news-inline-link {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
+
+    .news-slide-card {
+        display: block;
+        position: relative;
         text-decoration: none;
         color: inherit;
-    }
-    .news-inline-card img {
+        overflow: hidden;
         width: 100%;
-        height: 160px;
+        height: 460px;
+        aspect-ratio: 16 / 9;
+        max-height: 500px;
+    }
+
+    .news-slide-img-box {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .news-slide-img-box img {
+        width: 100%;
+        height: 100%;
         object-fit: cover;
-        flex-shrink: 0;
+        object-position: center;
+        transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
     }
-    .news-inline-content {
-        padding: 14px;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
+
+    .news-slide-card:hover .news-slide-img-box img {
+        transform: scale(1.05);
     }
-    .news-inline-date {
-        font-size: 12px;
-        color: var(--text-soft, #9ca3af);
-        margin-bottom: 6px;
-        display: block;
+
+    .news-slide-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(13, 17, 27, 0) 15%, rgba(13, 17, 27, 0.65) 60%, rgba(13, 17, 27, 0.98) 100%);
     }
-    .news-inline-content h4 {
-        font-size: 14px;
-        font-weight: 700;
-        margin-bottom: 6px;
-        color: #fff;
-        line-height: 1.4;
+
+    .news-slide-info {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 30px 35px;
+        z-index: 2;
     }
-    .news-inline-content p {
+
+    .news-slide-date {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         font-size: 13px;
-        color: var(--text-soft, #9ca3af);
+        font-weight: 600;
+        color: #7ea6ff;
+        background: rgba(126, 166, 255, 0.15);
+        border: 1px solid rgba(126, 166, 255, 0.3);
+        padding: 4px 14px;
+        border-radius: 20px;
+        margin-bottom: 12px;
+        backdrop-filter: blur(4px);
+    }
+
+    .news-slide-title {
+        font-size: 22px;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 8px;
+        line-height: 1.35;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        transition: color 0.3s ease;
+    }
+
+    .news-slide-card:hover .news-slide-title {
+        color: #7ea6ff;
+    }
+
+    .news-slide-summary {
+        font-size: 14px;
+        color: #b9c2dc;
         line-height: 1.5;
         margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        opacity: 0.9;
+    }
+
+    .news-slide-empty {
+        padding: 60px 20px;
+        text-align: center;
+        color: #aaa;
+    }
+
+    /* CAROUSEL CONTROLS & INDICATORS */
+    .news-carousel-btn {
+        width: 44px;
+        height: 44px;
+        background: rgba(13, 17, 27, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(6px);
+        margin: 0 15px;
+    }
+
+    .news-slider-wrapper:hover .news-carousel-btn {
+        opacity: 0.85;
+    }
+
+    .news-carousel-btn:hover {
+        opacity: 1 !important;
+        background: #7ea6ff;
+        border-color: #7ea6ff;
+    }
+
+    .news-carousel-indicators {
+        margin-bottom: 12px;
+        gap: 6px;
+    }
+
+    .news-carousel-indicators button {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.4);
+        border: none;
+        transition: all 0.3s ease;
+        opacity: 0.6;
+    }
+
+    .news-carousel-indicators button.active {
+        width: 28px;
+        border-radius: 10px;
+        background-color: #7ea6ff;
+        opacity: 1;
     }
 </style>
 @endsection

@@ -91,16 +91,7 @@
             <a href="{{ \App\Helpers\TabAuthHelper::route('promotion.show', $promotion) }}" class="text-decoration-none text-body">
                     <article class="card promo-card h-100 shadow-sm border-0">
                         <div class="promo-image-wrap">
-                            @if ($promotion->banner_url && \Illuminate\Support\Facades\Storage::disk('public')->exists($promotion->banner_url))
-                                <img src="{{ asset('storage/' . $promotion->banner_url) }}" alt="{{ $promotion->title }}">
-                            @else
-                                <div class="promo-placeholder">
-                                    <div>
-                                        <i class="fa-solid fa-tags fa-3x mb-3"></i>
-                                        <div class="fw-bold">MovieZone Promotion</div>
-                                    </div>
-                                </div>
-                            @endif
+                            <img src="{{ $promotion->banner }}" alt="{{ $promotion->title }}">
                         </div>
                         <div class="card-body p-4">
                             <div class="d-flex align-items-start justify-content-between gap-2 mb-2">

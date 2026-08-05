@@ -265,6 +265,41 @@
 
 </div>
 
+<section class="panel mb-4">
+    <div class="panel-header">
+        <div class="section-title">
+            <i class="bi bi-film"></i>
+            <div>
+                <h5 class="mb-0">Top phim bán chạy</h5>
+                <p class="text-muted mb-0">Hiển thị poster và doanh thu theo phim trong bộ lọc.</p>
+            </div>
+        </div>
+    </div>
+
+    @if ($topMovies->isEmpty())
+        <div class="text-muted fw-bold py-3 px-3">
+            <i class="bi bi-inbox me-1"></i> Chưa có dữ liệu phim để hiển thị.
+        </div>
+    @else
+        <div class="row g-3">
+            @foreach ($topMovies as $movie)
+                <div class="col-6 col-xl-3">
+                    <div class="card h-100 shadow-sm overflow-hidden">
+                        <div class="ratio ratio-3x4">
+                            <img src="{{ $movie->poster }}" alt="Poster {{ $movie->title }}" class="object-fit-cover">
+                        </div>
+                        <div class="card-body py-3 px-3">
+                            <h6 class="mb-2 text-truncate">{{ $movie->title }}</h6>
+                            <div class="text-muted small">Vé bán: {{ number_format($movie->sold_tickets) }}</div>
+                            <div class="text-muted small">Doanh thu: {{ number_format($movie->ticket_revenue) }}đ</div>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @endif
+</section>
+
 <div class="d-flex align-items-center gap-2 mb-3">
     <i class="bi bi-bar-chart-line text-primary"></i>
     <h4 class="mb-0">Phân tích nâng cao</h4>

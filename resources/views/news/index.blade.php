@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        {{-- Articles Grid --}}
+        {{-- Articles Carousel --}}
         @if($articles->isEmpty())
             <div class="text-center py-5" data-aos="fade-up">
                 <div class="display-1 text-muted mb-4"><i class="bi bi-newspaper"></i></div>
@@ -23,63 +23,61 @@
                 <p class="text-muted">Vui lòng quay lại sau để cập nhật tin tức mới nhất.</p>
             </div>
         @else
-            <div class="row g-4 mb-5">
-                @foreach($articles as $article)
-                    <div class="col-md-6 col-lg-4 d-flex" data-aos="fade-up">
-                        <article class="card border-0 flex-fill overflow-hidden" style="background: var(--card); border-radius: var(--radius); transition: all 0.35s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.2);" onmouseover="this.style.transform='translateY(-8px)'; this.style.boxShadow='0 12px 35px rgba(126, 166, 255, 0.2)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 30px rgba(0,0,0,0.2)';">
-                            
-                            {{-- Image Container --}}
-                            <div class="position-relative" style="height: 220px; overflow: hidden;">
-                                <img src="{{ $article->thumbnail_url ? asset($article->thumbnail_url) : asset('assets/news/batman.jpg') }}" class="w-100 h-100 object-fit-cover" alt="{{ $article->title }}">
-                                
-                                {{-- Category Badge --}}
-                                <span class="position-absolute top-0 end-0 m-3 badge bg-opacity-75" style="background-color: #2ec4b6 !important; font-size: 0.75rem; letter-spacing: 0.5px; color: #ffffff !important; font-weight: bold;">
-                                    @if($article->category === 'NEWS')
-                                        TIN TỨC
-                                    @elseif($article->category === 'PROMOTION')
-                                        KHUYẾN MÃI
-                                    @elseif($article->category === 'EVENT')
-                                        SỰ KIỆN
-                                    @else
-                                        {{ $article->category }}
-                                    @endif
-                                </span>
-                            </div>
-
-                            {{-- Card Body --}}
-                            <div class="card-body p-4 d-flex flex-column justify-content-between">
-                                <div>
-                                    <div class="text-muted mb-2" style="font-size: 0.85rem;">
-                                        <i class="bi bi-calendar3 me-2"></i>{{ \Carbon\Carbon::parse($article->published_at)->format('d/m/Y') }}
-                                    </div>
-                                    <h4 class="card-title text-white fw-bold mb-3" style="line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 1.25rem;">
-                                        {{ $article->title }}
-                                    </h4>
-                                    <p class="card-text text-soft mb-4" style="font-size: 0.95rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; color:aliceblue !important">
-                                        {{ $article->summary }}
-                                    </p>
+            <div id="newsCarousel" class="carousel slide mb-5" data-bs-ride="carousel" data-aos="fade-up">
+                <div class="carousel-indicators">
+                    @foreach($articles as $article)
+                        <button type="button" data-bs-target="#newsCarousel" data-bs-slide-to="{{ $loop->index }}" class="{{ $loop->first ? 'active' : '' }}" aria-current="{{ $loop->first ? 'true' : 'false' }}" aria-label="Slide {{ $loop->iteration }}"></button>
+                    @endforeach
+                </div>
+                <div class="carousel-inner rounded-4 overflow-hidden shadow-lg" style="background: rgba(255,255,255,0.05);">
+                    @foreach($articles as $article)
+                        <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
+                            <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" class="d-block position-relative text-decoration-none">
+                                <img src="{{ $article->thumbnail }}" class="d-block w-100" style="height: 520px; object-fit: cover;" alt="{{ $article->title }}">
+                                <div class="carousel-caption d-none d-md-flex flex-column align-items-start justify-content-end p-4" style="background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.65) 100%); left: 0; right: 0; bottom: 0; top: 0;">
+                                    <span class="badge bg-primary mb-2 text-uppercase" style="letter-spacing: 1px;">{{ $article->category === 'NEWS' ? 'Tin tức' : ($article->category === 'PROMOTION' ? 'Khuyến mãi' : ($article->category === 'EVENT' ? 'Sự kiện' : $article->category)) }}</span>
+                                    <h2 class="text-white fw-bold mb-2" style="font-size: clamp(1.75rem, 2.1vw, 2.75rem); line-height: 1.05;">{{ $article->title }}</h2>
+                                    <p class="text-white-50 mb-0" style="max-width: 55%;">{{ Str::limit($article->summary, 120) }}</p>
                                 </div>
+                            </a>
+                        </div>
+                    @endforeach
+                </div>
 
-                                <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" class="fw-bold d-inline-flex align-items-center mt-auto" style="color: var(--primary); text-decoration: none; transition: 0.3s;" onmouseover="this.style.color='#5f8ff7'; this.querySelector('i').style.transform='translateX(5px)';" onmouseout="this.style.color='var(--primary)'; this.querySelector('i').style.transform='translateX(0)';">
-                                    Đọc tiếp <i class="bi bi-arrow-right ms-2" style="transition: transform 0.2s ease;"></i>
-                                </a>
-                            </div>
-                        </article>
-                    </div>
-                @endforeach
-            </div>
-
-            {{-- Pagination --}}
-            <div class="d-flex justify-content-center mt-5" id="news-pagination">
-                {{ $articles->links() }}
+                @if($articles->count() > 1)
+                    <button class="carousel-control-prev" type="button" data-bs-target="#newsCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#newsCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                @endif
             </div>
         @endif
     </div>
 </main>
 <style>
-#news-pagination p.text-muted, 
-#news-pagination p.small {
-    color: #a0aec0 !important; 
+#newsCarousel .carousel-indicators [data-bs-target] {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: rgba(255,255,255,0.5);
+}
+#newsCarousel .carousel-indicators .active {
+    background-color: #ffffff;
+}
+#newsCarousel .carousel-control-prev-icon,
+#newsCarousel .carousel-control-next-icon {
+    filter: invert(1);
+}
+#newsCarousel .carousel-item img {
+    min-height: 520px;
+    cursor: pointer;
+}
+.movie-list-page {
+    padding-bottom: 0px;
 }
 
 #news-pagination .fw-semibold {
