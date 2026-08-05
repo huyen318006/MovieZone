@@ -14,7 +14,7 @@
         <div class="seat-wrapper" style="margin: 0; max-width: 100%;">
             <!-- LEFT PANEL -->
             <div class="seat-info" style="background: var(--staff-surface, #1e293b); border: 1px solid var(--staff-border, #334155);">
-                <img src="{{ $showtime->movie->poster_url ? asset('storage/' . $showtime->movie->poster_url) : asset('assets/hero/avatar.jpg') }}" class="movie-poster" alt="Movie Poster">
+                <img src="{{ $showtime->movie->poster }}" class="movie-poster" alt="Movie Poster">
                 <h2>THÔNG TIN ĐẶT VÉ</h2>
 
                 <div class="booking-summary">

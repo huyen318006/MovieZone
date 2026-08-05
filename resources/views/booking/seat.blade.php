@@ -6,7 +6,7 @@
     <section class="seat-page">
         <div class="seat-wrapper">
             <div class="seat-info">
-                <img src="{{ asset('assets/hero/avatar.jpg') }}" class="movie-poster" alt="Movie Poster">
+                <img src="{{ $showtime->movie->poster }}" class="movie-poster" alt="Movie Poster">
                 <h2>THÔNG TIN ĐẶT VÉ</h2>
 
                 <div class="booking-summary">

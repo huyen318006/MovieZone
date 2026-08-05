@@ -51,4 +51,44 @@ class Article extends Model
     {
         return $query->where('status', 'HIDDEN');
     }
+
+    /**
+     * Accessor thông minh cho Thumbnail Bài viết
+     */
+    public function getThumbnailAttribute(): string
+    {
+        $path = trim($this->thumbnail_url ?? '');
+
+        if (empty($path)) {
+            return asset('assets/news/batman.jpg');
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $path = ltrim($path, '/');
+
+        if (str_starts_with($path, 'storage/') || str_starts_with($path, 'assets/') || str_starts_with($path, 'uploads/')) {
+            return asset($path);
+        }
+
+        if (file_exists(public_path($path))) {
+            return asset($path);
+        }
+
+        if (file_exists(public_path('storage/' . $path))) {
+            return asset('storage/' . $path);
+        }
+
+        if (file_exists(public_path('uploads/' . $path))) {
+            return asset('uploads/' . $path);
+        }
+
+        if (file_exists(public_path('assets/' . $path))) {
+            return asset('assets/' . $path);
+        }
+
+        return asset('storage/' . $path);
+    }
 }

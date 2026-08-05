@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedMovie = data.movie;
 
             // Render movie details
-            document.getElementById('moviePoster').src = data.movie.poster_url || '/assets/images/no-poster.png';
+            document.getElementById('moviePoster').src = data.movie.poster || '/assets/images/no-poster.png';
             document.getElementById('movieTitle').textContent = data.movie.title;
             document.getElementById('movieOriginalTitle').textContent = data.movie.original_title || '';
             document.getElementById('movieDuration').innerHTML = '<i class="bi bi-clock me-1"></i>' + data.movie.duration_minutes + ' phút';

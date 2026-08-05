@@ -219,6 +219,52 @@ class PromotionManageController extends Controller
 
         $validator->after(function ($validator) use ($request, $promotion) {
 
+            // Nếu đây là thao tác chỉ thay banner (không thay đổi title/description/start_date/end_date/status),
+            // cho phép cập nhật ảnh mà không sinh lỗi về ngày/trạng thái.
+            if ($promotion && $request->hasFile('banner')) {
+                $onlyBanner = true;
+                // title
+                if ($request->filled('title') && $request->title != $promotion->title) {
+                    $onlyBanner = false;
+                }
+                // description
+                if ($request->filled('description') && $request->description != $promotion->description) {
+                    $onlyBanner = false;
+                }
+                // status
+                if ($request->filled('status') && $request->status != $promotion->status) {
+                    $onlyBanner = false;
+                }
+                // start_date
+                if ($request->filled('start_date')) {
+                    try {
+                        $reqStart = \Carbon\Carbon::parse($request->start_date);
+                        $origStart = \Carbon\Carbon::instance($promotion->start_date);
+                        if (!$reqStart->isSameDay($origStart)) {
+                            $onlyBanner = false;
+                        }
+                    } catch (\Exception $e) {
+                        $onlyBanner = false;
+                    }
+                }
+                // end_date
+                if ($request->filled('end_date')) {
+                    try {
+                        $reqEnd = \Carbon\Carbon::parse($request->end_date);
+                        $origEnd = \Carbon\Carbon::instance($promotion->end_date);
+                        if (!$reqEnd->isSameDay($origEnd)) {
+                            $onlyBanner = false;
+                        }
+                    } catch (\Exception $e) {
+                        $onlyBanner = false;
+                    }
+                }
+
+                if ($onlyBanner) {
+                    return; // skip further checks
+                }
+            }
+
             // Không cho ACTIVE nếu đã hết hạn
             if (
                 $request->status === 'ACTIVE'
@@ -252,15 +298,24 @@ class PromotionManageController extends Controller
                 );
             }
             // Không cho sửa ngày bắt đầu nếu đang ACTIVE
-            if (
-                $promotion &&
-                $promotion->status === 'ACTIVE' &&
-                $request->start_date != $promotion->start_date->format('Y-m-d')
-            ) {
-                $validator->errors()->add(
-                    'start_date',
-                    'Không thể thay đổi ngày bắt đầu của chương trình đang hoạt động.'
-                );
+            // So sánh ngày theo ngày (không so sánh chuỗi) để tránh lỗi format
+            if ($promotion && $promotion->status === 'ACTIVE') {
+                try {
+                    $reqStart = \Carbon\Carbon::parse($request->start_date);
+                    $origStart = \Carbon\Carbon::instance($promotion->start_date);
+                    if (!$reqStart->isSameDay($origStart)) {
+                        $validator->errors()->add(
+                            'start_date',
+                            'Không thể thay đổi ngày bắt đầu của chương trình đang hoạt động.'
+                        );
+                    }
+                } catch (\Exception $e) {
+                    // Nếu không parse được ngày, thêm lỗi để người dùng kiểm tra lại
+                    $validator->errors()->add(
+                        'start_date',
+                        'Ngày bắt đầu không hợp lệ.'
+                    );
+                }
             }
         });
 

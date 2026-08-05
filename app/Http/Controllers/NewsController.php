@@ -16,7 +16,7 @@ class NewsController extends Controller
             ->where('status', 'PUBLISHED')
             ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc')
-            ->paginate(6);
+            ->get();
 
         return view('news.index', compact('articles'));
     }

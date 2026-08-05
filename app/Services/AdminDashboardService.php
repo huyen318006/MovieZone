@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Article;
 use App\Models\Booking;
 use App\Models\Movie;
 use App\Models\Payment;
+use App\Models\Promotion;
 use App\Models\ShowtimeSeat;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -176,10 +178,17 @@ class AdminDashboardService
 
     private function topMovies(array $filters): Collection
     {
-        return DB::table('booking_seats')
-            ->join('bookings', 'booking_seats.booking_id', '=', 'bookings.id')
-            ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
-            ->join('movies', 'showtimes.movie_id', '=', 'movies.id')
+        return Movie::query()
+            ->select([
+                'movies.id',
+                'movies.title',
+                'movies.poster_url',
+                DB::raw('COUNT(booking_seats.id) as sold_tickets'),
+                DB::raw('COALESCE(SUM(booking_seats.price), 0) as ticket_revenue'),
+            ])
+            ->join('showtimes', 'showtimes.movie_id', '=', 'movies.id')
+            ->join('bookings', 'bookings.showtime_id', '=', 'showtimes.id')
+            ->join('booking_seats', 'booking_seats.booking_id', '=', 'bookings.id')
             ->leftJoin('payments', 'payments.booking_id', '=', 'bookings.id')
             ->whereNotIn('bookings.status', $this->excludedBookingStatuses)
             ->where(function ($query) {
@@ -190,13 +199,7 @@ class AdminDashboardService
             ->whereBetween('bookings.created_at', [$filters['start_date'], $filters['end_date']])
             ->when($filters['cinema_id'], fn ($query) => $query->where('showtimes.cinema_id', $filters['cinema_id']))
             ->when($filters['movie_id'], fn ($query) => $query->where('showtimes.movie_id', $filters['movie_id']))
-            ->groupBy('movies.id', 'movies.title')
-            ->select([
-                'movies.id',
-                'movies.title',
-                DB::raw('COUNT(booking_seats.id) as sold_tickets'),
-                DB::raw('COALESCE(SUM(booking_seats.price), 0) as ticket_revenue'),
-            ])
+            ->groupBy('movies.id', 'movies.title', 'movies.poster_url')
             ->orderByDesc('sold_tickets')
             ->limit(5)
             ->get();

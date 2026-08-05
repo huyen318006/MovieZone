@@ -100,6 +100,24 @@
                     @enderror
                 </div>
 
+                <div class="col-12 col-md-6 col-lg-4" id="movieInfoCard" style="display:none;">
+                    <div class="card border border-secondary h-100">
+                        <div class="card-body d-flex gap-3 align-items-start">
+                            <img id="moviePoster" src="" alt="Poster" class="rounded" style="width:96px; height:136px; object-fit:cover;">
+                            <div class="flex-grow-1">
+                                <h6 id="movieTitle" class="mb-1"></h6>
+                                <p id="movieOriginalTitle" class="text-muted small mb-2"></p>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    <span class="badge bg-info" id="movieDuration"></span>
+                                    <span class="badge bg-warning text-dark" id="movieAgeRating"></span>
+                                </div>
+                                <div class="small text-muted" id="movieLanguage"></div>
+                                <div class="small text-muted" id="movieRelease"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Chọn ngày -->
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">
@@ -565,6 +583,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function fetchAndApplyMovieWindow(movieId) {
         if (!movieId) {
             applyMovieDateWindow(null);
+            document.getElementById('movieInfoCard').style.display = 'none';
             return;
         }
 
@@ -576,9 +595,17 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(r => r.json())
         .then(data => {
             applyMovieDateWindow(data.movie);
-        })
-        .catch(err => {
-            console.error('Lỗi lấy khoảng phát hành phim:', err);
+            const movieInfoCard = document.getElementById('movieInfoCard');
+            if (movieInfoCard) {
+                document.getElementById('moviePoster').src = data.movie.poster || '/assets/images/no-poster.png';
+                document.getElementById('movieTitle').textContent = data.movie.title || '';
+                document.getElementById('movieOriginalTitle').textContent = data.movie.original_title ? data.movie.original_title : '';
+                document.getElementById('movieDuration').textContent = data.movie.duration_minutes ? data.movie.duration_minutes + ' phút' : '';
+                document.getElementById('movieAgeRating').textContent = data.movie.age_rating || '';
+                document.getElementById('movieLanguage').textContent = data.movie.language ? 'Ngôn ngữ: ' + data.movie.language : '';
+                document.getElementById('movieRelease').textContent = data.movie.date_window_label || '';
+                movieInfoCard.style.display = 'block';
+            }
         });
     }
 
