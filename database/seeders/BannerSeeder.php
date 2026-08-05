@@ -17,7 +17,7 @@ class BannerSeeder extends Seeder
 
 Banner::insert([
             [
-                'image_url' => 'banners/0YGNiet7o2EUaWa0vMb7y2r8tsIl180BAs1C5NUn.jpg',
+                'image_url' => 'banners/banner1.jpg',
                 'link_url' => 'http://127.0.0.1:8000/showtimes',
                 'position' => 'HOME_TOP',
                 'start_date' => now(),
@@ -27,7 +27,7 @@ Banner::insert([
                 'updated_at' => now(),
             ],
             [
-                'image_url' => 'banners/3oAEgtgv4Iq7WFR6IJPn0RA3lyF2IqpHHiYy7LaP.jpg',
+                'image_url' => 'banners/banner2.jpg',
                 'link_url' => 'http://127.0.0.1:8000/news',
                 'position' => 'HOME_MIDDLE',
                 'start_date' => now()->addDays(1),
@@ -37,7 +37,7 @@ Banner::insert([
                 'updated_at' => now(),
             ],
             [
-                'image_url' => 'banners/aXsy5WxpdJ0E5VXYK3SGNhmS2tyWDEMi6sVtMzgx.jpg',
+                'image_url' => 'banners/banner3.jpg',
                 'link_url' => 'http://127.0.0.1:8000/movies',
                 'position' => 'HOME_MIDDLE',
                 'start_date' => now()->addDays(1),
