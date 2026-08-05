@@ -354,7 +354,7 @@ class MovieSeeder extends Seeder
                 'director' => 'Matt Reeves',
                 'cast' => 'Robert Pattinson, Zoë Kravitz, Colin Farrell',
                 'poster_url' => 'poster_film/GVCckepQlSpJBrkWBD1HsnCpJPSawLZnwdTOCNvKsqSo.jpg',
-                'banner_url' => 'banner_film/SNb1r4aA6WpIATzivtyGFwgGwOVZDdsn9cmP9hNP.png',
+                'banner_url' => 'banner_film/yI1ILbfn7l3cfLfOOAVUn201zSzujXnDXn7PYKAX.jpg',
                 'trailer_url' => 'https://youtu.be/mqqft2x_Aa4',
                 'status' => 'NOW_SHOWING',
             ],
