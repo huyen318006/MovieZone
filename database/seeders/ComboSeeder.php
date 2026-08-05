@@ -15,16 +15,16 @@ class ComboSeeder extends Seeder
         Combo::query()->delete();
 
         $combos = [
-            ['name' => 'Combo Cặp đôi', 'description' => '1 bắp + 2 nước + 2 khoai tây', 'price' => 109000, 'image_url' => 'combos/Combo1.png', 'status' => 'ACTIVE'],
-            ['name' => 'Combo Gia đình', 'description' => '2 bắp + 4 nước + 2 khoai tây', 'price' => 199000, 'image_url' => 'combos/Combo2.png', 'status' => 'ACTIVE'],
-            ['name' => 'Combo Movie Night', 'description' => '2 bắp + 2 nước + 1 hotdog', 'price' => 139000, 'image_url' => 'combos/Combo3.png', 'status' => 'ACTIVE'],
-            ['name' => 'Combo Tiệc nhỏ', 'description' => '1 bắp lớn + 2 nước + 1 nachos', 'price' => 129000, 'image_url' => 'combos/Combo4.png', 'status' => 'ACTIVE'],
-            ['name' => 'Combo Hướng dẫn viên', 'description' => '2 bắp vừa + 2 nước + 1 khoai tây', 'price' => 119000, 'image_url' => 'combos/Combo5.png', 'status' => 'ACTIVE'],
-            ['name' => 'Combo Sinh nhật', 'description' => '2 bắp + 2 nước + 2 hotdog', 'price' => 149000, 'image_url' => 'combos/Combo6.png', 'status' => 'ACTIVE'],
-            ['name' => 'Combo Team Building', 'description' => '3 bắp + 3 nước + 3 khoai tây', 'price' => 229000, 'image_url' => 'combos/Combo7.png', 'status' => 'ACTIVE'],
-            ['name' => 'Combo Kết nối', 'description' => '1 bắp lớn + 2 nước + 1 nachos', 'price' => 135000, 'image_url' => 'combos/Combo8.png', 'status' => 'ACTIVE'],
-            ['name' => 'Combo Học sinh', 'description' => '1 bắp nhỏ + 1 nước + 1 khoai tây', 'price' => 89000, 'image_url' => 'combos/Combo9.png', 'status' => 'ACTIVE'],
-            ['name' => 'Combo VIP', 'description' => '2 bắp lớn + 2 nước + 2 hotdog', 'price' => 249000, 'image_url' => 'combos/Combo10.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo Cặp đôi', 'description' => '1 bắp + 2 nước + 2 khoai tây', 'price' => 109000, 'image_url' => 'combos/0cnWa9H2e3RxdgBYBwgB2dElpW0RmyoUO2CasWZa.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo Gia đình', 'description' => '2 bắp + 4 nước + 2 khoai tây', 'price' => 199000, 'image_url' => 'combos/6Rvw2icr8b0zo9DttNPSJjELMbSMg9wfkdlShiGc.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo Movie Night', 'description' => '2 bắp + 2 nước + 1 hotdog', 'price' => 139000, 'image_url' => 'combos/7prbudM7FrDgWj78c6HAp0fKD1bgiQayhQqGvBe8.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo Tiệc nhỏ', 'description' => '1 bắp lớn + 2 nước + 1 nachos', 'price' => 129000, 'image_url' => 'combos/9iJZFyyGXksNKRZTMYOFWWK88GtCZbPQtpMiNbkH.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo Hướng dẫn viên', 'description' => '2 bắp vừa + 2 nước + 1 khoai tây', 'price' => 119000, 'image_url' => 'combos/BlxKqGc0CxSQLqc0NswzD0cqM0494o228tcwhEr.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo Sinh nhật', 'description' => '2 bắp + 2 nước + 2 hotdog', 'price' => 149000, 'image_url' => 'combos/bYFoX3iK1aMoqOKk7SReoyeYzJNtPp4iK43sQoue.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo Team Building', 'description' => '3 bắp + 3 nước + 3 khoai tây', 'price' => 229000, 'image_url' => 'combos/c5bF2oBeOi7G70ecHFu3gLXJst56558ludUeIlQq.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo Kết nối', 'description' => '1 bắp lớn + 2 nước + 1 nachos', 'price' => 135000, 'image_url' => 'combos/cZTBmEeJSblIWmFEBmKSJ7cTfG8qfQkxxj4la5h.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo Học sinh', 'description' => '1 bắp nhỏ + 1 nước + 1 khoai tây', 'price' => 89000, 'image_url' => 'combos/GKlVs5pnZBHQUTaKx0xgxbEJyG8v2BkvqHi5Xcr5.png', 'status' => 'ACTIVE'],
+            ['name' => 'Combo VIP', 'description' => '2 bắp lớn + 2 nước + 2 hotdog', 'price' => 249000, 'image_url' => 'combos/GUlLuA9qfJxi7US6j5FsvNw0lRdVd4cuI8ihHNQ7.png', 'status' => 'ACTIVE'],
         ];
 
         foreach ($combos as $combo) {
