@@ -17,6 +17,25 @@ class Combo extends Model
         'status'
     ];
 
+    public function getImageAttribute(): string
+    {
+        $path = trim($this->image_url ?? '');
+
+        if (empty($path)) {
+            return asset('assets/promo/1.jpg');
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'storage/')) {
+            return asset($path);
+        }
+
+        return asset('storage/' . ltrim($path, '/'));
+    }
+
     public function products()
     {
         return $this->belongsToMany(

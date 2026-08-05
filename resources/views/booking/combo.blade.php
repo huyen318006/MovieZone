@@ -92,7 +92,7 @@
 
                             <div class="combo-image">
                                 @if(!empty($combo->image_url))
-                                    <img src="{{ asset($combo->image_url) }}" alt="{{ $combo->name }}">
+                                    <img src="{{ $combo->image }}" alt="{{ $combo->name }}">
                                 @else
                                     <img src="https://placehold.co/260x180/111827/7fa6ff?text=MovieZone" alt="{{ $combo->name }}">
                                 @endif
