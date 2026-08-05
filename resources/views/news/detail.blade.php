@@ -45,7 +45,7 @@
                     {{-- Big Thumbnail --}}
                     @if($article->thumbnail_url)
                         <div class="mb-5 overflow-hidden" style="border-radius: var(--radius); max-height: 450px;">
-                            <img src="{{ asset($article->thumbnail_url) }}" class="w-100 h-100 object-fit-cover" alt="{{ $article->title }}" style="box-shadow: 0 15px 35px rgba(0,0,0,0.3);">
+                            <img src="{{ $article->thumbnail }}" class="w-100 h-100 object-fit-cover" alt="{{ $article->title }}" style="box-shadow: 0 15px 35px rgba(0,0,0,0.3);">
                         </div>
                     @endif
 
@@ -78,7 +78,7 @@
                                 <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $other->slug) }}" class="d-flex gap-3 text-decoration-none group-article" style="transition: all 0.3s ease;">
                                     {{-- Mini Thumbnail --}}
                                     <div class="flex-shrink-0 overflow-hidden" style="width: 90px; height: 90px; border-radius: 12px;">
-                                        <img src="{{ $other->thumbnail_url ? asset($other->thumbnail_url) : asset('assets/news/batman.jpg') }}" class="w-100 h-100 object-fit-cover img-thumbnail-mini" alt="{{ $other->title }}" style="transition: transform 0.3s ease;">
+                                        <img src="{{ $other->thumbnail }}" class="w-100 h-100 object-fit-cover img-thumbnail-mini" alt="{{ $other->title }}" style="transition: transform 0.3s ease;">
                                     </div>
                                     
                                     {{-- Info --}}

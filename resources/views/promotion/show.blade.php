@@ -38,16 +38,7 @@
 
     <article class="card promo-detail-card border-0 shadow-sm">
         <div class="promo-detail-banner">
-            @if ($promotion->banner_url && \Illuminate\Support\Facades\Storage::disk('public')->exists($promotion->banner_url))
-                <img src="{{ asset('storage/' . $promotion->banner_url) }}" alt="{{ $promotion->title }}">
-            @else
-                <div class="promo-detail-placeholder">
-                    <div>
-                        <i class="fa-solid fa-tags fa-4x mb-3"></i>
-                        <div class="fs-3 fw-bold">MovieZone Promotion</div>
-                    </div>
-                </div>
-            @endif
+            <img src="{{ $promotion->banner }}" alt="{{ $promotion->title }}">
         </div>
 
         <div class="card-body p-4 p-lg-5">

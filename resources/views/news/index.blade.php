@@ -33,7 +33,7 @@
                     @foreach($articles as $article)
                         <div class="carousel-item {{ $loop->first ? 'active' : '' }}">
                             <a href="{{ \App\Helpers\TabAuthHelper::route('news.detail', $article->slug) }}" class="d-block position-relative text-decoration-none">
-                                <img src="{{ $article->thumbnail_url ? asset($article->thumbnail_url) : asset('assets/news/batman.jpg') }}" class="d-block w-100" style="height: 520px; object-fit: cover;" alt="{{ $article->title }}">
+                                <img src="{{ $article->thumbnail }}" class="d-block w-100" style="height: 520px; object-fit: cover;" alt="{{ $article->title }}">
                                 <div class="carousel-caption d-none d-md-flex flex-column align-items-start justify-content-end p-4" style="background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.65) 100%); left: 0; right: 0; bottom: 0; top: 0;">
                                     <span class="badge bg-primary mb-2 text-uppercase" style="letter-spacing: 1px;">{{ $article->category === 'NEWS' ? 'Tin tức' : ($article->category === 'PROMOTION' ? 'Khuyến mãi' : ($article->category === 'EVENT' ? 'Sự kiện' : $article->category)) }}</span>
                                     <h2 class="text-white fw-bold mb-2" style="font-size: clamp(1.75rem, 2.1vw, 2.75rem); line-height: 1.05;">{{ $article->title }}</h2>
