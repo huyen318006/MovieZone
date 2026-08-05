@@ -136,8 +136,12 @@ class Movie extends Model
             return $path;
         }
 
-        if (str_starts_with($path, '/') || str_starts_with($path, 'storage/') || str_starts_with($path, 'assets/') || str_starts_with($path, 'uploads/')) {
+        if (str_starts_with($path, '/')) {
             return asset(ltrim($path, '/'));
+        }
+
+        if (str_starts_with($path, 'storage/') || str_starts_with($path, 'assets/')) {
+            return asset($path);
         }
 
         if (file_exists(public_path($path))) {
@@ -152,6 +156,6 @@ class Movie extends Model
             return asset('assets/' . $path);
         }
 
-        return asset('storage/' . $path);
+        return asset('storage/' . ltrim($path, '/'));
     }
 }

@@ -77,7 +77,7 @@
             @foreach($promoCombos as $combo)
                 <div class="promo-card">
                     <a href="{{ route('booking.combo') }}" style="text-decoration: none; color: inherit;">
-                        <img src="{{ $combo->image_url ? asset($combo->image_url) : asset('assets/promo/1.jpg') }}" alt="{{ $combo->name }}">
+                        <img src="{{ $combo->image ?? asset('assets/promo/1.jpg') }}" alt="{{ $combo->name }}">
                         <div class="promo-info">
                             <strong style="display:block; margin-bottom:4px;">{{ $combo->name }}</strong>
                             <small>{{ number_format($combo->price ?? 0, 0, ',', '.') }} VNĐ</small>
