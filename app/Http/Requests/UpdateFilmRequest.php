@@ -50,7 +50,7 @@ class UpdateFilmRequest extends FormRequest
             'description'      => 'nullable|string',
 
             // ── PHÁT HÀNH ─────────────────────────────────────────
-            'duration_minutes' => 'required|integer|min:1|max:500',
+            'duration_minutes' => 'required|integer|min:40|max:500',
 
             /*
              * COMING_SOON  → release_date có thể thay đổi (phim chưa chiếu)
@@ -116,6 +116,7 @@ class UpdateFilmRequest extends FormRequest
         return [
             'title.required'            => 'Tên phim không được để trống',
             'duration_minutes.required' => 'Vui lòng nhập thời lượng phim',
+            'duration_minutes.min'      => 'Thời lượng phim tối thiểu là 40 phút',
             'release_date.required'     => 'Ngày khởi chiếu là bắt buộc',
             'release_date.date'         => 'Ngày khởi chiếu không hợp lệ',
             'end_date.after_or_equal'   => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày khởi chiếu',

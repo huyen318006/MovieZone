@@ -119,7 +119,7 @@ class FilmManageController extends Controller
             'description' => 'nullable|string',
 
             // Phát hành
-            'duration_minutes' => 'required|integer|min:1|max:500',
+            'duration_minutes' => 'required|integer|min:40|max:500',
             'release_date' => [
                 'required',
                 'date',
@@ -163,6 +163,7 @@ class FilmManageController extends Controller
             'title.required' => 'Tên phim không được để trống',
             'end_date.after' => 'Ngày kết thúc phải lớn hơn ngày khởi chiếu',
             'duration_minutes.required' => 'Vui lòng nhập thời lượng phim',
+            'duration_minutes.min' => 'Thời lượng phim tối thiểu là 40 phút',
             'release_date.required' => 'Ngày khởi chiếu là bắt buộc',
             'status.in' => 'Trạng thái không hợp lệ',
             'age_rating.in' => 'Độ tuổi không hợp lệ',

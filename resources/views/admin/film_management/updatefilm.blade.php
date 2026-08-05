@@ -309,6 +309,33 @@
                 </div>
 
                 {{-- THỂ LOẠI --}}
+                {{-- BANNER --}}
+                <div class="card shadow-sm mt-3">
+                    <div class="card-header">
+                        <strong>Banner phim</strong>
+                    </div>
+                    <div class="card-body">
+                        <label class="form-label">Banner hiện tại</label>
+                        <p class="small text-muted mb-2">Để trống nếu muốn giữ nguyên banner cũ.</p>
+
+                        @if ($movie_id->banner_url)
+                            <img src="{{ asset('storage/' . $movie_id->banner_url) }}"
+                                class="img-fluid rounded border mb-3">
+                        @else
+                            <div class="border rounded text-center p-5 mb-3">
+                                <i class="bi bi-image fs-1 text-secondary"></i>
+                                <div class="small text-muted mt-2">Chưa có banner</div>
+                            </div>
+                        @endif
+
+                        <label class="form-label">Chọn banner mới</label>
+                        <input type="file" name="banner"
+                            class="form-control @error('banner') is-invalid @enderror">
+                        @error('banner')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
                 <div class="card shadow-sm mt-3">
                     <div class="card-header">
                         <strong>Phân loại phim <span class="text-danger">*</span></strong>
