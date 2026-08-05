@@ -241,7 +241,7 @@
         @forelse($promotions as $promotion)
             <div class="promo-card">
                 <a href="{{ \App\Helpers\TabAuthHelper::route('promotion.show', $promotion->id) }}" style="text-decoration: none; color: inherit;">
-                    <img src="{{ $promotion->banner_url ? asset($promotion->banner_url) : asset('assets/promo/1.jpg') }}" alt="{{ $promotion->title }}">
+                    <img src="{{ $promotion->banner_url ? asset('storage/' . $promotion->banner_url) : asset('assets/promo/1.jpg') }}" alt="{{ $promotion->title }}">
                     <div class="promo-info">
                         <strong style="display:block; margin-bottom:4px; color:#fff;">{{ $promotion->title }}</strong>
                         <small>{{ optional($promotion->start_date)->format('d/m/Y') }} - {{ optional($promotion->end_date)->format('d/m/Y') }}</small>
