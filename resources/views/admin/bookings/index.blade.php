@@ -515,7 +515,10 @@
 
                     return `
                         <tr>
-                            <td><strong class="text-primary">${b.booking_code}</strong></td>
+                            <td>
+                                <strong class="text-primary">${b.booking_code}</strong>
+                                ${b.late_payment_alert ? '<br><span class="badge text-bg-danger mt-1" title="Khách thanh toán sau khi đơn đã hết hạn"><i class="bi bi-exclamation-triangle"></i> Có GD Muộn</span>' : ''}
+                            </td>
                             <td>
                                 <div class="fw-semibold">${customerName}</div>
                                 ${customerContact}
@@ -735,6 +738,34 @@
                                 `;
                             } else {
                                 paymentsTbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Không có thông tin giao dịch.</td></tr>';
+                            }
+
+                            // Late payment info
+                            if (res.late_payment) {
+                                const lp = res.late_payment;
+                                const lpNotes = lp.notes || {};
+                                
+                                // Nếu chưa có row nào thì xoá thông báo "Không có thông tin"
+                                if (!b.payment) {
+                                    paymentsTbody.innerHTML = '';
+                                }
+                                
+                                paymentsTbody.innerHTML += `
+                                    <tr class="table-danger">
+                                        <td>
+                                            <strong class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> CHUYỂN KHOẢN MUỘN</strong>
+                                            <div class="small mt-1 text-muted">${lp.reason}</div>
+                                        </td>
+                                        <td><code>${lpNotes.transaction_id || 'N/A'}</code></td>
+                                        <td class="text-end fw-bold text-danger">${formatVND(lpNotes.transaction_amount || 0)}</td>
+                                        <td>
+                                            <span class="badge bg-${lp.refund_status === 'refunded' ? 'success' : 'danger'}">
+                                                ${lp.refund_status === 'refunded' ? 'ĐÃ HOÀN TIỀN' : 'CHỜ HOÀN TIỀN'}
+                                            </span>
+                                        </td>
+                                        <td>${lpNotes.transaction_date ? formatDateTime(lpNotes.transaction_date) : 'N/A'}</td>
+                                    </tr>
+                                `;
                             }
 
                             // Timeline
