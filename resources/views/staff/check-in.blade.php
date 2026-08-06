@@ -459,9 +459,8 @@
                         <div class="manual-form">
                             <select id="manualType">
                                 <option value="booking_code">Mã booking (BK...)</option>
-                                <option value="ticket_code">Mã vé (TK...)</option>
                             </select>
-                            <input type="text" id="manualCode" placeholder="VD: BKXM7QP9RWBF hoặc TK3QNH65UJP8H8"
+                            <input type="text" id="manualCode" placeholder="VD: BKXM7QP9RWBF"
                                 onkeydown="if(event.key==='Enter') lookupManual()">
                             <button class="btn-scan btn-scan-primary" onclick="lookupManual()" id="btnManualLookup">
                                 <i class="bi bi-search"></i> Tra cứu
@@ -780,10 +779,6 @@
                     <span class="ticket-info-value">${ticket.booking?.booking_code || 'N/A'}</span>
                 </div>
                 <div class="ticket-info-item">
-                    <span class="ticket-info-label">Mã vé</span>
-                    <span class="ticket-info-value">${ticket.ticket_code || 'N/A'}</span>
-                </div>
-                <div class="ticket-info-item">
                     <span class="ticket-info-label">Ghế</span>
                     <span class="ticket-info-value">${ticket.seat_code || 'N/A'} (${ticket.seat_type || ''})</span>
                 </div>
@@ -859,7 +854,6 @@
                    style="accent-color:var(--staff-primary); width:18px; height:18px;">
             <span class="seat-badge">${t.seat_code}</span>
             <span style="flex:1; font-size:13px; min-width:0;">
-                ${t.ticket_code}
                 ${isScanned ? '<i class="bi bi-arrow-left-short" style="color:var(--staff-primary); font-weight:700;" title="Vé vừa quét"></i>' : ''}
             </span>
             <span class="status-badge ${t.status.toLowerCase()}">${t.status}</span>
