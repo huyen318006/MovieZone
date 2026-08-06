@@ -317,6 +317,7 @@ class BookingController extends Controller
 
         // TIMER: Tính thời gian còn lại từ master timer
         $secondsLeft = 0;
+        $showtime = null;
         if ($bookingTam && ! empty($bookingTam['showtime_id'])) {
             $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$bookingTam['showtime_id'];
             if (Cache::has($masterTimerKey)) {
@@ -330,6 +331,9 @@ class BookingController extends Controller
                 return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']])
                     ->with('error', 'Hết thời gian giữ ghế (5 phút). Vui lòng chọn lại.');
             }
+
+            $showtime = Showtime::with(['movie', 'cinema', 'room'])
+                ->find($bookingTam['showtime_id']);
         }
 
         $combos = Combo::where('status', 'ACTIVE')->get();
@@ -348,7 +352,7 @@ class BookingController extends Controller
             session()->put('booking_tam', $bookingTam);
         }
 
-return view('booking.combo', compact('combos', 'secondsLeft', 'bookingTam'));
+        return view('booking.combo', compact('combos', 'secondsLeft', 'bookingTam', 'showtime'));
     }
 
     public function saveCombo(Request $request)
