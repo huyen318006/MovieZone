@@ -158,13 +158,17 @@
 
                     <div class="movie-info">
 
-                        <div class="movie-thumb"></div>
+                        <div class="movie-thumb">
+                            @if(isset($showtime->movie->poster))
+                                <img src="{{ $showtime->movie->poster }}" alt="{{ $showtime->movie->title }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">
+                            @endif
+                        </div>
 
                         <div>
-                            <strong>{{ session('booking_movie_name', 'Tên phim') }}</strong>
-                            <span>{{ session('booking_cinema_name', 'MovieZone Cinema') }}</span>
-                            <span>{{ session('booking_room_name', 'Phòng chiếu') }}</span>
-                            <span>{{ session('booking_time', '14:30') }}</span>
+                            <strong>{{ $showtime->movie->title ?? 'Tên phim' }}</strong>
+                            <span>{{ $showtime->cinema->name ?? 'MovieZone Cinema' }}</span>
+                            <span>{{ $showtime->room->name ?? 'Phòng chiếu' }}</span>
+                            <span>{{ $showtime ? \Carbon\Carbon::parse($showtime->start_time)->format('H:i - d/m/Y') : '14:30' }}</span>
                         </div>
 
                     </div>
