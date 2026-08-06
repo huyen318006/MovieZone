@@ -2115,6 +2115,10 @@ RESPONSIVE
     font-size: 13px;
     text-decoration: none;
     transition: .3s;
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
 }
 
 .cancel-link-mz:hover {
