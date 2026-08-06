@@ -322,6 +322,7 @@
     $metrics = $dashboard['metrics'] ?? [];
     $recentCheckins = $dashboard['recent_checkins'] ?? collect();
     $recentCashPayments = $dashboard['recent_cash_payments'] ?? collect();
+    $recentLatePayments = $dashboard['recent_late_payments'] ?? collect();
     $dashboardStartDate = $dashboard['start_date'] ?? now()->startOfDay();
     $dashboardEndDate = $dashboard['end_date'] ?? now()->endOfDay();
     $isSingleDay = $dashboardStartDate->isSameDay($dashboardEndDate);
@@ -388,10 +389,10 @@
 
     <div class="staff-metric-card" style="--metric-bg:linear-gradient(135deg,#ef4444,#be123c);--metric-glow:rgba(239,68,68,.18);">
         <div class="metric-head">
-            <span>Sự cố cần hỗ trợ</span>
-            <div class="metric-icon"><i class="bi bi-life-preserver"></i></div>
+            <span>Thanh toán muộn (chưa hoàn)</span>
+            <div class="metric-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
         </div>
-        <strong>{{ number_format($metrics['support_issues'] ?? 0) }}</strong>
+        <strong>{{ number_format($metrics['late_payment_alerts'] ?? 0) }}</strong>
     </div>
 </div>
 
@@ -488,6 +489,60 @@
         </div>
     </section>
 </div>
+
+{{-- Late Payment Alert Panel (hiển thị khi có thanh toán muộn) --}}
+@if ($recentLatePayments->isNotEmpty())
+<div class="staff-panel" style="margin-top: 18px; border-color: rgba(239,68,68,.35);">
+    <div class="staff-panel-header" style="background: rgba(239,68,68,.08);">
+        <h2 style="color:#f87171;">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            Cảnh báo: Thanh toán muộn cần hoàn tiền
+        </h2>
+        <span class="badge" style="background:rgba(239,68,68,.2);color:#f87171;font-size:11px;padding:5px 10px;border-radius:999px;"
+              title="Khách đã chuyển khoản sau khi đơn hết hạn 5 phút">
+            {{ $recentLatePayments->count() }} trường hợp
+        </span>
+    </div>
+
+    <div class="staff-panel-list">
+        @foreach ($recentLatePayments as $lp)
+            @php
+                $lpBooking   = $lp->booking;
+                $lpUser      = $lpBooking?->user;
+                $lpMovie     = $lpBooking?->showtime?->movie;
+                $lpNotes     = $lp->notes ?? [];
+                $lpAmount    = number_format($lpNotes['transaction_amount'] ?? 0);
+                $lpOrderCode = $lpNotes['order_code'] ?? '—';
+                $lpTxDate    = $lpNotes['transaction_date'] ?? '';
+            @endphp
+            <div class="staff-list-item" style="flex-wrap:wrap; gap:8px;">
+                <div class="staff-list-main" style="flex:1; min-width:200px;">
+                    <strong style="color:#fca5a5;">
+                        {{ $lpBooking?->booking_code ?? 'N/A' }}
+                        <span style="font-size:11px;font-weight:400;margin-left:6px;color:#f87171;">⚠️ Thanh toán muộn</span>
+                    </strong>
+                    <span>
+                        {{ $lpUser?->name ?? 'Khách vãng lai' }}
+                        @if ($lpMovie) · {{ $lpMovie->title }} @endif
+                    </span>
+                    <span style="font-size:11px;color:#94a3b8;">
+                        Mã đơn: {{ $lpOrderCode }} · GD: {{ $lpTxDate ? \Carbon\Carbon::parse($lpTxDate)->format('d/m H:i') : '—' }}
+                    </span>
+                </div>
+                <div class="staff-list-meta" style="text-align:right;">
+                    <span style="color:#fbbf24;font-weight:700;">{{ $lpAmount }}đ</span>
+                    <span style="display:block;font-size:11px;color:#f87171;">Chờ hoàn tiền</span>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
+    <div style="padding: 12px 20px; border-top: 1px solid rgba(239,68,68,.2); font-size:12px; color:#94a3b8;">
+        <i class="bi bi-info-circle me-1"></i>
+        Liên hệ Admin để xử lý hoàn tiền. Admin có thể xem đầy đủ trong <strong style="color:#c4b5fd;">Quản lý đặt vé → Lịch sử Payment</strong>.
+    </div>
+</div>
+@endif
 
 
 @endsection

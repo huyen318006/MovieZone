@@ -20,3 +20,6 @@ Artisan::command('membership:scan-expired', function (MembershipService $members
 
 // Tự động lên lịch chạy ngầm hằng ngày lúc 00:00
 Schedule::command('membership:scan-expired')->dailyAt('00:00');
+
+// Quét thanh toán muộn mỗi 10 phút (phát hiện khách chuyển khoản sau khi đơn hết hạn)
+Schedule::command('booking:detect-late-payments')->everyTenMinutes();
