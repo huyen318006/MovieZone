@@ -351,6 +351,7 @@
                 btn.disabled = true;
 
                 try {
+                    const roomTypes = Array.from(document.querySelectorAll('input[name="room_types[]"]:checked')).map(el => el.value);
                     const res = await fetch("{{ \App\Helpers\TabAuthHelper::route('admin.movies.check-slots') }}", {
                         method: 'POST',
                         headers: {
@@ -360,7 +361,8 @@
                         body: JSON.stringify({
                             release_date: releaseDate,
                             end_date: endDate,
-                            duration_minutes: duration
+                            duration_minutes: duration,
+                            room_types: roomTypes
                         })
                     });
 
