@@ -192,8 +192,11 @@
     const statusSubtext = document.getElementById('statusSubtext');
 
     let pollCount = 0;
+    let paymentExpired = false;
 
     function checkPaymentStatus() {
+        if (paymentExpired) return; // Không kiểm tra nữa nếu đã hết hạn
+
         pollCount++;
 
         fetch(checkUrl)
@@ -226,6 +229,129 @@
 
     const pollingInterval = setInterval(checkPaymentStatus, pollMs);
     setTimeout(checkPaymentStatus, 3000);
+
+    // ============================
+    // Đóng QR khi hết 5 phút countdown
+    // ============================
+    window.addEventListener('countdownExpired', function() {
+        paymentExpired = true;
+        clearInterval(pollingInterval);
+
+        // Cập nhật trạng thái
+        if (statusText) {
+            statusText.textContent = '⏰ Hết thời gian thanh toán';
+        }
+        if (statusSubtext) {
+            statusSubtext.textContent = 'Mã QR đã hết hạn, vui lòng đặt vé lại.';
+        }
+
+        // Thêm overlay hết hạn lên QR panel
+        const qrPanel = document.querySelector('.payment-qr-panel');
+        if (qrPanel) {
+            // Blur toàn bộ nội dung QR
+            qrPanel.classList.add('qr-expired');
+
+            // Thêm overlay thông báo hết hạn
+            const expiredOverlay = document.createElement('div');
+            expiredOverlay.className = 'qr-expired-overlay';
+            expiredOverlay.innerHTML = `
+                <div class="qr-expired-content">
+                    <div class="qr-expired-icon">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <h3>Mã QR đã hết hạn</h3>
+                    <p>Thời gian thanh toán 5 phút đã hết.<br>Vui lòng quay lại đặt vé mới.</p>
+                </div>
+            `;
+            qrPanel.appendChild(expiredOverlay);
+
+            // Animation hiện overlay
+            requestAnimationFrame(() => {
+                expiredOverlay.classList.add('show');
+            });
+        }
+    });
 </script>
+
+{{-- CSS cho QR expired overlay --}}
+<style>
+    .payment-qr-panel.qr-expired > *:not(.qr-expired-overlay) {
+        filter: blur(6px) grayscale(0.7);
+        opacity: 0.3;
+        pointer-events: none;
+        user-select: none;
+        transition: all 0.6s ease;
+    }
+
+    .qr-expired-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        opacity: 0;
+        transition: opacity 0.5s ease;
+        border-radius: inherit;
+    }
+
+    .qr-expired-overlay.show {
+        opacity: 1;
+    }
+
+    .qr-expired-content {
+        text-align: center;
+        padding: 32px 24px;
+        animation: qrExpiredSlideUp 0.6s ease 0.2s both;
+    }
+
+    @keyframes qrExpiredSlideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .qr-expired-icon {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.12);
+        border: 2px solid rgba(239, 68, 68, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 18px;
+        font-size: 32px;
+        color: #ef4444;
+        animation: qrExpiredPulse 2s infinite;
+    }
+
+    @keyframes qrExpiredPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.25); }
+        50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+    }
+
+    .qr-expired-content h3 {
+        color: #f8fafc;
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 8px;
+    }
+
+    .qr-expired-content p {
+        color: #9ca3af;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0;
+    }
+</style>
 
 @endsection
