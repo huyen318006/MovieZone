@@ -501,9 +501,18 @@ return view('booking.confirm', compact(
                 ->with('error', 'Hết thời gian giữ ghế. Vui lòng chọn lại.');
         }
 
-        // Lưu thời gian hết hạn vào session để trang payment dùng chung timer
-        $holdExpireTimestamp = Cache::get($masterTimerKey);
-        session()->put('hold_expire_at', $holdExpireTimestamp);
+        // GUARD: Kiểm tra đã tạo booking cho session này chưa (chống trùng khi user bấm back rồi submit lại)
+        $existingOrderCode = session('pending_order_code');
+        if ($existingOrderCode) {
+            $existingOrder = SepayOrder::where('order_code', $existingOrderCode)
+                ->whereIn('status', ['pending', 'paid'])
+                ->first();
+            if ($existingOrder) {
+                // Đơn hàng đã tồn tại, redirect thẳng tới trang thanh toán
+                return redirect()->route('booking.payment', ['orderCode' => $existingOrderCode]);
+            }
+        }
+
 
         $showtimeId = $bookingTam['showtime_id'];
         $seatIds = $bookingTam['seats'];
@@ -594,8 +603,8 @@ return view('booking.confirm', compact(
                     'updated_at' => now(),
                 ]);
 
-                // Giải phóng ghế khỏi Cache sau khi lưu DB thành công
-                Cache::forget('seat_held_'.$showtimeId.'_'.$seat->id);
+                // GIỮ NGUYÊN cache giữ ghế — chỉ xóa khi thanh toán thành công hoặc hủy
+                // (Ghế đã có trong DB với booking status PENDING_PAYMENT nên hiển thị SOLD)
             }
 
             foreach (($bookingTam['combos'] ?? []) as $comboItem) {
@@ -668,10 +677,15 @@ return view('booking.confirm', compact(
             ]);
 
             DB::commit();
-            session()->forget('booking_tam');
+
+            // Lưu order code vào session để guard chống tạo booking trùng + dùng khi quay lại
+            session()->put('pending_order_code', $bookingCode);
+            // GIỮ NGUYÊN booking_tam — chỉ xóa khi thanh toán thành công hoặc hủy đơn
 
             // Nếu tổng thanh toán = 0 (xu cover 100%) → tự động xác nhận PAID
             if ($finalAmount <= 0) {
+                session()->forget('booking_tam');
+                session()->forget('pending_order_code');
                 return $this->handleZeroAmountBooking($booking, $coinUsed);
             }
 
@@ -843,9 +857,9 @@ return view('booking.confirm', compact(
             $order->update(['status' => 'expired']);
         }
 
-        // Xóa session hold timer
-        session()->forget('hold_expire_at');
+        // Xóa session booking tạm
         session()->forget('booking_tam');
+        session()->forget('pending_order_code');
 
         // Giải phóng master timer
         if (Auth::check() && $showtimeId) {
