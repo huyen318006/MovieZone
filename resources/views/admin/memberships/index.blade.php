@@ -24,15 +24,6 @@
             <h3 class="fw-bold text-white mb-1"><i class="bi bi-shield-check text-warning me-2"></i>Quản Lý Membership Khách Hàng</h3>
             <p class="text-muted small mb-0">Danh sách tài khoản khách hàng, mốc hạng thành viên, số dư Coin và tổng chi tiêu</p>
         </div>
-        <div>
-            <form action="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.scan_expired') }}" method="POST" onsubmit="return confirm('Bạn có chắc chắn muốn quét kiểm tra và hạ hạng các tài khoản quá hạn duy trì 6 tháng không?')">
-                @csrf
-                <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
-                <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4 shadow-sm">
-                    <i class="bi bi-arrow-repeat me-1"></i> ⚡ Quét Hạ Hạng Tự Động (6 Tháng)
-                </button>
-            </form>
-        </div>
     </div>
 
     <!-- Filter Card -->
