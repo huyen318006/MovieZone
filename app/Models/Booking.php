@@ -61,7 +61,15 @@ class Booking extends Model
     // Quan hệ 1-1: Một đơn hàng có thể có một thông tin hủy đơn
     public function cancellation()
     {
-        return $this->hasOne(BookingCancellation::class, 'booking_id');
+        return $this->hasOne(BookingCancellation::class, 'booking_id')
+                    ->where('type', 'CANCELLATION');
+    }
+
+    // Quan hệ 1-1: Thanh toán muộn (khách chuyển khoản sau khi đơn hết hạn)
+    public function latePaymentAlert()
+    {
+        return $this->hasOne(BookingCancellation::class, 'booking_id')
+                    ->where('type', 'LATE_PAYMENT');
     }
     public function bookingProducts()
     {

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Booking;
+use App\Models\BookingCancellation;
 use App\Models\CheckInLog;
 use App\Models\Payment;
 use App\Models\Ticket;
@@ -20,14 +21,16 @@ class StaffDashboardService
             'start_date' => $startDate,
             'end_date' => $endDate,
             'metrics' => [
-                'checked_in_tickets' => $this->checkedInTicketsCount($startDate, $endDate),
+                'checked_in_tickets'   => $this->checkedInTicketsCount($startDate, $endDate),
                 'pending_cash_bookings' => $this->pendingCashBookingsCount($startDate, $endDate),
-                'new_bookings' => $this->newBookingsCount($startDate, $endDate),
-                'support_issues' => 0,
+                'new_bookings'         => $this->newBookingsCount($startDate, $endDate),
+                'support_issues'       => 0,
+                'late_payment_alerts'  => $this->latePaymentAlertsCount(),
             ],
-            'recent_checkins' => $this->recentCheckins($startDate, $endDate),
+            'recent_checkins'      => $this->recentCheckins($startDate, $endDate),
             'recent_cash_payments' => $this->recentPaidBookings($startDate, $endDate),
             'recent_paid_bookings' => $this->recentPaidBookings($startDate, $endDate),
+            'recent_late_payments' => $this->recentLatePayments(),
         ];
     }
 
@@ -40,14 +43,16 @@ class StaffDashboardService
             'start_date' => $startDate,
             'end_date' => $endDate,
             'metrics' => [
-                'checked_in_tickets' => 0,
+                'checked_in_tickets'   => 0,
                 'pending_cash_bookings' => 0,
-                'new_bookings' => 0,
-                'support_issues' => 0,
+                'new_bookings'         => 0,
+                'support_issues'       => 0,
+                'late_payment_alerts'  => 0,
             ],
-            'recent_checkins' => collect(),
+            'recent_checkins'      => collect(),
             'recent_cash_payments' => collect(),
             'recent_paid_bookings' => collect(),
+            'recent_late_payments' => collect(),
         ];
     }
 
@@ -111,6 +116,20 @@ class StaffDashboardService
             ->whereBetween('created_at', [$startOfDay, $endOfDay])
             ->latest('created_at')
             ->limit(8)
+            ->get();
+    }
+
+    private function latePaymentAlertsCount(): int
+    {
+        return BookingCancellation::pendingRefund()->count();
+    }
+
+    private function recentLatePayments(): Collection
+    {
+        return BookingCancellation::pendingRefund()
+            ->with(['booking.user', 'booking.showtime.movie'])
+            ->latest('created_at')
+            ->limit(5)
             ->get();
     }
 }

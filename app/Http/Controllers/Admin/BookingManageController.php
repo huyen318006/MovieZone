@@ -78,6 +78,7 @@ class BookingManageController extends Controller
             'showtime:id,movie_id,cinema_id,start_time',
             'showtime.movie:id,title',
             'showtime.cinema:id,name',
+            'latePaymentAlert',
         ])->orderBy('created_at', 'desc');
 
         // Tìm kiếm theo Mã booking
@@ -155,7 +156,8 @@ class BookingManageController extends Controller
             'bookingCombos:id,booking_id,combo_id,quantity,unit_price,total_price',
             'bookingCombos.combo:id,name,description',
             'payment:id,booking_id,payment_method,amount,transaction_code,status,paid_at',
-            'cancellation.admin'
+            'cancellation.admin',
+            'latePaymentAlert',
         ])->find($id);
 
         if (!$booking) {
@@ -187,10 +189,11 @@ class BookingManageController extends Controller
             });
 
         return response()->json([
-            'success' => true,
-            'booking' => $booking,
-            'vouchers' => $voucherUsages,
-            'audit_logs' => $auditLogs
+            'success'         => true,
+            'booking'         => $booking,
+            'vouchers'        => $voucherUsages,
+            'audit_logs'      => $auditLogs,
+            'late_payment'    => $booking->latePaymentAlert,
         ], 200);
     }
 
