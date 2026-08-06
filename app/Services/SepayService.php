@@ -172,11 +172,16 @@ class SepayService
             ];
         }
 
-        // Nếu đơn hết hạn
+        // Nếu đơn hết hạn (còn pending nhưng quá thời gian)
         if ($order->isExpired()) {
             $order->markAsExpired();
 
             return ['status' => 'expired', 'message' => 'Đơn hàng đã hết hạn'];
+        }
+
+        // Nếu đơn đã bị đánh dấu expired trước đó → từ chối luôn, không kiểm tra giao dịch
+        if ($order->status === 'expired') {
+            return ['status' => 'expired', 'message' => 'Đơn hàng đã hết hạn, không thể thanh toán'];
         }
 
         // Gọi SePay API kiểm tra giao dịch

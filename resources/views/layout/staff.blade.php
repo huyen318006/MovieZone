@@ -135,7 +135,7 @@
 
             <a class="nav-link {{ Request::routeIs('staff.check-in') ? 'active' : '' }}"
                href="{{ \App\Helpers\TabAuthHelper::route('staff.check-in') }}">
-                <i class="bi bi-qr-code-scan"></i> Check-in Vé
+                <i class="bi bi-qr-code-scan"></i> Xác nhận & In vé
             </a>
 
             <a class="nav-link {{ Request::routeIs('staff.sell-tickets') ? 'active' : '' }}"
