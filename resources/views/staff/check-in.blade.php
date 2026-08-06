@@ -1083,8 +1083,7 @@
                 a.remove();
                 window.URL.revokeObjectURL(url);
 
-                // Auto check-in tất cả vé sau khi tải PDF
-                autoCheckInAllUnused();
+                // Removed auto check-in here to allow early printing
             } catch (err) {
                 alert('Lỗi kết nối khi tải PDF.');
             } finally {
@@ -1147,8 +1146,7 @@
 
             iframe.src = `/staff/print-bill/${code}?print=true`;
 
-            // Auto check-in tất cả vé UNUSED trong batch panel
-            autoCheckInAllUnused();
+            // Removed auto check-in here to allow early printing
         }
 
 
