@@ -379,6 +379,9 @@
         if (!overlay) return;
         overlay.classList.add('show');
 
+        // Phát event để trang payment biết countdown đã hết
+        window.dispatchEvent(new CustomEvent('countdownExpired'));
+
         // Đếm ngược redirect 3 giây
         let redirectSeconds = 3;
         const redirectInterval = setInterval(function() {

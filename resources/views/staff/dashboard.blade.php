@@ -399,7 +399,7 @@
     <a class="staff-quick-card" href="{{ \App\Helpers\TabAuthHelper::route('staff.check-in') }}">
         <div class="quick-icon"><i class="bi bi-qr-code-scan"></i></div>
         <div>
-            <strong>Check-in vé</strong>
+            <strong>Xác nhận & In vé</strong>
             <span>Quét QR hoặc nhập mã vé thủ công</span>
         </div>
     </a>

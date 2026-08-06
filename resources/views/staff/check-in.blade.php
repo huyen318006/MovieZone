@@ -1,7 +1,7 @@
 @extends('layout.staff')
 
-@section('title', 'Check-in Vé QR')
-@section('page-title', 'Check-in Vé QR')
+@section('title', 'Xác nhận & In vé')
+@section('page-title', 'Xác nhận & In vé')
 
 @push('styles')
     /* ══════ CHECK-IN PAGE ══════ */
