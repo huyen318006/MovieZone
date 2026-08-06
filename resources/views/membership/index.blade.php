@@ -423,10 +423,16 @@
 
         <!-- Tiers & Perks List (Commit 2.3) -->
         <div class="mb-4">
-            <div class="d-flex align-items-center justify-content-between mb-4">
-                <div>
-                    <h3 class="fw-bold mb-1 text-white"><i class="bi bi-award text-warning me-2"></i>Danh Sách Hạng & Quyền Lợi</h3>
-                    <p class="small mb-0" style="color: #cbd5e1 !important;">Tích lũy Coin khi mua vé để mở khóa các mức giảm giá và đặc quyền độc quyền</p>
+            <div class="p-3 mb-4 rounded-4 border border-secondary border-opacity-25 bg-dark bg-opacity-50">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="fs-2 text-warning"><i class="bi bi-info-circle-fill"></i></div>
+                    <div>
+                        <h4 class="fw-bold mb-1 text-white"><i class="bi bi-award text-warning me-2"></i>Danh Sách Hạng & Quy Định Tích Điểm</h4>
+                        <p class="small mb-0" style="color: #cbd5e1 !important; line-height: 1.6;">
+                            Thăng hạng tự động dựa trên <strong>tổng chi tiêu mua vé tích lũy</strong>. Khi mua vé, hệ thống quy đổi thưởng: 
+                            <strong class="text-warning">10.000đ chi tiêu = 1 Coin</strong> (Quy đổi: <strong class="text-info">1 Coin = 1 VNĐ</strong>, dùng để trừ trực tiếp tiền vé cho các lần đặt sau).
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -455,17 +461,17 @@
 
                             <h5 class="fw-bold mb-1 text-white">{{ $lvl->name }}</h5>
                             <div class="small fw-bold text-warning mb-3">
-                                {{ number_format($lvl->min_points) }} Coin
+                                @if ($lvl->min_points > 0)
+                                    Chi tiêu từ {{ number_format($lvl->min_points) }}đ
+                                @else
+                                    Mức khởi đầu (0đ)
+                                @endif
                             </div>
 
                             <div class="pt-3 border-top border-secondary border-opacity-25">
                                 <div class="d-flex align-items-center gap-2 mb-2 small" style="color: #f1f5f9 !important;">
                                     <i class="bi bi-check-circle-fill text-success"></i>
                                     <span>Giảm <strong>{{ number_format($lvl->discount_percent, 0) }}%</strong> khi mua vé</span>
-                                </div>
-                                <div class="d-flex align-items-center gap-2 mb-2 small" style="color: #f1f5f9 !important;">
-                                    <i class="bi bi-check-circle-fill text-success"></i>
-                                    <span>Tích lũy 10.000đ = 1 Coin (1 Coin = 1 VNĐ)</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2 small" style="color: #f1f5f9 !important;">
                                     <i class="bi bi-check-circle-fill text-success"></i>
