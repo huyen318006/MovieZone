@@ -329,7 +329,8 @@
 
 <script>
 (function() {
-    let secondsLeft = Math.max(0, {{ $secondsLeft ?? 300 }});
+    const initialSecondsLeft = Math.max(0, {{ $secondsLeft ?? 300 }});
+    const expiresAt = Date.now() + (initialSecondsLeft * 1000);
     const totalSeconds = 300; // 5 phút
     const clockEl = document.getElementById('countdownClock');
     const barEl = document.getElementById('bookingCountdownBar');
@@ -342,10 +343,14 @@
         ? \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId])
         : \App\Helpers\TabAuthHelper::route('showtimes') }}";
 
+    function getSecondsLeft() {
+        return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+    }
+
     function updateDisplay() {
         if (!clockEl || !fillEl) return;
 
-        const safe = Math.max(0, secondsLeft);
+        const safe = getSecondsLeft();
         const m = Math.floor(safe / 60).toString().padStart(2, '0');
         const s = (safe % 60).toString().padStart(2, '0');
         clockEl.textContent = m + ':' + s;
@@ -361,9 +366,8 @@
     }
 
     const interval = setInterval(function() {
-        secondsLeft--;
-        if (secondsLeft <= 0) {
-            secondsLeft = 0;
+        const remaining = getSecondsLeft();
+        if (remaining <= 0) {
             clearInterval(interval);
             updateDisplay();
             showExpiredModal();
