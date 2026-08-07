@@ -276,7 +276,10 @@ class FilmManageController extends Controller
         // Tổng quỹ thời gian liên tục tối thiểu cần phải chiếm dụng cho 1 suất chiếu
         $requiredTime = $duration + $cleaningTime;
 
-        $rooms = Room::all(); // Lấy thông tin các phòng trong hệ thống rạp
+        $allowedRoomTypes = $request->input('room_types', []);
+        $rooms = empty($allowedRoomTypes)
+            ? Room::all()
+            : Room::whereIn('room_type', $allowedRoomTypes)->get();
         $totalAvailableSlots = 0; // Biến tích lũy tổng số slot trống khả thi tìm được
 
         // Dùng Carbon thiết lập mốc thời gian bắt đầu và kết thúc chu kỳ chiếu

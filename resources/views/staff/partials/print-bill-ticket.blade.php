@@ -40,6 +40,7 @@
 </div>
 
 {{-- Customer --}}
+@if($booking->user_id || $booking->customer_name || $booking->customer_phone || $booking->customer_email)
 <div class="section-title">👤 Khách hàng</div>
 <div class="info-grid">
     <div class="info-item">
@@ -55,6 +56,7 @@
         <span class="info-value">{{ $booking->user?->email ?? $booking->customer_email ?? 'N/A' }}</span>
     </div>
 </div>
+@endif
 
 {{-- Seat detail --}}
 <div class="section-title">🎟️ Chi tiết vé</div>

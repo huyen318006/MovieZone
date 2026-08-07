@@ -94,12 +94,12 @@
                                 <div>
                                     <label>Họ và tên</label>
                                     <input type="text" name="customer_name" class="form-control"
-                                        placeholder="Nhập họ và tên" required value="{{ old('customer_name') }}">
+                                        placeholder="Nhập họ và tên (không bắt buộc)" value="{{ old('customer_name') }}">
                                 </div>
                                 <div style="margin-top: 10px;">
                                     <label>Số điện thoại</label>
                                     <input type="text" name="customer_phone" class="form-control"
-                                        placeholder="Nhập số điện thoại" required value="{{ old('customer_phone') }}">
+                                        placeholder="Nhập số điện thoại (không bắt buộc)" value="{{ old('customer_phone') }}">
                                 </div>
                                 <div style="margin-top: 10px;">
                                     <label>Email nhận hóa đơn</label>

@@ -27,7 +27,7 @@ return [
 
     // Order settings
     'order_prefix' => 'DH',          // Prefix cho mã đơn hàng
-    'order_expiry_minutes' => 5,      // Hết hạn sau 5 phút (đồng bộ với countdown giữ ghế)
+    'order_expiry_minutes' => 5,      // Timer thanh toán riêng 5 phút (tách biệt với timer giữ ghế 5 phút, tổng = 10 phút)
     'polling_interval' => 5000,       // Polling interval (ms)
 
     /*
