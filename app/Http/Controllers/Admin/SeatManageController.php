@@ -60,12 +60,41 @@ class SeatManageController extends Controller
         }
     }
 
-    private function assertSeatNotLockedForRealtime(Seat $seat): void
+private function assertSeatNotLockedForRealtime(Seat $seat): void
     {
         $room = $seat->room;
         if ($room) {
             $this->assertSeatRoomNotLockedForRealtime($room);
         }
+    }
+
+/**
+     * Chặn thao tác xóa/chỉnh sửa ghế khi phòng đã có suất chiếu OPEN trong tương lai
+     * (tức là phòng đã "public" ra cho khách hàng xem & đặt vé).
+     * Lúc này không thể xóa/sửa ghế vì khách đang nhìn thấy sơ đồ ghế thật.
+     */
+    private function assertSeatRoomNotPublicForRoom(Room $room): void
+    {
+        $hasOpeningShowtime = $room->showtimes()
+            ->where('status', 'OPEN')
+            ->where('start_time', '>', now())
+            ->exists();
+
+        if ($hasOpeningShowtime) {
+            throw new \Exception(
+                "Phòng {$room->name} đã có suất chiếu OPEN sắp tới (đã public cho khách đặt vé). Không thể xóa/chỉnh sửa ghế lúc này."
+            );
+        }
+    }
+
+    private function assertSeatRoomNotPublic(Seat $seat): void
+    {
+        $room = $seat->room;
+        if (! $room) {
+            return;
+        }
+
+        $this->assertSeatRoomNotPublicForRoom($room);
     }
 
     /**
@@ -281,10 +310,8 @@ class SeatManageController extends Controller
                         'showtime_id' => $showtime->id,
                         'seat_id' => $seat->id,
                     ],
-                    [
+[
                         'price' => $seat->price, // Lấy giá từ bảng Seat gốc
-                        'status' => ($seat->status === 'LOCKED' || $seat->status === 'BROKEN') ? 'LOCKED' : 'AVAILABLE',
-                    ]
                 );
             }
         }
@@ -332,9 +359,9 @@ class SeatManageController extends Controller
                 $selectedShowtime = null;
             }
 
-            // Map dynamic status nếu có suất chiếu
+// Map dynamic status nếu có suất chiếu
             $dynamicStatuses = []; // seat_id => status
-            if ($selectedShowtime instanceof Showtime instanceof Showtime) {
+            if ($selectedShowtime instanceof Showtime) {
                 $showtimeSeats = $selectedShowtime->showtimeSeats;
                 $showtimeSeatsBySeatId = $showtimeSeats->keyBy('seat_id');
 
@@ -388,7 +415,7 @@ class SeatManageController extends Controller
         ));
     }
 
-    public function create(Request $request)
+public function create(Request $request)
     {
         $this->ensureAdminAccess();
 
@@ -402,6 +429,14 @@ class SeatManageController extends Controller
         // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
         try {
             $this->assertSeatRoomNotLockedForRealtime($room);
+        } catch (\Exception $e) {
+            return redirect()->route('admin.seats.index', ['room_id' => $room->id])
+                ->withErrors(['error' => $e->getMessage()]);
+        }
+
+        // Chặn chỉnh sửa khi phòng đã có suất chiếu OPEN (đã public cho khách)
+        try {
+            $this->assertSeatRoomNotPublicForRoom($room);
         } catch (\Exception $e) {
             return redirect()->route('admin.seats.index', ['room_id' => $room->id])
                 ->withErrors(['error' => $e->getMessage()]);
@@ -422,9 +457,17 @@ class SeatManageController extends Controller
             ])->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.']);
         }
 
-        // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+// Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
         try {
             $this->assertSeatNotLockedForRealtime($seat);
+        } catch (\Exception $e) {
+            return redirect()->route('admin.seats.index', ['room_id' => $seat->room_id])
+                ->withErrors(['error' => $e->getMessage()]);
+        }
+
+        // Chặn chỉnh sửa khi phòng đã public (đã có suất chiếu OPEN)
+        try {
+            $this->assertSeatRoomNotPublic($seat);
         } catch (\Exception $e) {
             return redirect()->route('admin.seats.index', ['room_id' => $seat->room_id])
                 ->withErrors(['error' => $e->getMessage()]);
@@ -445,11 +488,18 @@ class SeatManageController extends Controller
             'status' => 'required|in:'.implode(',', $this->allowedStatuses),
         ]);
 
-        $room = Room::with('showtimes')->findOrFail($validated['room_id']);
+$room = Room::with('showtimes')->findOrFail($validated['room_id']);
 
         // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
         try {
             $this->assertSeatRoomNotLockedForRealtime($room);
+        } catch (\Exception $e) {
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
+        }
+
+        // Chặn thêm ghế mới khi phòng đã public (đã có suất chiếu OPEN)
+        try {
+            $this->assertSeatRoomNotPublicForRoom($room);
         } catch (\Exception $e) {
             return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
@@ -523,10 +573,11 @@ class SeatManageController extends Controller
 
             if ($exists) {
                 // Ghế demo bị xóa mềm → phục hồi
-                if ($isDemo && $exists->trashed()) {
+if ($isDemo && $exists->trashed()) {
                     $exists->restore();
                     $exists->update([
                         'seat_type' => 'DEMO',
+                        'seat_code' => $rowLabel.$exists->seat_number, // Luôn khôi phục đúng mã ghế
                         'price' => 10000,
                         'status' => 'ACTIVE',
                     ]);
@@ -599,9 +650,16 @@ class SeatManageController extends Controller
             return back()->withErrors(['error' => $e->getMessage()]);
         }
 
-        // Chặn khi ghế đang được khách đặt/giữ (SOLD/HELD)
+// Chặn khi ghế đang được khách đặt/giữ (SOLD/HELD)
         try {
             $this->assertSeatNotUsed($seat);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+
+        // Chặn sửa ghế khi phòng đã public (đã có suất chiếu OPEN)
+        try {
+            $this->assertSeatRoomNotPublic($seat);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
@@ -733,11 +791,20 @@ class SeatManageController extends Controller
         );
 
         // ── Bước 2: Kiểm tra phòng ────────────────────────────────────────────
-        $room = Room::find($validated['room_id']);
+$room = Room::find($validated['room_id']);
 
         if (! $room || $room->status !== 'ACTIVE') {
             return back()
                 ->withErrors(['error' => 'Phòng này hiện không cho phép cấu hình ghế.'])
+                ->withInput();
+        }
+
+        // Chặn thêm nhiều ghế khi phòng đã public (đã có suất chiếu OPEN)
+        try {
+            $this->assertSeatRoomNotPublicForRoom($room);
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['error' => $e->getMessage()])
                 ->withInput();
         }
 
@@ -827,7 +894,7 @@ class SeatManageController extends Controller
                         ->where('seat_number', $i)
                         ->first();
 
-                    if ($seat) {
+if ($seat) {
                         $skipped[] = $seatCode;
 
                         // Phục hồi nếu bị soft-delete
@@ -839,6 +906,7 @@ class SeatManageController extends Controller
                             );
                             $seat->update([
                                 'seat_type' => $validated['seat_type'],
+                                'seat_code' => $seatCode, // Luôn khôi phục đúng mã ghế
                                 'price' => $demoPrice,
                                 'status' => 'ACTIVE',
                             ]);
@@ -931,9 +999,18 @@ class SeatManageController extends Controller
                 ->withInput();
         }
 
-        // Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
+// Chặn khi đã bắt đầu chiếu hoặc có booking (trừ CANCELLED/REFUNDED)
         try {
             $this->assertSeatRoomNotLockedForRealtime($room);
+        } catch (\Exception $e) {
+            return back()
+                ->withErrors(['error' => $e->getMessage()])
+                ->withInput();
+        }
+
+        // Chặn đổi loại ghế khi phòng đã public (đã có suất chiếu OPEN)
+        try {
+            $this->assertSeatRoomNotPublicForRoom($room);
         } catch (\Exception $e) {
             return back()
                 ->withErrors(['error' => $e->getMessage()])
@@ -1040,8 +1117,9 @@ class SeatManageController extends Controller
                 return back()->withErrors(['error' => $e->getMessage()]);
             }
         }
-        $deleted = [];
+$deleted = [];
         $blocked = [];
+        $affectedRows = []; // tập hợp (room_id, row_label) cần sắp xếp lại
 
         foreach ($seatIds as $seatId) {
             $seat = Seat::withTrashed()->find($seatId);
@@ -1051,9 +1129,17 @@ class SeatManageController extends Controller
                 continue;
             }
 
-            // Chặn nếu ghế đang được khách đặt/giữ (SOLD/HELD)
+// Chặn nếu ghế đang được khách đặt/giữ (SOLD/HELD)
             try {
                 $this->assertSeatNotUsed($seat);
+            } catch (\Exception $e) {
+                $blocked[] = $seat->seat_code;
+                continue;
+            }
+
+            // Chặn xóa khi phòng đã có suất chiếu OPEN trong tương lai (đã public cho khách đặt vé)
+            try {
+                $this->assertSeatRoomNotPublic($seat);
             } catch (\Exception $e) {
                 $blocked[] = $seat->seat_code;
                 continue;
@@ -1062,6 +1148,16 @@ class SeatManageController extends Controller
             $seat->delete();
             $deleted[] = $seat->seat_code;
             $this->writeAuditLog('seat.delete_soft', $seat, ['status' => $seat->status], ['deleted' => true]);
+
+            $affectedRows[$seat->room_id.'|'.$seat->row_label] = [
+                'room_id' => $seat->room_id,
+                'row_label' => $seat->row_label,
+            ];
+        }
+
+        // Sắp xếp lại số ghế liền mạch cho các hàng bị ảnh hưởng
+        foreach ($affectedRows as $pair) {
+            $this->renumberRowSeats($pair['room_id'], $pair['row_label']);
         }
 
         if (! empty($blocked)) {
@@ -1098,9 +1194,16 @@ class SeatManageController extends Controller
             return back()->withErrors(['error' => $e->getMessage()]);
         }
 
-        // Chặn khi ghế đang được khách đặt/giữ (SOLD/HELD)
+// Chặn khi ghế đang được khách đặt/giữ (SOLD/HELD)
         try {
             $this->assertSeatNotUsed($seat);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
+        }
+
+        // Chặn khóa/mở khóa ghế khi phòng đã public (đã có suất chiếu OPEN)
+        try {
+            $this->assertSeatRoomNotPublic($seat);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
@@ -1174,12 +1277,19 @@ class SeatManageController extends Controller
             return back()->withErrors(['error' => 'Danh sách ghế không hợp lệ.']);
         }
 
-        // Validate per room: room cannot have started showtime/open or non-cancelled booking
+// Validate per room: room cannot have started showtime/open or non-cancelled booking
         $rooms = $seats->pluck('room')->filter();
         $roomsUnique = $rooms->unique('id')->values();
         foreach ($roomsUnique as $room) {
             try {
                 $this->assertSeatRoomNotLockedForRealtime($room);
+            } catch (\Exception $e) {
+                return back()->withErrors(['error' => $e->getMessage()]);
+            }
+
+            // Chặn khóa/mở khóa hàng loạt khi phòng đã public (đã có suất chiếu OPEN)
+            try {
+                $this->assertSeatRoomNotPublicForRoom($room);
             } catch (\Exception $e) {
                 return back()->withErrors(['error' => $e->getMessage()]);
             }
@@ -1271,18 +1381,18 @@ class SeatManageController extends Controller
             return back()->withErrors(['error' => $e->getMessage()]);
         }
 
-        // Chặn khi ghế đang được khách đặt/giữ (SOLD/HELD)
+// Chặn khi ghế đang được khách đặt/giữ (SOLD/HELD)
         try {
             $this->assertSeatNotUsed($seat);
         } catch (\Exception $e) {
             return back()->withErrors(['error' => $e->getMessage()]);
         }
 
-        // Gợi ý cho phương thức destroy
-        if ($seat->showtimeSeats()->whereHas('showtime', function ($q) {
-            $q->where('start_time', '>', now()); // Chỉ chặn nếu suất chiếu chưa diễn ra
-        })->exists()) {
-            return back()->withErrors(['error' => 'Ghế này đang thuộc suất chiếu sắp diễn ra.']);
+        // Chặn xóa khi phòng đã có suất chiếu OPEN trong tương lai (đã public cho khách đặt vé)
+        try {
+            $this->assertSeatRoomNotPublic($seat);
+        } catch (\Exception $e) {
+            return back()->withErrors(['error' => $e->getMessage()]);
         }
 
         $siblingSeat = null;
@@ -1293,15 +1403,9 @@ class SeatManageController extends Controller
                 ->where('row_label', $seat->row_label)
                 ->where('seat_number', $siblingNum)
                 ->first();
-
-            if ($siblingSeat && $siblingSeat->showtimeSeats()->whereHas('showtime', function ($q) {
-                $q->where('start_time', '>', now());
-            })->exists()) {
-                return back()->withErrors(['error' => 'Ghế cặp này đang thuộc suất chiếu sắp diễn ra.']);
-            }
         }
 
-        $seat->delete();
+$seat->delete();
         $this->writeAuditLog('seat.delete_soft', $seat, ['status' => $seat->status], ['deleted' => true]);
 
         if ($siblingSeat) {
@@ -1309,10 +1413,85 @@ class SeatManageController extends Controller
             $this->writeAuditLog('seat.delete_soft', $siblingSeat, ['status' => $siblingSeat->status], ['deleted' => true]);
         }
 
+        // Sắp xếp lại số ghế liền mạch sau khi xóa
+        $this->renumberRowSeats($seat->room_id, $seat->row_label);
+
         return back()->with('success', "Đã xóa mềm ghế {$seat->seat_code}".($siblingSeat ? " và {$siblingSeat->seat_code}" : '').'.');
     }
 
-    private function writeAuditLog(string $action, Seat $seat, array $oldValue, array $newValue): void
+    /**
+     * Sắp xếp lại số ghế liền mạch (1,2,3...) của 1 hàng sau khi xóa ghế.
+     * Giữ nguyên cặp COUPLE: mỗi cặp được gán số (lẻ, chẵn) liền nhau.
+     *
+     * LƯU Ý: ghế xóa mềm vẫn giữ seat_code trong DB (vd xóa A2 → record A2 vẫn còn).
+     * Để tránh vi phạm unique (room_id, seat_code) khi đánh số lại (A3→A2),
+     * ta tạm đổi seat_code của ghế đã xóa sang mã tạm DEL_... (sẽ được sửa lại
+     * thành mã đúng khi restore qua storeBatch/store).
+     */
+    private function renumberRowSeats(int $roomId, string $rowLabel): void
+    {
+        // 1. Nhường chỗ: đổi seat_code của các ghế đã xóa mềm sang mã tạm
+        Seat::withTrashed()
+            ->where('room_id', $roomId)
+            ->where('row_label', $rowLabel)
+            ->whereNotNull('deleted_at')
+            ->get()
+            ->each(function (Seat $trashed) {
+                $trashed->update([
+                    'seat_code' => 'DEL_'.$trashed->id,
+                ]);
+            });
+
+        // 2. Lấy các ghế còn hoạt động trong hàng, sắp theo số ghế hiện tại
+        $seats = Seat::query()
+            ->where('room_id', $roomId)
+            ->where('row_label', $rowLabel)
+            ->orderBy('seat_number')
+            ->get()
+            ->values();
+
+        $newNumber = 1;
+        $i = 0;
+        $count = $seats->count();
+
+        while ($i < $count) {
+            $current = $seats[$i];
+            $isCouple = $current->seat_type === 'COUPLE';
+            $next = $seats[$i + 1] ?? null;
+            $nextIsCouple = $next && $next->seat_type === 'COUPLE';
+
+            if ($isCouple && $nextIsCouple) {
+                // Cặp COUPLE: gán (lẻ, chẵn) liền nhau
+                $this->applySeatNumber($current, $newNumber, $rowLabel);
+                $this->applySeatNumber($next, $newNumber + 1, $rowLabel);
+                $newNumber += 2;
+                $i += 2;
+            } else {
+                $this->applySeatNumber($current, $newNumber, $rowLabel);
+                $newNumber++;
+                $i++;
+            }
+        }
+
+        // 3. Đồng bộ lại showtime_seats cho phòng
+        $this->ensureShowtimeSeatsForRoom($roomId);
+    }
+
+    /**
+     * Cập nhật số ghế & mã ghế cho 1 ghế nếu thay đổi.
+     */
+    private function applySeatNumber(Seat $seat, int $num, string $rowLabel): void
+    {
+        $code = $rowLabel.$num;
+        if ($seat->seat_number !== $num || $seat->seat_code !== $code) {
+            $seat->update([
+                'seat_number' => $num,
+                'seat_code' => $code,
+            ]);
+        }
+    }
+
+private function writeAuditLog(string $action, Seat $seat, array $oldValue, array $newValue): void
     {
         AuditLog::create([
             'user_id' => Auth::id(),

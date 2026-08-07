@@ -21,6 +21,9 @@ use App\Services\TicketService;
 
 class BookingController extends Controller
 {
+    // Giới hạn tối đa số ghế 1 khách hàng được chọn trong 1 lần đặt vé
+    public const MAX_SEATS_PER_BOOKING = 10;
+
     // ==========================================
     // UC-CUS-08: CHỌN GHẾ
     // ==========================================
@@ -125,8 +128,9 @@ class BookingController extends Controller
                     'price' => (int) $dbSeat->price,
                     'status' => $dbSeat->display_status,
                     'type' => $mappedType,
-                    'label' => $i,
-                    'is_aisle' => ($i == 5),
+'label' => $i,
+                    // Bỏ lối đi (aisle): mọi ghế trong hàng liền mạch, nhóm khách ngồi cạnh nhau, không bị tách
+                    'is_aisle' => false,
                 ];
             }
         }
@@ -196,10 +200,10 @@ class BookingController extends Controller
                 return response()->json(['success' => false, 'error_type' => 'SOLD', 'message' => 'E1: Ghế đã được bán.']);
             }
 
-            // Check ngoại lệ E2: Đang bị người khác giữ
+// Check ngoại lệ E2: Đang bị người khác giữ
             $heldBy = Cache::get($cacheKey);
             if ($heldBy && $heldBy != Auth::id()) {
-                return response()->json(['success' => false, 'error_type' => 'HELD', 'message' => 'E2: Ghế đang được người khác giữ.']);
+                return response()->json(['success' => false, 'error_type' => 'HELD', 'message' => 'Rất tiếc, ghế này đã được người khác giữ. Vui lòng chọn ghế khác.']);
             }
 
             // Key lưu thời gian giữ ghế tổng của user cho suất chiếu này
@@ -260,9 +264,10 @@ class BookingController extends Controller
 
     public function submitSeats(Request $request)
     {
-        $request->validate([
+$request->validate([
             'showtime_id' => 'required',
-            'seats' => 'required|array|min:1', // BR01: Ít nhất 1 ghế
+            // BR01: Ít nhất 1 ghế, tối đa MAX_SEATS_PER_BOOKING (10 ghế)
+            'seats' => 'required|array|min:1|max:'.self::MAX_SEATS_PER_BOOKING,
         ]);
 
         $seats = ShowtimeSeat::with('seat')->whereIn('id', $request->seats)->get();
@@ -753,7 +758,7 @@ return view('booking.confirm', compact(
             $matrix[$row][$num] = $status;
         }
 
-        // 4. Quét từng hàng ghế để tìm lỗi "lẻ 1 ghế trống"
+// 4. Quét từng hàng ghế để tìm lỗi "lẻ 1 ghế trống"
         foreach ($matrix as $row => $rowSeats) {
             ksort($rowSeats); // Sắp xếp lại số ghế theo thứ tự tăng dần (1, 2, 3...)
 
@@ -796,9 +801,18 @@ return view('booking.confirm', compact(
                         }
                     }
 
-                    // Nếu phát hiện 1 ghế trống đơn lẻ bị kẹp thịt ở giữa -> Trả về lỗi luôn lập tức
+                    // Chỉ coi là lỗi khi ghế trống cô lập này do CHÍNH ghế khách đang chọn (SELECTED) gây ra.
+                    // Nếu nó bị chặn bởi ghế của người khác (SOLD/HELD/BLOCKED) thì KHÔNG báo lỗi,
+                    // vì khách không kiểm soát được những ghế đó.
                     if ($leftBlocked && $rightBlocked) {
-                        return true;
+                        $leftIsSelected = ($i > 0) && ($rowSeats[$seatNumbers[$i - 1]] === 'SELECTED')
+                            && ($seatNumbers[$i - 1] === $currentNum - 1);
+                        $rightIsSelected = ($i < $totalInRow - 1) && ($rowSeats[$seatNumbers[$i + 1]] === 'SELECTED')
+                            && ($seatNumbers[$i + 1] === $currentNum + 1);
+
+                        if ($leftIsSelected || $rightIsSelected) {
+                            return true; // Lỗ hổng do chính khách tạo ra
+                        }
                     }
                 }
             }

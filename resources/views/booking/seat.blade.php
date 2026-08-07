@@ -580,9 +580,12 @@
             const selectedSeatsEl = document.getElementById('selectedSeats');
             const totalPriceEl = document.getElementById('totalPrice');
             const hiddenSeatInputs = document.getElementById('hidden-seat-inputs');
-            const btnPayment = document.getElementById('btnPayment');
+const btnPayment = document.getElementById('btnPayment');
             const bookingForm = document.getElementById('bookingForm');
             const seatPageReloadLink = document.getElementById('seatPageReloadLink');
+
+            // Giới hạn tối đa số ghế 1 khách được chọn (đồng bộ với MAX_SEATS_PER_BOOKING backend)
+            const MAX_SEATS = 10;
 
             let timerInterval;
             let secondsLeft = Math.max(0, {{ $secondsLeft ?? 300 }});
@@ -662,10 +665,28 @@
                 const seatType = btn.dataset.type;
                 const seatPrice = parseInt(btn.dataset.price);
 
-                const seatIds = seatIdAttr.split(',');
+const seatIds = seatIdAttr.split(',');
 
                 const isSelecting = !btn.classList.contains('HELD_BY_ME');
                 const action = isSelecting ? 'hold' : 'release';
+
+                // Chặn chọn quá MAX_SEATS ghế (đồng bộ với backend MAX_SEATS_PER_BOOKING)
+                // Lưu ý: Map key = seatCode, nhưng ghế COUPLE gộp 2 ghế (seat.id = "J1,J2").
+                // Vì vậy phải đếm số ghế THỰC SỰ (tổng các id trong Map) chứ không dùng selectedSeats.size.
+                if (isSelecting) {
+                    let currentSeatCount = 0;
+                    selectedSeats.forEach((seat) => {
+                        currentSeatCount += seat.id.split(',').length;
+                    });
+
+                    if (currentSeatCount + seatIds.length > MAX_SEATS) {
+                        const errorBox = document.getElementById('ajax-error-box');
+                        errorBox.innerText = `Bạn chỉ được chọn tối đa ${MAX_SEATS} ghế cho 1 lần đặt vé.`;
+                        errorBox.style.display = 'block';
+                        errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return;
+                    }
+                }
 
                 try {
                     let allSuccess = true;
