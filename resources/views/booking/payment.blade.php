@@ -2,8 +2,8 @@
 
 @section('content')
 
-{{-- COUNTDOWN TIMER CHUNG 5 PHÚT --}}
-@include('booking._countdown_timer', ['secondsLeft' => $secondsLeft])
+{{-- COUNTDOWN TIMER THANH TOÁN (timer riêng 5 phút từ lúc tạo đơn) --}}
+@include('booking._payment_countdown', ['expiresAt' => $expiresAt])
 
 <section class="payment-page">
 <div class="payment-wrapper">

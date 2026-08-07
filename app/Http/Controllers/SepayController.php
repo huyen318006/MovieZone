@@ -7,6 +7,8 @@ use App\Models\Invoice;
 use App\Models\SepayOrder;
 use App\Services\SepayService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -203,16 +205,9 @@ class SepayController extends Controller
         $pollingInterval = config('sepay.polling_interval', 5000);
         $expiresAt = $order->getExpiresAt()->toIso8601String();
 
-        // TIMER: Lấy thời gian giữ ghế còn lại từ session (timer chung 5 phút)
-        $holdExpireAt = session('hold_expire_at');
-        $secondsLeft = 0;
-        if ($holdExpireAt) {
-            $secondsLeft = max(0, $holdExpireAt - now()->timestamp);
-        }
-
         return view('booking.payment', compact(
             'order', 'qrUrl', 'bankCode', 'bankAccount',
-            'pollingInterval', 'expiresAt', 'secondsLeft'
+            'pollingInterval', 'expiresAt'
         ));
     }
 
@@ -230,6 +225,19 @@ class SepayController extends Controller
 
         if (! $order->isPaid()) {
             return redirect()->route('booking.payment', $order->order_code);
+        }
+
+        // Thanh toán thành công → dọn dẹp session giữ ghế và booking tạm
+        session()->forget('booking_tam');
+        session()->forget('pending_order_code');
+
+        // Giải phóng cache giữ ghế (nếu còn)
+        if ($order->booking_id && Auth::check()) {
+            $showtimeId = $order->metadata['showtime_id'] ?? null;
+            if ($showtimeId) {
+                $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtimeId;
+                Cache::forget($masterTimerKey);
+            }
         }
 
         return view('booking.bill', compact('order'));

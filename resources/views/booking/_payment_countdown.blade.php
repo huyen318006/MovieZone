@@ -1,62 +1,57 @@
 {{-- ============================================================
-     BOOKING COUNTDOWN TIMER - Component tái sử dụng
-     Include vào bất kỳ trang nào cần hiển thị bộ đếm ngược:
-     @include('booking._countdown_timer', ['secondsLeft' => $secondsLeft])
+     PAYMENT COUNTDOWN TIMER - Bộ đếm ngược riêng cho trang thanh toán
+     Timer 5 phút tính từ lúc tạo đơn hàng (SepayOrder.created_at)
+     Tách biệt với timer giữ ghế 5 phút ở trang chọn ghế/combo/confirm
      ============================================================ --}}
 
 {{-- Thanh countdown nổi sticky ở đầu trang --}}
-<div class="booking-countdown-bar" id="bookingCountdownBar">
+<div class="booking-countdown-bar" id="paymentCountdownBar">
     <div class="countdown-inner">
         <div class="countdown-left">
             <div class="countdown-icon-pulse">
-                <i class="fa-solid fa-stopwatch"></i>
+                <i class="fa-solid fa-credit-card"></i>
             </div>
             <div class="countdown-label">
-                <span class="countdown-label-text">Thời gian giữ ghế</span>
-                <span class="countdown-time" id="countdownClock">05:00</span>
+                <span class="countdown-label-text">Thời gian thanh toán</span>
+                <span class="countdown-time" id="paymentCountdownClock">05:00</span>
             </div>
         </div>
         <div class="countdown-right">
             <div class="countdown-progress-track">
-                <div class="countdown-progress-fill" id="countdownProgressFill"></div>
+                <div class="countdown-progress-fill" id="paymentCountdownFill"></div>
             </div>
         </div>
     </div>
 </div>
 
-{{-- Modal hết thời gian --}}
-<div class="countdown-expired-overlay" id="countdownExpiredOverlay">
+{{-- Modal hết thời gian thanh toán --}}
+<div class="countdown-expired-overlay" id="paymentExpiredOverlay">
     <div class="countdown-expired-modal">
         <div class="expired-icon-wrapper">
             <i class="fa-solid fa-clock-rotate-left"></i>
         </div>
-        <h3>Hết thời gian giữ ghế!</h3>
-        <p>Phiên giữ ghế 5 phút đã hết. Ghế của bạn đã được giải phóng cho khách khác.</p>
+        <h3>Hết thời gian thanh toán!</h3>
+        <p>Thời gian thanh toán 5 phút đã hết. Đơn hàng của bạn đã bị huỷ. Vui lòng đặt vé lại.</p>
         <div class="expired-countdown-redirect">
             <div class="expired-spinner"></div>
-            <span>Đang chuyển về chọn ghế... (<span id="redirectCountdown">3</span>s)</span>
+            <span>Đang chuyển về trang chủ... (<span id="paymentRedirectCountdown">5</span>s)</span>
         </div>
-        @php
-            $resolvedShowtimeId = $showtime_id ?? (session('booking_tam.showtime_id') ?? null);
-        @endphp
-        <a href="{{ $resolvedShowtimeId
-            ? \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId])
-            : \App\Helpers\TabAuthHelper::route('showtimes') }}" class="expired-btn-back">
-            <i class="fa-solid fa-arrow-left"></i> Chọn ghế lại
+        <a href="{{ route('showtimes') }}" class="expired-btn-back">
+            <i class="fa-solid fa-arrow-left"></i> Chọn suất chiếu
         </a>
     </div>
 </div>
 
 <style>
 /* ==========================================
-   COUNTDOWN BAR - Sticky top
+   COUNTDOWN BAR - Sticky top (Payment)
    ========================================== */
 .booking-countdown-bar {
     position: sticky;
     top: 0;
     z-index: 900;
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-bottom: 2px solid #f59e0b;
+    border-bottom: 2px solid #6366f1;
     padding: 14px 24px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     transition: all 0.4s ease;
@@ -81,19 +76,19 @@
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background: rgba(245, 158, 11, 0.15);
+    background: rgba(99, 102, 241, 0.15);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 20px;
-    color: #f59e0b;
-    animation: iconPulse 2s infinite;
+    color: #6366f1;
+    animation: payIconPulse 2s infinite;
     flex-shrink: 0;
 }
 
-@keyframes iconPulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3); }
-    50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+@keyframes payIconPulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.3); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(99, 102, 241, 0); }
 }
 
 .countdown-label {
@@ -113,11 +108,11 @@
 .countdown-time {
     font-size: 28px;
     font-weight: 800;
-    color: #f59e0b;
+    color: #6366f1;
     font-variant-numeric: tabular-nums;
     letter-spacing: 2px;
     line-height: 1;
-    text-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+    text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
 }
 
 .countdown-right {
@@ -135,29 +130,29 @@
 
 .countdown-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #f59e0b, #eab308);
+    background: linear-gradient(90deg, #6366f1, #818cf8);
     border-radius: 10px;
     transition: width 1s linear;
     width: 100%;
-    box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
 }
 
 /* === DANGER MODE (còn < 60 giây) === */
 .booking-countdown-bar.danger {
     border-bottom-color: #ef4444;
-    animation: barPulseDanger 1s infinite;
+    animation: payBarPulseDanger 1s infinite;
 }
 
 .booking-countdown-bar.danger .countdown-icon-pulse {
     background: rgba(239, 68, 68, 0.15);
     color: #ef4444;
-    animation: iconPulseDanger 0.8s infinite;
+    animation: payIconPulseDanger 0.8s infinite;
 }
 
 .booking-countdown-bar.danger .countdown-time {
     color: #ef4444;
     text-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
-    animation: timeBlink 1s infinite;
+    animation: payTimeBlink 1s infinite;
 }
 
 .booking-countdown-bar.danger .countdown-progress-fill {
@@ -165,17 +160,17 @@
     box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
 }
 
-@keyframes barPulseDanger {
+@keyframes payBarPulseDanger {
     0%, 100% { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); }
     50% { background: linear-gradient(135deg, #2a1215 0%, #1a0a0c 100%); }
 }
 
-@keyframes iconPulseDanger {
+@keyframes payIconPulseDanger {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.15); }
 }
 
-@keyframes timeBlink {
+@keyframes payTimeBlink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.6; }
 }
@@ -329,19 +324,14 @@
 
 <script>
 (function() {
-    const initialSecondsLeft = Math.max(0, {{ $secondsLeft ?? 300 }});
-    const expiresAt = Date.now() + (initialSecondsLeft * 1000);
+    // Timer thanh toán tính từ expiresAt của SepayOrder (5 phút từ lúc tạo đơn)
+    const expiresAt = new Date("{{ $expiresAt }}").getTime();
     const totalSeconds = 300; // 5 phút
-    const clockEl = document.getElementById('countdownClock');
-    const barEl = document.getElementById('bookingCountdownBar');
-    const fillEl = document.getElementById('countdownProgressFill');
-    const overlay = document.getElementById('countdownExpiredOverlay');
-    const redirectCountdownEl = document.getElementById('redirectCountdown');
-
-// Lấy showtime_id từ URL hoặc session để build redirect URL
-    const seatPageUrl = "{{ $resolvedShowtimeId
-        ? \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId])
-        : \App\Helpers\TabAuthHelper::route('showtimes') }}";
+    const clockEl = document.getElementById('paymentCountdownClock');
+    const barEl = document.getElementById('paymentCountdownBar');
+    const fillEl = document.getElementById('paymentCountdownFill');
+    const overlay = document.getElementById('paymentExpiredOverlay');
+    const redirectCountdownEl = document.getElementById('paymentRedirectCountdown');
 
     function getSecondsLeft() {
         return Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
@@ -386,8 +376,8 @@
         // Phát event để trang payment biết countdown đã hết
         window.dispatchEvent(new CustomEvent('countdownExpired'));
 
-        // Đếm ngược redirect 3 giây
-        let redirectSeconds = 3;
+        // Đếm ngược redirect 5 giây
+        let redirectSeconds = 5;
         const redirectInterval = setInterval(function() {
             redirectSeconds--;
             if (redirectCountdownEl) {
@@ -395,7 +385,7 @@
             }
             if (redirectSeconds <= 0) {
                 clearInterval(redirectInterval);
-                window.location.href = seatPageUrl;
+                window.location.href = "{{ route('showtimes') }}";
             }
         }, 1000);
     }
