@@ -904,7 +904,7 @@
         ${checkableTickets.length > 0 ? `
                 <div class="confirm-card-actions">
                     <button class="btn-confirm btn-confirm-success" onclick="confirmBatch(${booking?.id})">
-                        <i class="bi bi-check-all"></i> Check-in đã chọn
+                        <i class="bi bi-check-all"></i> Xác nhận
                     </button>
                     <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()">
                         <i class="bi bi-x-lg"></i> Đóng
