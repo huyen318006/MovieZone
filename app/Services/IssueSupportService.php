@@ -40,14 +40,27 @@ class IssueSupportService
                 ];
             }
 
-            // Sai thông tin suất chiếu / không active
-            if ($booking->showtime && $booking->showtime->status !== 'ACTIVE') {
+// Kiểm tra trạng thái suất chiếu theo đúng enum: OPEN / CLOSED / CANCELLED
+            if ($booking->showtime && $booking->showtime->status === 'CANCELLED') {
                 return [
-                    'type' => 'SHOWTIME_MISMATCH_OR_INACTIVE',
-                    'title' => 'Sai thông tin suất chiếu / suất chiếu không hoạt động',
-                    'summary' => 'Trạng thái suất chiếu không phù hợp.',
+                    'type' => 'SHOWTIME_CANCELLED',
+                    'title' => 'Suất chiếu đã bị hủy',
+                    'summary' => 'Suất chiếu của booking đã bị hủy trong hệ thống.',
                     'actions' => [
-                        'Giải thích tình trạng cho khách dựa trên booking đang tồn tại.',
+                        'Giải thích cho khách biết suất chiếu đã bị hủy.',
+                        'Hướng dẫn khách chuyển sang suất chiếu/đặt vé khác.',
+                        'Nếu khách đã thanh toán, hướng dẫn chuyển Admin xử lý hoàn tiền.',
+                    ],
+                ];
+            }
+
+            if ($booking->showtime && $booking->showtime->status === 'CLOSED') {
+                return [
+                    'type' => 'SHOWTIME_CLOSED',
+                    'title' => 'Suất chiếu đã đóng',
+                    'summary' => 'Suất chiếu không còn nhận khách/xem vé (đã đóng).',
+                    'actions' => [
+                        'Thông báo suất chiếu đã đóng.',
                         'Nếu cần can thiệp dữ liệu → chuyển Admin (E2).',
                     ],
                 ];
