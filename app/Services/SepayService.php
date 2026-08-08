@@ -264,8 +264,7 @@ class SepayService
                         'booking_id' => $order->booking_id,
                     ]);
 
-                    // Chỉ đơn mua vé mới sinh ticket/PDF vé.
-                    $pdfPath = null;
+                    // Chỉ đơn mua vé mới sinh ticket.
                     if ($order->isBookingOrder() && $order->booking_id && $order->booking) {
                         try {
                             $ticketService = app(TicketService::class);
@@ -278,14 +277,9 @@ class SepayService
                                 'booking_code' => $order->booking->booking_code,
                                 'ticket_count' => $tickets->count(),
                             ]);
-
-                            // Sinh PDF vé kèm QR Code
-                            $pdfService = app(TicketPDFService::class);
-                            $pdfPath = $pdfService->generateBookingTicketsPDF($order->booking->fresh());
-
                         } catch (\Exception $ticketEx) {
                             // Không throw — thanh toán vẫn thành công, ticket có thể retry sau
-                            Log::error('Failed to generate tickets or PDF', [
+                            Log::error('Failed to generate tickets', [
                                 'order_code' => $orderCode,
                                 'booking_id' => $order->booking_id,
                                 'error'      => $ticketEx->getMessage(),
@@ -293,42 +287,8 @@ class SepayService
                         }
                     }
 
-                    // Email và thông báo này dành riêng cho đơn vé phim.
-                    try {
-                        $customerEmail = $order->getCustomerEmail();
-                        $user = $order->booking ? $order->booking->user : null;
-
-                        if ($order->isBookingOrder() && $customerEmail) {
-                            Mail::to($customerEmail)->send(
-                                new BookingInvoiceMail($order->fresh(), $user, $pdfPath)
-                            );
-
-                            // Đánh dấu đã gửi email
-                            $meta = $order->metadata ?? [];
-                            $meta['email_sent'] = true;
-                            $meta['email_sent_at'] = now()->toIso8601String();
-                            $meta['email_sent_to'] = $customerEmail;
-                            $meta['pdf_attached'] = !empty($pdfPath);
-                            $order->update(['metadata' => $meta]);
-
-                            Log::info('Booking invoice email sent', [
-                                'order_code'   => $orderCode,
-                                'email'        => $customerEmail,
-                                'pdf_attached' => !empty($pdfPath),
-                            ]);
-                        }
-
-                        // Tạo thông báo trong hệ thống cho user
-                        if ($order->isBookingOrder() && $user) {
-                            $user->notify(new BookingPaidNotification($order->fresh()));
-                        }
-                    } catch (\Exception $mailEx) {
-                        // Không throw — email lỗi không ảnh hưởng đến thanh toán
-                        Log::error('Failed to send booking invoice email', [
-                            'order_code' => $orderCode,
-                            'error' => $mailEx->getMessage(),
-                        ]);
-                    }
+                    // Đẩy PDF + Email + Notification vào hàng đợi chạy ngầm
+                    \App\Jobs\SendBookingInvoiceJob::dispatch($order->id);
 
                     return [
                         'status' => 'paid',

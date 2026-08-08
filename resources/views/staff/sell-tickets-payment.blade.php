@@ -488,7 +488,7 @@
             }
         }
 
-        const checkUrl = '{{ route("booking.check", $order->order_code) }}';
+        const checkUrl = '{{ \App\Helpers\TabAuthHelper::route("booking.check", $order->order_code) }}';
         const billUrl = '{{ \App\Helpers\TabAuthHelper::route("staff.print-bill", $order->booking->booking_code ?? "") }}';
         const pollMs = {{ $pollingInterval }};
 
