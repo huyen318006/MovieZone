@@ -169,7 +169,7 @@
     gap: 12px;
     }
 
-    .manual-form input {
+    .manual-form select, .manual-form input {
     background: var(--staff-bg);
     border: 1px solid var(--staff-border);
     border-radius: 8px;
@@ -178,7 +178,7 @@
     font-size: 14px;
     }
 
-    .manual-form input:focus {
+    .manual-form select:focus, .manual-form input:focus {
     outline: none;
     border-color: var(--staff-primary);
     box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
@@ -463,7 +463,10 @@
                     {{-- Manual Form (hidden by default) --}}
                     <div id="manualFormWrap" style="display:none; padding: 16px 0;">
                         <div class="manual-form">
-                            <input type="text" id="manualCode" placeholder="Mã booking (VD: BKXM7QP9RWBF)"
+                            <select id="manualType">
+                                <option value="booking_code">Mã booking (BK...)</option>
+                            </select>
+                            <input type="text" id="manualCode" placeholder="VD: BKXM7QP9RWBF"
                                 onkeydown="if(event.key==='Enter') lookupManual()">
                             <button class="btn-scan btn-scan-primary" onclick="lookupManual()" id="btnManualLookup">
                                 <i class="bi bi-search"></i> Tra cứu
@@ -675,7 +678,7 @@
 
         async function lookupManual() {
             const code = document.getElementById('manualCode').value.trim();
-            const type = 'booking_code'; // Luôn dùng mã booking
+            const type = document.getElementById('manualType').value;
             const btn = document.getElementById('btnManualLookup');
 
             if (!code) {
