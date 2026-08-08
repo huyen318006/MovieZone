@@ -349,16 +349,18 @@
         const pct = (safe / totalSeconds) * 100;
         fillEl.style.width = pct + '%';
 
-        // Danger mode khi còn < 60 giây
+        // Danger mode khi còn <= 60 giây
         if (safe <= 60 && safe > 0 && barEl) {
             barEl.classList.add('danger');
         }
     }
 
+    let expired = false;
     const interval = setInterval(function() {
         const remaining = getSecondsLeft();
         if (remaining <= 0) {
             clearInterval(interval);
+            expired = true;
             updateDisplay();
             showExpiredModal();
             return;
@@ -368,6 +370,28 @@
 
     // Hiển thị ngay khi load
     updateDisplay();
+    // Nếu đã hết hạn ngay từ đầu
+    if (getSecondsLeft() <= 0) {
+        clearInterval(interval);
+        expired = true;
+        showExpiredModal();
+    }
+
+    /**
+     * VISIBILITY CHANGE: Khi user quay lại tab sau khi bị background,
+     * tính lại thời gian ngay lập tức.
+     */
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible' && !expired) {
+            const remaining = getSecondsLeft();
+            updateDisplay();
+            if (remaining <= 0) {
+                clearInterval(interval);
+                expired = true;
+                showExpiredModal();
+            }
+        }
+    });
 
     function showExpiredModal() {
         if (!overlay) return;

@@ -24,6 +24,14 @@ class BookingController extends Controller
     // Giới hạn tối đa số ghế 1 khách hàng được chọn trong 1 lần đặt vé
     public const MAX_SEATS_PER_BOOKING = 10;
 
+    /**
+     * Lấy thời gian giữ ghế (phút) từ config.
+     */
+    private function holdMinutes(): int
+    {
+        return (int) config('booking.hold_minutes', 5);
+    }
+
     // ==========================================
     // UC-CUS-08: CHỌN GHẾ
     // ==========================================
@@ -32,6 +40,11 @@ class BookingController extends Controller
     // ==========================================
     public function showSeats($showtime_id)
     {
+        $existingOrderCode = session('pending_order_code');
+        if ($existingOrderCode) {
+            return $this->cancelBookingAndRelease($existingOrderCode);
+        }
+
         $showtime = Showtime::with(['movie', 'room'])
             ->findOrFail($showtime_id);
 
@@ -135,14 +148,19 @@ class BookingController extends Controller
             }
         }
 
-        // TÍNH THỜI GIAN CÒN LẠI
+        // TÍNH THỜI GIAN CÒN LẠI — truyền timestamp cho frontend
         $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$showtime_id;
-        $secondsLeft = 300;
+        $holdExpiresAt = null;
+        $serverTime = now()->toIso8601String();
+        $holdTotalSeconds = $this->holdMinutes() * 60;
         if (Cache::has($masterTimerKey)) {
-            $secondsLeft = max(0, Cache::get($masterTimerKey) - now()->timestamp);
+            $ts = Cache::get($masterTimerKey);
+            if ($ts > now()->timestamp) {
+                $holdExpiresAt = Carbon::createFromTimestamp($ts)->toIso8601String();
+            }
         }
 
-        return view('booking.seat', compact('showtime', 'seatMap', 'secondsLeft'));
+        return view('booking.seat', compact('showtime', 'seatMap', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds'));
     }
 
     /**
@@ -188,19 +206,24 @@ class BookingController extends Controller
                 ]);
             }
 
-            // Check ngoại lệ E1: Đã bán
+            // Check ngoại lệ E1: Đã bán (chỉ xét booking chưa expired)
             $isSold = DB::table('booking_seats')
                 ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
                 ->where('booking_seats.showtime_seat_id', $seatId)
                 ->where('bookings.showtime_id', $showtimeId)
                 ->whereIn('bookings.status', ['PAID', 'PENDING_CASH_PAYMENT', 'PENDING_PAYMENT'])
+                ->where(function ($q) {
+                    $q->whereNull('bookings.expired_at')
+                      ->orWhere('bookings.expired_at', '>', now());
+                })
                 ->exists();
 
             if ($isSold) {
                 return response()->json(['success' => false, 'error_type' => 'SOLD', 'message' => 'E1: Ghế đã được bán.']);
             }
 
-// Check ngoại lệ E2: Đang bị người khác giữ
+            // Check ngoại lệ E2: Đang bị người khác giữ
+            // Sử dụng Cache::add() — atomic: chỉ set nếu key chưa tồn tại
             $heldBy = Cache::get($cacheKey);
             if ($heldBy && $heldBy != Auth::id()) {
                 return response()->json(['success' => false, 'error_type' => 'HELD', 'message' => 'Rất tiếc, ghế này đã được người khác giữ. Vui lòng chọn ghế khác.']);
@@ -208,50 +231,56 @@ class BookingController extends Controller
 
             // Key lưu thời gian giữ ghế tổng của user cho suất chiếu này
             $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$showtimeId;
+            $holdMinutes = $this->holdMinutes();
 
-            // Nếu chưa có timer tổng
-            // (nghĩa là đây là ghế đầu tiên user chọn)
-            if (! Cache::has($masterTimerKey)) {
+            // Nếu chưa có timer tổng → tạo mới
+            // Cache::add() chỉ thành công nếu key chưa tồn tại (atomic)
+            $expireAt = now()->addMinutes($holdMinutes);
+            $added = Cache::add($masterTimerKey, $expireAt->timestamp, $expireAt);
 
-                // Tính thời điểm hết hạn sau 5 phút
-                $expireAt = now()->addMinutes(5);
-
-                // Lưu timestamp vào cache
-                // Ví dụ: 1789561200
-                // để sau này JS tính được còn bao nhiêu giây
-                Cache::put(
-                    $masterTimerKey,
-                    $expireAt->timestamp,
-                    $expireAt
-                );
-
-            } else {
-
-                // Nếu timer đã tồn tại
-                // lấy lại thời điểm hết hạn cũ
-                // KHÔNG tạo mới để tránh reset về 5 phút
-                $expireAt = Carbon::createFromTimestamp(
-                    Cache::get($masterTimerKey)
-                );
+            if (! $added) {
+                // Timer đã tồn tại → lấy lại thời điểm hết hạn cũ
+                // KHÔNG tạo mới để tránh reset thời gian
+                $existingTs = Cache::get($masterTimerKey);
+                if ($existingTs) {
+                    $expireAt = Carbon::createFromTimestamp($existingTs);
+                }
+                // Nếu cache đã expire giữa lúc add và get → dùng expireAt mới tạo ở trên
             }
 
-            // Lưu trạng thái giữ ghế
-            Cache::put(
+            // Kiểm tra nếu timer đã hết hạn
+            if ($expireAt->isPast()) {
+                return response()->json([
+                    'success' => false,
+                    'error_type' => 'EXPIRED',
+                    'message' => 'Hết thời gian giữ ghế. Vui lòng chọn lại.',
+                ]);
+            }
 
-                // Ví dụ:
-                // seat_held_5_12
-                // (suất chiếu 5, ghế 12)
-                $cacheKey,
+            // Lưu trạng thái giữ ghế — dùng Cache::add() cho ghế chưa ai giữ
+            if (! $heldBy) {
+                $seatAdded = Cache::add($cacheKey, Auth::id(), $expireAt);
+                if (! $seatAdded) {
+                    // Ai đó đã giữ trong khoảnh khắc giữa get và add
+                    $actualHolder = Cache::get($cacheKey);
+                    if ($actualHolder && $actualHolder != Auth::id()) {
+                        return response()->json([
+                            'success' => false,
+                            'error_type' => 'HELD',
+                            'message' => 'Rất tiếc, ghế này vừa được người khác giữ.',
+                        ]);
+                    }
+                }
+            } else {
+                // User đã giữ ghế này → cập nhật TTL theo master timer
+                Cache::put($cacheKey, Auth::id(), $expireAt);
+            }
 
-                // User nào đang giữ ghế
-                Auth::id(),
-
-                // Ghế sẽ hết hạn cùng lúc với timer tổng
-                // Không phải thêm 5 phút mới
-                $expireAt
-            );
-
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true,
+                'serverTime' => now()->toIso8601String(),
+                'expiresAt' => $expireAt->toIso8601String(),
+            ]);
         } elseif ($action === 'release') {
             // Luồng phụ A2: Bỏ chọn ghế
             if (Cache::get($cacheKey) == Auth::id()) {
@@ -332,23 +361,35 @@ $request->validate([
     // ==========================================
     public function showCombo()
     {
+        $existingOrderCode = session('pending_order_code');
+        if ($existingOrderCode) {
+            return $this->cancelBookingAndRelease($existingOrderCode);
+        }
+
         $bookingTam = session('booking_tam');
 
         // TIMER: Tính thời gian còn lại từ master timer
-        $secondsLeft = 0;
+        $holdExpiresAt = null;
+        $serverTime = now()->toIso8601String();
+        $holdTotalSeconds = $this->holdMinutes() * 60;
         $showtime = null;
         if ($bookingTam && ! empty($bookingTam['showtime_id'])) {
             $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$bookingTam['showtime_id'];
             if (Cache::has($masterTimerKey)) {
-                $secondsLeft = max(0, Cache::get($masterTimerKey) - now()->timestamp);
+                $ts = Cache::get($masterTimerKey);
+                $secondsLeft = max(0, $ts - now()->timestamp);
+                if ($secondsLeft > 0) {
+                    $holdExpiresAt = Carbon::createFromTimestamp($ts)->toIso8601String();
+                }
             }
 
             // Nếu hết thời gian → redirect về trang ghế
-            if ($secondsLeft <= 0) {
+            if (! $holdExpiresAt) {
                 session()->forget('booking_tam');
+                $holdMinutes = $this->holdMinutes();
 
                 return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']])
-                    ->with('error', 'Hết thời gian giữ ghế (5 phút). Vui lòng chọn lại.');
+                    ->with('error', "Hết thời gian giữ ghế ({$holdMinutes} phút). Vui lòng chọn lại.");
             }
 
             $showtime = Showtime::with(['movie', 'cinema', 'room'])
@@ -371,7 +412,7 @@ $request->validate([
             session()->put('booking_tam', $bookingTam);
         }
 
-        return view('booking.combo', compact('combos', 'secondsLeft', 'bookingTam', 'showtime'));
+        return view('booking.combo', compact('combos', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds', 'bookingTam', 'showtime'));
     }
 
     public function saveCombo(Request $request)
@@ -452,23 +493,35 @@ $request->validate([
     // ==========================================
     public function showConfirm()
     {
+        $existingOrderCode = session('pending_order_code');
+        if ($existingOrderCode) {
+            return $this->cancelBookingAndRelease($existingOrderCode);
+        }
+
         $bookingTam = session('booking_tam');
         if (! $bookingTam) {
             return redirect()->route('home');
         }
 
-        // TIMER: Tính thời gian còn lại
+        // TIMER: Tính thời gian còn lại — truyền timestamp cho frontend
         $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$bookingTam['showtime_id'];
-        $secondsLeft = 0;
+        $holdExpiresAt = null;
+        $serverTime = now()->toIso8601String();
+        $holdTotalSeconds = $this->holdMinutes() * 60;
         if (Cache::has($masterTimerKey)) {
-            $secondsLeft = max(0, Cache::get($masterTimerKey) - now()->timestamp);
+            $ts = Cache::get($masterTimerKey);
+            $secondsLeft = max(0, $ts - now()->timestamp);
+            if ($secondsLeft > 0) {
+                $holdExpiresAt = Carbon::createFromTimestamp($ts)->toIso8601String();
+            }
         }
 
-        if ($secondsLeft <= 0) {
+        if (! $holdExpiresAt) {
             session()->forget('booking_tam');
+            $holdMinutes = $this->holdMinutes();
 
             return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']])
-                ->with('error', 'Hết thời gian giữ ghế (5 phút). Vui lòng chọn lại.');
+                ->with('error', "Hết thời gian giữ ghế ({$holdMinutes} phút). Vui lòng chọn lại.");
         }
 
         $showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_id']);
@@ -501,7 +554,7 @@ $request->validate([
         return view('booking.confirm', compact(
             'showtime', 'showtime_id', 'seats', 'totalTicketPrice', 'combos',
             'totalComboPrice', 'tierDiscountAmount', 'tierName', 'tierPercent',
-            'discountAmount', 'totalPrice', 'secondsLeft',
+            'discountAmount', 'totalPrice', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds',
             'coinUsed', 'coinDiscountAmount', 'coinInfo'
         ));
     }
@@ -522,12 +575,16 @@ $request->validate([
 
         // TIMER: Kiểm tra còn thời gian giữ ghế không
         $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$bookingTam['showtime_id'];
-        if (! Cache::has($masterTimerKey) || Cache::get($masterTimerKey) <= now()->timestamp) {
+        $masterTimerTs = Cache::get($masterTimerKey);
+        if (! $masterTimerTs || $masterTimerTs <= now()->timestamp) {
             session()->forget('booking_tam');
 
             return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']])
                 ->with('error', 'Hết thời gian giữ ghế. Vui lòng chọn lại.');
         }
+
+        // Lấy thời điểm hết hạn gốc từ master timer (KHÔNG reset)
+        $holdExpireAt = Carbon::createFromTimestamp($masterTimerTs);
 
         // GUARD: Kiểm tra đã tạo booking cho session này chưa
         $existingOrderCode = session('pending_order_code');
@@ -578,14 +635,32 @@ $request->validate([
                 throw new \Exception('Suất chiếu không còn khả dụng.');
             }
 
-            // E1, E4: Kiểm tra lại toàn bộ ghế
+            // E1, E4: Kiểm tra lại toàn bộ ghế (cache)
             foreach ($seatIds as $seatId) {
                 $cacheKey = 'seat_held_'.$showtimeId.'_'.$seatId;
                 $heldBy = Cache::get($cacheKey);
 
                 if (! $heldBy || $heldBy != Auth::id()) {
-                    throw new \Exception('Ghế không còn khả dụng do hết thời gian giữ (5 phút) hoặc đã bị mua.');
+                    $holdMinutes = $this->holdMinutes();
+                    throw new \Exception("Ghế không còn khả dụng do hết thời gian giữ ({$holdMinutes} phút) hoặc đã bị mua.");
                 }
+            }
+
+            // CHỐNG DOUBLE BOOKING: Kiểm tra DB — có booking ACTIVE nào khác đang giữ cùng ghế không?
+            $conflictExists = DB::table('booking_seats')
+                ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                ->where('bookings.showtime_id', $showtimeId)
+                ->whereIn('booking_seats.showtime_seat_id', $seatIds)
+                ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                ->where(function ($q) {
+                    $q->whereNull('bookings.expired_at')
+                      ->orWhere('bookings.expired_at', '>', now());
+                })
+                ->lockForUpdate()
+                ->exists();
+
+            if ($conflictExists) {
+                throw new \Exception('Một hoặc nhiều ghế đã được người khác đặt. Vui lòng chọn lại.');
             }
 
             // Tính toán tổng tiền vé + combo + voucher + giảm hạng
@@ -621,6 +696,7 @@ $request->validate([
             $customerEmail = $request->input('customer_email');
 
             // Luồng chính: Tạo booking mới
+            // expired_at dùng thời điểm hết hạn gốc từ master timer (KHÔNG reset thêm thời gian)
             $booking = Booking::create([
                 'booking_code' => $bookingCode,
                 'user_id' => Auth::id(),
@@ -634,7 +710,7 @@ $request->validate([
                 'final_amount' => $finalAmount,
                 'status' => 'PENDING',
                 'payment_status' => 'UNPAID',
-                'expired_at' => now()->addMinutes(5),
+                'expired_at' => $holdExpireAt,
             ]);
 
             // Lưu danh sách ghế vào bảng trung gian

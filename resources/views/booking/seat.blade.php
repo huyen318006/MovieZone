@@ -587,8 +587,22 @@ const btnPayment = document.getElementById('btnPayment');
             // Giới hạn tối đa số ghế 1 khách được chọn (đồng bộ với MAX_SEATS_PER_BOOKING backend)
             const MAX_SEATS = 10;
 
+            // === SERVER-AUTHORITATIVE TIMER ===
+            const holdTotalSeconds = {{ $holdTotalSeconds ?? 300 }};
+            let holdExpiresAt = @json($holdExpiresAt ?? null);
+            let clockOffset = 0;
+
+            // Tính clock offset từ serverTime ban đầu
+            const initialServerTime = @json($serverTime ?? null);
+            if (initialServerTime) {
+                clockOffset = new Date(initialServerTime).getTime() - Date.now();
+            }
+
+            // Convert holdExpiresAt thành milliseconds
+            let expiresAtMs = holdExpiresAt ? new Date(holdExpiresAt).getTime() : null;
+
             let timerInterval;
-            let secondsLeft = Math.max(0, {{ $secondsLeft ?? 300 }});
+            let timerExpired = false;
             const currentSearch = window.location.search;
             const tabToken = new URLSearchParams(currentSearch).get('tab_token');
 
@@ -604,6 +618,15 @@ const btnPayment = document.getElementById('btnPayment');
                 seatPageReloadLink.href += (seatPageReloadLink.href.includes('?') ? '&' : '?') + 'tab_token=' + tabToken;
             }
 
+            /**
+             * Tính seconds left dựa trên server timestamp + clock offset.
+             */
+            function getSecondsLeft() {
+                if (!expiresAtMs) return 0;
+                const effectiveNow = Date.now() + clockOffset;
+                return Math.max(0, Math.floor((expiresAtMs - effectiveNow) / 1000));
+            }
+
             // 1. TỰ ĐỘNG KHÔI PHỤC GHẾ ĐANG CHỌN (Từ class HELD_BY_ME trên màn hình)
             document.querySelectorAll('.HELD_BY_ME').forEach(btn => {
                 const seatCode = btn.dataset.seat;
@@ -616,7 +639,7 @@ const btnPayment = document.getElementById('btnPayment');
             });
 
             // 2. NẾU CÓ GHẾ THÌ CHẠY TIMER
-            if (selectedSeats.size > 0 && secondsLeft > 0) {
+            if (selectedSeats.size > 0 && expiresAtMs && getSecondsLeft() > 0) {
                 updateUI();
                 startTimer();
             }
@@ -625,9 +648,9 @@ const btnPayment = document.getElementById('btnPayment');
                 document.getElementById('timer-box').style.display = 'block';
                 updateSeatTimerDisplay();
                 timerInterval = setInterval(() => {
-                    secondsLeft--;
-                    if (secondsLeft <= 0) {
-                        secondsLeft = 0;
+                    const remaining = getSecondsLeft();
+                    if (remaining <= 0) {
+                        timerExpired = true;
                         clearInterval(timerInterval);
                         updateSeatTimerDisplay();
                         // Hiển thị modal hết giờ
@@ -639,13 +662,13 @@ const btnPayment = document.getElementById('btnPayment');
             }
 
             function updateSeatTimerDisplay() {
-                const safe = Math.max(0, secondsLeft);
+                const safe = getSecondsLeft();
                 let m = Math.floor(safe / 60).toString().padStart(2, '0');
                 let s = (safe % 60).toString().padStart(2, '0');
                 document.getElementById('clock').textContent = m + ':' + s;
 
                 // Progress bar
-                const pct = (safe / 300) * 100;
+                const pct = (safe / holdTotalSeconds) * 100;
                 const fillEl = document.getElementById('seatTimerProgressFill');
                 if (fillEl) fillEl.style.width = pct + '%';
 
@@ -655,6 +678,22 @@ const btnPayment = document.getElementById('btnPayment');
                     timerBox.classList.add('danger');
                 }
             }
+
+            /**
+             * VISIBILITY CHANGE: Khi user quay lại tab sau khi tab bị background,
+             * tính lại thời gian ngay lập tức.
+             */
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible' && expiresAtMs && !timerExpired) {
+                    const remaining = getSecondsLeft();
+                    updateSeatTimerDisplay();
+                    if (remaining <= 0) {
+                        timerExpired = true;
+                        clearInterval(timerInterval);
+                        document.getElementById('seatExpiredOverlay').classList.add('show');
+                    }
+                }
+            });
 
             document.querySelector('.seat-map').addEventListener('click', async (e) => {
                 const btn = e.target.closest('.seat');
@@ -691,6 +730,8 @@ const seatIds = seatIdAttr.split(',');
                 try {
                     let allSuccess = true;
                     let lastMessage = '';
+                    let lastServerTime = null;
+                    let lastExpiresAt = null;
 
                     for (const sId of seatIds) {
                         const response = await fetch(holdSeatUrl.toString(), {
@@ -711,11 +752,28 @@ const seatIds = seatIdAttr.split(',');
                         if (!res.success) {
                             allSuccess = false;
                             lastMessage = res.message;
+
+                            // Nếu timer hết hạn, hiển thị modal
+                            if (res.error_type === 'EXPIRED') {
+                                document.getElementById('seatExpiredOverlay').classList.add('show');
+                            }
                             break;
                         }
+
+                        // Cập nhật serverTime và expiresAt từ response
+                        if (res.serverTime) lastServerTime = res.serverTime;
+                        if (res.expiresAt) lastExpiresAt = res.expiresAt;
                     }
 
                     if (allSuccess) {
+                        // Cập nhật clock offset và expiresAt từ response mới nhất
+                        if (lastServerTime) {
+                            clockOffset = new Date(lastServerTime).getTime() - Date.now();
+                        }
+                        if (lastExpiresAt) {
+                            expiresAtMs = new Date(lastExpiresAt).getTime();
+                        }
+
                         if (isSelecting) {
                             if (selectedSeats.size === 0) startTimer();
 
