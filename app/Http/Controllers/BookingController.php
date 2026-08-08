@@ -40,6 +40,11 @@ class BookingController extends Controller
     // ==========================================
     public function showSeats($showtime_id)
     {
+        $existingOrderCode = session('pending_order_code');
+        if ($existingOrderCode) {
+            return $this->cancelBookingAndRelease($existingOrderCode);
+        }
+
         $showtime = Showtime::with(['movie', 'room'])
             ->findOrFail($showtime_id);
 
@@ -356,6 +361,11 @@ $request->validate([
     // ==========================================
     public function showCombo()
     {
+        $existingOrderCode = session('pending_order_code');
+        if ($existingOrderCode) {
+            return $this->cancelBookingAndRelease($existingOrderCode);
+        }
+
         $bookingTam = session('booking_tam');
 
         // TIMER: Tính thời gian còn lại từ master timer
@@ -483,6 +493,11 @@ $request->validate([
     // ==========================================
     public function showConfirm()
     {
+        $existingOrderCode = session('pending_order_code');
+        if ($existingOrderCode) {
+            return $this->cancelBookingAndRelease($existingOrderCode);
+        }
+
         $bookingTam = session('booking_tam');
         if (! $bookingTam) {
             return redirect()->route('home');

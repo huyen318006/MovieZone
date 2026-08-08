@@ -312,7 +312,7 @@ Route::middleware(['tab.auth', 'admin'])->controller(ShowtimeManageController::c
 // })->name('tickets');
 
 /* --------------------- UC-08 & UC-11: ĐẶT VÉ ------------------ */
-Route::middleware(['tab.auth'])->group(function () {
+Route::middleware(['tab.auth', 'cache.headers:private;max_age=0;no_cache;no_store'])->group(function () {
     // UC-08: Hiển thị màn hình chọn ghế (Sửa tên cho đồng bộ)
     Route::get('/booking/showtime/{showtime_id}/seat', [BookingController::class, 'showSeats'])->name('booking.seat');
 
