@@ -279,10 +279,20 @@
                     </strong>
                 </div>
 
+                @if(session('booking_tam.tier_discount_amount', 0) > 0)
+                    <div class="summary-row discount" style="color: #10b981;">
+                        <span>Ưu đãi Hạng {{ session('booking_tam.tier_name') }} ({{ session('booking_tam.tier_percent') }}%)</span>
+
+                        <strong>
+                            -{{ number_format(session('booking_tam.tier_discount_amount'),0,',','.') }}đ
+                        </strong>
+                    </div>
+                @endif
+
                 @if(session('booking_tam.discount_amount',0) > 0)
 
                     <div class="summary-row discount">
-                        <span>Giảm giá</span>
+                        <span>Voucher giảm giá</span>
 
                         <strong>
                             -{{ number_format(session('booking_tam.discount_amount'),0,',','.') }}đ
@@ -325,6 +335,7 @@
 <script>
 const seatAmount = {{ session('booking_tam.total_seat_amount',0) }};
 const seatCount = {{ count(session('booking_tam.seats', [])) }};
+const tierDiscountAmount = {{ session('booking_tam.tier_discount_amount',0) }};
 const discountAmount = {{ session('booking_tam.discount_amount',0) }};
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -430,12 +441,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('summaryCombos').innerHTML = html;
         document.getElementById('comboAmount').innerText = formatMoney(total);
-        const grandTotal =
-        seatAmount +
-        total -
-        discountAmount;
+        const grandTotal = Math.max(0, seatAmount + total - tierDiscountAmount - discountAmount);
 
-    document.getElementById('grandTotal').innerText =formatMoney(grandTotal);}
+        document.getElementById('grandTotal').innerText = formatMoney(grandTotal);
+    }
 
     document.querySelectorAll('.plus').forEach(btn => {
         btn.addEventListener('click', () => {

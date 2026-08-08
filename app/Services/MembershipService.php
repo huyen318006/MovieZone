@@ -180,7 +180,26 @@ class MembershipService
         }
 
         $amount = (float) ($booking->final_amount ?? $booking->total_price ?? 0);
-        $earnedCoin = (int) floor($amount / 10000); // Tích thưởng 10.000đ = 1 Coin
+        if ($amount <= 0) {
+            return null;
+        }
+
+        // Lấy Hạng hiện tại của User để xác định % tích Coin thưởng
+        $userMembership = UserMembership::with('level')->where('user_id', $booking->user_id)->first();
+        $levelName = strtoupper($userMembership?->level?->name ?? 'BRONZE');
+
+        // Tỷ lệ tích Coin thưởng theo % Hạng:
+        // BRONZE: 1% | SILVER: 3% | GOLD: 5% | PLATINUM: 7% | DIAMOND: 10%
+        $earnRates = [
+            'BRONZE'   => 1,
+            'SILVER'   => 3,
+            'GOLD'     => 5,
+            'PLATINUM' => 7,
+            'DIAMOND'  => 10,
+        ];
+        $ratePercent = $earnRates[$levelName] ?? 1;
+
+        $earnedCoin = (int) round(($amount * $ratePercent) / 100);
 
         if ($earnedCoin <= 0) {
             return null;
