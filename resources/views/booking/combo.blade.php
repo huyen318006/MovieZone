@@ -5,7 +5,12 @@
 @section('content')
 
 {{-- COUNTDOWN TIMER 5 PHÚT --}}
-@include('booking._countdown_timer', ['secondsLeft' => $secondsLeft, 'showtime_id' => $bookingTam['showtime_id'] ?? null])
+@include('booking._countdown_timer', [
+    'holdExpiresAt' => $holdExpiresAt,
+    'serverTime' => $serverTime,
+    'holdTotalSeconds' => $holdTotalSeconds,
+    'resolvedShowtimeId' => $bookingTam['showtime_id'] ?? null
+])
 
 <div class="combo-page">
 

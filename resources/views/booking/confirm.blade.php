@@ -3,7 +3,12 @@
 @section('content')
 
 {{-- COUNTDOWN TIMER 5 PHÚT --}}
-@include('booking._countdown_timer', ['secondsLeft' => $secondsLeft, 'showtime_id' => $showtime_id ?? null])
+@include('booking._countdown_timer', [
+    'holdExpiresAt' => $holdExpiresAt,
+    'serverTime' => $serverTime,
+    'holdTotalSeconds' => $holdTotalSeconds,
+    'resolvedShowtimeId' => $showtime_id ?? null
+])
 
 <section class="confirm-page">
     <div class="confirm-container">

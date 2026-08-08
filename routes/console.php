@@ -21,5 +21,8 @@ Artisan::command('membership:scan-expired', function (MembershipService $members
 // Tự động lên lịch chạy ngầm hằng ngày vào 04:00 sáng (Zero Traffic Window - Tránh gián đoạn suất chiếu đêm)
 Schedule::command('membership:scan-expired')->dailyAt('04:00');
 
+// Tự động expire booking quá hạn (giải phóng ghế) — chạy mỗi phút
+Schedule::command('booking:expire-pending')->everyMinute();
+
 // Quét thanh toán muộn mỗi 10 phút (phát hiện khách chuyển khoản sau khi đơn hết hạn)
 Schedule::command('booking:detect-late-payments')->everyTenMinutes();
