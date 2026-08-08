@@ -40,6 +40,17 @@
                                 @endif
                             </div>
                         </div>
+                        <div class="booking-qr-code">
+                            <div class="qr-wrapper">
+                                {!! QrCode::format('svg')
+                                    ->size(100)
+                                    ->margin(1)
+                                    ->color(15, 23, 42)
+                                    ->backgroundColor(255, 255, 255)
+                                    ->generate(app(\App\Services\QRCodeService::class)->generateQRContent($booking->booking_code)) !!}
+                            </div>
+                            <span class="qr-label">Mã đặt vé</span>
+                        </div>
                     </div>
                 @endif
 
@@ -74,7 +85,7 @@
                         @foreach($booking->tickets as $ticket)
                             <div class="ticket-status-item">
                                 <div class="ticket-info-left">
-                                    <div class="ticket-code-label">Mã vé: <strong>{{ $ticket->ticket_code }}</strong></div>
+                                    {{-- <div class="ticket-code-label">Mã vé: <strong>{{ $ticket->ticket_code }}</strong></div> --}}
                                     <div class="ticket-seat-label">Ghế: <span class="seat-highlight">{{ $ticket->bookingSeat->seat_code ?? 'N/A' }}</span></div>
                                     @if($ticket->status === 'USED' && $ticket->checked_in_at)
                                         <div class="ticket-checkin-info">
@@ -218,6 +229,32 @@ body {
     padding: 16px;
     margin-bottom: 20px;
     align-items: center;
+}
+
+.booking-qr-code {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.booking-qr-code .qr-wrapper {
+    background: #ffffff;
+    padding: 6px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.booking-qr-code .qr-label {
+    font-size: 10px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
 }
 
 .movie-poster {
@@ -400,7 +437,7 @@ body {
 }
 
 .ticket-seat-label {
-    font-size: 13px;
+    font-size: 18px;
     color: #64748b;
 }
 
@@ -454,6 +491,10 @@ body {
     .movie-info-header {
         flex-direction: column;
         text-align: center;
+    }
+    .booking-qr-code {
+        margin-left: 0 !important;
+        margin-top: 15px;
     }
 }
 </style>

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\UserMembership;
 use App\Models\Voucher;
 use App\Models\VoucherUsage;
 
@@ -22,6 +23,42 @@ class VoucherService
                 'message' => 'Voucher không hợp lệ'
             ];
         }
+
+        // --- KIỂM TRA HẠNG THÀNH VIÊN ĐƯỢC PHÉP SỬ DỤNG VOUCHER ---
+        $vCode = strtoupper($voucher->code);
+        $tierRanks = [
+            'BRONZE'   => 1,
+            'SILVER'   => 2,
+            'GOLD'     => 3,
+            'PLATINUM' => 4,
+            'DIAMOND'  => 5,
+        ];
+
+        $requiredTier = null;
+        foreach (['DIAMOND', 'PLATINUM', 'SILVER', 'BRONZE', 'GOLD'] as $prefix) {
+            if (str_starts_with($vCode, $prefix)) {
+                $requiredTier = $prefix;
+                break;
+            }
+        }
+
+        if ($requiredTier) {
+            $userMembership = UserMembership::with('level')
+                ->where('user_id', $userId)
+                ->first();
+
+            $userLevelName = strtoupper($userMembership?->level?->name ?? 'BRONZE');
+            $userRank = $tierRanks[$userLevelName] ?? 1;
+            $requiredRank = $tierRanks[$requiredTier] ?? 1;
+
+            if ($userRank < $requiredRank) {
+                return [
+                    'success' => false,
+                    'message' => "Mã giảm giá này chỉ dành riêng cho thành viên hạng {$requiredTier} trở lên! Hạng hiện tại của bạn là {$userLevelName}."
+                ];
+            }
+        }
+        // --------------------------------------------------------
 
         if ($voucher->status !== 'ACTIVE') {
             return [

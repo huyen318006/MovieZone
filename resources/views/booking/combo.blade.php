@@ -5,7 +5,12 @@
 @section('content')
 
 {{-- COUNTDOWN TIMER 5 PHÚT --}}
-@include('booking._countdown_timer', ['secondsLeft' => $secondsLeft, 'showtime_id' => $bookingTam['showtime_id'] ?? null])
+@include('booking._countdown_timer', [
+    'holdExpiresAt' => $holdExpiresAt,
+    'serverTime' => $serverTime,
+    'holdTotalSeconds' => $holdTotalSeconds,
+    'resolvedShowtimeId' => $bookingTam['showtime_id'] ?? null
+])
 
 <div class="combo-page">
 
@@ -158,13 +163,17 @@
 
                     <div class="movie-info">
 
-                        <div class="movie-thumb"></div>
+                        <div class="movie-thumb">
+                            @if(isset($showtime->movie->poster))
+                                <img src="{{ $showtime->movie->poster }}" alt="{{ $showtime->movie->title }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">
+                            @endif
+                        </div>
 
                         <div>
-                            <strong>{{ session('booking_movie_name', 'Tên phim') }}</strong>
-                            <span>{{ session('booking_cinema_name', 'MovieZone Cinema') }}</span>
-                            <span>{{ session('booking_room_name', 'Phòng chiếu') }}</span>
-                            <span>{{ session('booking_time', '14:30') }}</span>
+                            <strong>{{ $showtime->movie->title ?? 'Tên phim' }}</strong>
+                            <span>{{ $showtime->cinema->name ?? 'MovieZone Cinema' }}</span>
+                            <span>{{ $showtime->room->name ?? 'Phòng chiếu' }}</span>
+                            <span>{{ $showtime ? \Carbon\Carbon::parse($showtime->start_time)->format('H:i - d/m/Y') : '14:30' }}</span>
                         </div>
 
                     </div>
@@ -275,10 +284,20 @@
                     </strong>
                 </div>
 
+                @if(session('booking_tam.tier_discount_amount', 0) > 0)
+                    <div class="summary-row discount" style="color: #10b981;">
+                        <span>Ưu đãi Hạng {{ session('booking_tam.tier_name') }} ({{ session('booking_tam.tier_percent') }}%)</span>
+
+                        <strong>
+                            -{{ number_format(session('booking_tam.tier_discount_amount'),0,',','.') }}đ
+                        </strong>
+                    </div>
+                @endif
+
                 @if(session('booking_tam.discount_amount',0) > 0)
 
                     <div class="summary-row discount">
-                        <span>Giảm giá</span>
+                        <span>Voucher giảm giá</span>
 
                         <strong>
                             -{{ number_format(session('booking_tam.discount_amount'),0,',','.') }}đ
@@ -321,6 +340,7 @@
 <script>
 const seatAmount = {{ session('booking_tam.total_seat_amount',0) }};
 const seatCount = {{ count(session('booking_tam.seats', [])) }};
+const tierDiscountAmount = {{ session('booking_tam.tier_discount_amount',0) }};
 const discountAmount = {{ session('booking_tam.discount_amount',0) }};
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -426,12 +446,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('summaryCombos').innerHTML = html;
         document.getElementById('comboAmount').innerText = formatMoney(total);
-        const grandTotal =
-        seatAmount +
-        total -
-        discountAmount;
+        const grandTotal = Math.max(0, seatAmount + total - tierDiscountAmount - discountAmount);
 
-    document.getElementById('grandTotal').innerText =formatMoney(grandTotal);}
+        document.getElementById('grandTotal').innerText = formatMoney(grandTotal);
+    }
 
     document.querySelectorAll('.plus').forEach(btn => {
         btn.addEventListener('click', () => {

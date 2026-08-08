@@ -312,7 +312,7 @@ Route::middleware(['tab.auth', 'admin'])->controller(ShowtimeManageController::c
 // })->name('tickets');
 
 /* --------------------- UC-08 & UC-11: ĐẶT VÉ ------------------ */
-Route::middleware(['tab.auth'])->group(function () {
+Route::middleware(['tab.auth', 'cache.headers:private;max_age=0;no_cache;no_store'])->group(function () {
     // UC-08: Hiển thị màn hình chọn ghế (Sửa tên cho đồng bộ)
     Route::get('/booking/showtime/{showtime_id}/seat', [BookingController::class, 'showSeats'])->name('booking.seat');
 
@@ -620,7 +620,15 @@ Route::middleware(['tab.auth', 'admin'])->group(function () {
 Route::middleware(['tab.auth', 'admin'])->group(function () {
     Route::get('/admin/memberships', [CustomerMembershipController::class, 'index'])->name('admin.memberships.index');
     Route::post('/admin/memberships/scan-expired', [CustomerMembershipController::class, 'scanExpired'])->name('admin.memberships.scan_expired');
+    Route::post('/admin/memberships/bulk-adjust-coin', [CustomerMembershipController::class, 'bulkAdjustCoin'])->name('admin.memberships.bulk_adjust_coin');
+    Route::post('/admin/memberships/bulk-reset-level', [CustomerMembershipController::class, 'bulkResetLevel'])->name('admin.memberships.bulk_reset_level');
+    Route::post('/admin/memberships/bulk-change-level', [CustomerMembershipController::class, 'bulkChangeLevel'])->name('admin.memberships.bulk_change_level');
     Route::get('/admin/memberships/{id}', [CustomerMembershipController::class, 'show'])->name('admin.memberships.show');
     Route::post('/admin/memberships/{id}/adjust-coin', [CustomerMembershipController::class, 'adjustCoin'])->name('admin.memberships.adjust_coin');
     Route::post('/admin/memberships/{id}/reset-level', [CustomerMembershipController::class, 'resetLevel'])->name('admin.memberships.reset_level');
+    Route::post('/admin/memberships/{id}/change-level', [CustomerMembershipController::class, 'changeLevel'])->name('admin.memberships.change_level');
+
+    // Cấu hình Mốc Hạng Thành Viên
+    Route::get('/admin/membership-levels', [\App\Http\Controllers\Admin\MembershipLevelController::class, 'index'])->name('admin.membership_levels.index');
+    Route::post('/admin/membership-levels/{id}/update', [\App\Http\Controllers\Admin\MembershipLevelController::class, 'update'])->name('admin.membership_levels.update');
 });

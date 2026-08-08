@@ -2,8 +2,8 @@
 
 @section('content')
 
-{{-- COUNTDOWN TIMER CHUNG 5 PHÚT --}}
-@include('booking._countdown_timer', ['secondsLeft' => $secondsLeft])
+{{-- COUNTDOWN TIMER THANH TOÁN (timer riêng 5 phút từ lúc tạo đơn) --}}
+@include('booking._payment_countdown', ['expiresAt' => $expiresAt])
 
 <section class="payment-page">
 <div class="payment-wrapper">
@@ -184,8 +184,8 @@
     // ============================
     // Payment Polling (giữ nguyên)
     // ============================
-    const checkUrl = '{{ route("booking.check", $order->order_code) }}';
-    const billUrl = '{{ route("booking.bill", $order->order_code) }}';
+    const checkUrl = '{{ \App\Helpers\TabAuthHelper::route("booking.check", $order->order_code) }}';
+    const billUrl = '{{ \App\Helpers\TabAuthHelper::route("booking.bill", $order->order_code) }}';
     const pollMs = {{ $pollingInterval }};
 
     const statusText = document.getElementById('statusText');

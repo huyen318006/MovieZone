@@ -3,7 +3,12 @@
 @section('content')
 
 {{-- COUNTDOWN TIMER 5 PHÚT --}}
-@include('booking._countdown_timer', ['secondsLeft' => $secondsLeft, 'showtime_id' => $showtime_id ?? null])
+@include('booking._countdown_timer', [
+    'holdExpiresAt' => $holdExpiresAt,
+    'serverTime' => $serverTime,
+    'holdTotalSeconds' => $holdTotalSeconds,
+    'resolvedShowtimeId' => $showtime_id ?? null
+])
 
 <section class="confirm-page">
     <div class="confirm-container">
@@ -97,6 +102,18 @@
                         <div class="price-subtotal-row">
                             <span>Tổng combo</span>
                             <span>{{ number_format($totalComboPrice, 0, ',', '.') }}đ</span>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Giảm giá Hạng thành viên (nếu có) --}}
+                @if(($tierDiscountAmount ?? 0) > 0)
+                <div class="ticket-section">
+                    <div class="price-breakdown">
+                        <div class="price-row discount-row" style="color: #10b981;">
+                            <span>🎖️ Ưu đãi Hạng {{ $tierName ?? 'MEMBER' }} ({{ $tierPercent ?? 0 }}%)</span>
+                            <span>-{{ number_format($tierDiscountAmount, 0, ',', '.') }}đ</span>
                         </div>
                     </div>
                 </div>

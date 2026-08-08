@@ -417,12 +417,10 @@ class RoomManageController extends Controller
     /**
      * Tự động tạo seats khi tạo room mới theo cùng logic computeZones() đang dùng ở SeatManageController.
      */
-    private function autoCreateSeatsForRoom(Room $room): void
+private function autoCreateSeatsForRoom(Room $room): void
     {
-        // Chỉ auto tạo khi phòng active
-        if ($room->status !== 'ACTIVE') {
-            return;
-        }
+        // Tạo layout ghế cho mọi trạng thái phòng (kể cả MAINTENANCE/INACTIVE)
+        // để admin có thể xem/cấu hình ghế trước khi kích hoạt phòng.
 
         $zones = $this->computeZonesLikeSeatManage($room);
 

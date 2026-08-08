@@ -57,6 +57,12 @@
     border: 2px solid var(--staff-border);
     }
 
+    #qrReaderWrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    }
+
     #qr-reader video {
     width: 100%;
     height: 100%;
@@ -494,7 +500,7 @@
     <div class="success-overlay" id="successOverlay">
         <div class="success-card">
             <div class="success-icon"><i class="bi bi-check-lg"></i></div>
-            <div class="success-title">CHECK-IN THÀNH CÔNG</div>
+            <div class="success-title">IN VÉ THÀNH CÔNG</div>
             <div class="success-detail" id="successTicketCode"></div>
             <div class="success-detail" id="successSeat"></div>
             <div class="success-detail" id="successTime"></div>
@@ -661,7 +667,7 @@
             } else {
                 // Switch to QR mode
                 manualWrap.style.display = 'none';
-                qrWrap.style.display = 'block';
+                qrWrap.style.display = 'flex';
                 btnScan.style.display = '';
                 btnManual.innerHTML = '<i class="bi bi-keyboard"></i> Nhập mã';
                 btnManual.className = 'btn-scan btn-scan-secondary';
@@ -751,8 +757,8 @@
                 'invalid');
             const headerIcon = data.can_checkin ? 'bi-check-circle-fill' : (data.error?.code ===
                 'TICKET_ALREADY_CHECKED_IN' ? 'bi-exclamation-triangle-fill' : 'bi-x-circle-fill');
-            const headerText = data.can_checkin ? 'Vé hợp lệ — Sẵn sàng check-in' : (data.error?.message ||
-                'Không thể check-in');
+            const headerText = data.can_checkin ? 'Vé hợp lệ — Sẵn sàng in vé' : (data.error?.message ||
+                'Không thể in vé');
 
             const posterSrc = resolvePosterPath(ticket.movie?.poster_url);
             const posterImg = posterSrc ? `<img src="${posterSrc}" class="movie-poster" alt="poster">` :
@@ -788,33 +794,30 @@
                 </div>
             </div>
             ${ticket.checked_in_at ? `
-                    <div style="margin-top:12px; padding:10px 14px; background:rgba(245,158,11,0.1); border-radius:8px; font-size:13px;">
-                        <i class="bi bi-info-circle"></i> Đã check-in lúc <strong>${formatDateTime(ticket.checked_in_at)}</strong> bởi <strong>${ticket.checked_in_by_name || 'N/A'}</strong>
-                    </div>
-                ` : ''}
+                            <div style="margin-top:12px; padding:10px 14px; background:rgba(245,158,11,0.1); border-radius:8px; font-size:13px;">
+                                <i class="bi bi-info-circle"></i> Đã in vé lúc <strong>${formatDateTime(ticket.checked_in_at)}</strong> bởi <strong>${ticket.checked_in_by_name || 'N/A'}</strong>
+                            </div>
+                        ` : ''}
         </div>
         ${data.can_checkin ? `
-                <div class="confirm-card-actions">
-                    <button class="btn-confirm btn-confirm-success" onclick="confirmCheckIn(${ticket.id})">
-                        <i class="bi bi-check-circle"></i> Xác nhận Check-in
-                    </button>
-                    <button class="btn-confirm btn-scan-secondary" style="flex: 0.5;" onclick="printBill('${ticket.booking?.booking_code}')">
-                        <i class="bi bi-printer"></i> In
-                    </button>
-                    <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()">
-                        <i class="bi bi-x-lg"></i> Hủy
-                    </button>
-                </div>
-            ` : `
-                <div class="confirm-card-actions">
-                    <button class="btn-confirm btn-scan-secondary" onclick="printBill('${ticket.booking?.booking_code}')">
-                        <i class="bi bi-printer"></i> In Hoá Đơn
-                    </button>
-                    <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()" style="flex:1;">
-                        <i class="bi bi-qr-code-scan"></i> Quét vé khác
-                    </button>
-                </div>
-            `}
+                        <div class="confirm-card-actions">
+                            <button class="btn-confirm btn-confirm-success" onclick="confirmCheckIn(${ticket.id})">
+                                <i class="bi bi-check-circle"></i> Xác nhận in vé
+                            </button>
+                            <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()">
+                                <i class="bi bi-x-lg"></i> Hủy
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="confirm-card-actions">
+                            <button class="btn-confirm btn-scan-secondary" onclick="printBill('${ticket.booking?.booking_code}')">
+                                <i class="bi bi-printer"></i> In Hoá Đơn
+                            </button>
+                            <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()" style="flex:1;">
+                                <i class="bi bi-qr-code-scan"></i> Quét vé khác
+                            </button>
+                        </div>
+                    `}
     `;
 
             card.classList.add('show');
@@ -838,11 +841,11 @@
             const headerClass = checkableTickets.length > 0 ? 'valid' : (tickets.length > 0 ? 'warning' : 'invalid');
             let headerText;
             if (checkableTickets.length > 0) {
-                headerText = `Booking tìm thấy — ${checkableTickets.length}/${tickets.length} vé có thể check-in`;
+                headerText = `Booking tìm thấy — ${checkableTickets.length}/${tickets.length} vé có thể in`;
             } else if (data.error?.message) {
                 headerText = data.error.message;
             } else {
-                headerText = 'Không thể check-in';
+                headerText = 'Không thể in vé';
             }
 
             let ticketsHtml = tickets.map(t => {
@@ -890,33 +893,33 @@
                 </div>
             </div>
             ${tickets.length > 0 ? `
-                    <div style="font-size:12px; color:var(--staff-text-muted); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
-                        <span><i class="bi bi-ticket-perforated"></i> ${tickets.length} vé trong booking</span>
-                        <button onclick="printBill('${booking?.booking_code}')" style="background:transparent; border:1px solid var(--staff-border); color:var(--staff-text-muted); border-radius:6px; padding:3px 10px; cursor:pointer; font-size:11px; display:flex; align-items:center; gap:4px;"
-                                onmouseover="this.style.borderColor='var(--staff-primary)';this.style.color='var(--staff-primary)'"
-                                onmouseout="this.style.borderColor='var(--staff-border)';this.style.color='var(--staff-text-muted)'">
-                            <i class="bi bi-printer"></i> In tất cả
-                        </button>
-                    </div>
-                ` : ''}
+                            <div style="font-size:12px; color:var(--staff-text-muted); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                                <span><i class="bi bi-ticket-perforated"></i> ${tickets.length} vé trong booking</span>
+                                <button onclick="printBill('${booking?.booking_code}')" style="background:transparent; border:1px solid var(--staff-border); color:var(--staff-text-muted); border-radius:6px; padding:3px 10px; cursor:pointer; font-size:11px; display:flex; align-items:center; gap:4px;"
+                                        onmouseover="this.style.borderColor='var(--staff-primary)';this.style.color='var(--staff-primary)'"
+                                        onmouseout="this.style.borderColor='var(--staff-border)';this.style.color='var(--staff-text-muted)'">
+                                    <i class="bi bi-printer"></i> In tất cả
+                                </button>
+                            </div>
+                        ` : ''}
             <div class="tickets-list">${ticketsHtml}</div>
         </div>
         ${checkableTickets.length > 0 ? `
-                <div class="confirm-card-actions">
-                    <button class="btn-confirm btn-confirm-success" onclick="confirmBatch(${booking?.id})">
-                        <i class="bi bi-check-all"></i> Check-in đã chọn
-                    </button>
-                    <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()">
-                        <i class="bi bi-x-lg"></i> Đóng
-                    </button>
-                </div>
-            ` : `
-                <div class="confirm-card-actions">
-                    <button class="btn-confirm btn-confirm-cancel" style="flex:1;" onclick="cancelConfirm()">
-                        <i class="bi bi-x-lg"></i> Đóng
-                    </button>
-                </div>
-            `}
+                        <div class="confirm-card-actions">
+                            <button class="btn-confirm btn-confirm-success" onclick="confirmBatch(${booking?.id})">
+                                <i class="bi bi-check-all"></i> Xác nhận
+                            </button>
+                            <button class="btn-confirm btn-confirm-cancel" onclick="cancelConfirm()">
+                                <i class="bi bi-x-lg"></i> Đóng
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="confirm-card-actions">
+                            <button class="btn-confirm btn-confirm-cancel" style="flex:1;" onclick="cancelConfirm()">
+                                <i class="bi bi-x-lg"></i> Đóng
+                            </button>
+                        </div>
+                    `}
     `;
 
             panel.classList.add('show');
@@ -950,7 +953,7 @@
                     // Refresh batch panel nếu đang hiển thị
                     refreshBatchPanel();
                 } else {
-                    showError(data.error?.message || 'Check-in thất bại.');
+                    showError(data.error?.message || 'In vé thất bại.');
                 }
 
             } catch (err) {
@@ -999,7 +1002,7 @@
                     // Refresh batch panel để cập nhật trạng thái vé
                     refreshBatchPanel();
                 } else {
-                    showError('Check-in hàng loạt thất bại.');
+                    showError('In vé hàng loạt thất bại.');
                 }
 
             } catch (err) {
@@ -1083,8 +1086,7 @@
                 a.remove();
                 window.URL.revokeObjectURL(url);
 
-                // Auto check-in tất cả vé sau khi tải PDF
-                autoCheckInAllUnused();
+                // Removed auto check-in here to allow early printing
             } catch (err) {
                 alert('Lỗi kết nối khi tải PDF.');
             } finally {
@@ -1145,10 +1147,9 @@
                 document.body.appendChild(iframe);
             }
 
-            iframe.src = `/staff/print-bill/${code}?print=true`;
+            iframe.src = `/staff/print-bill/${code}?print=true` + (TAB_TOKEN ? `&tab_token=${TAB_TOKEN}` : '');
 
-            // Auto check-in tất cả vé UNUSED trong batch panel
-            autoCheckInAllUnused();
+            // Removed auto check-in here to allow early printing
         }
 
 
@@ -1177,7 +1178,7 @@
                 }
             } catch (e) {
                 // Print still works, just skip auto check-in silently
-                console.warn('Auto check-in failed:', e);
+                console.warn('Auto printing failed:', e);
             }
         }
 
@@ -1224,7 +1225,7 @@
                     playBeepSuccess();
                 }
             } catch (e) {
-                console.warn('Auto batch check-in failed:', e);
+                console.warn('Auto batch printing failed:', e);
             }
 
             refreshBatchPanel();

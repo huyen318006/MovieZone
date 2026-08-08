@@ -221,40 +221,80 @@ class SepayService
                     stripos($content, $orderCode) !== false
                     && $amountIn >= $order->amount
                 ) {
-                    // Tìm thấy giao dịch khớp → đánh dấu đã thanh toán
+                    // Tìm thấy giao dịch khớp → xử lý trong transaction để đảm bảo idempotent
                     $transactionId = (string) ($transaction['id'] ?? $transaction['reference_number'] ?? '');
 
-                    $order->markAsPaid($transactionId, $transaction);
+                    // IDEMPOTENT: Wrap trong transaction + lock để tránh xử lý trùng khi polling đồng thời
+                    $result = DB::transaction(function () use ($order, $orderCode, $transactionId, $transaction, $amountIn) {
+                        // Lock order row để tránh concurrent update
+                        $lockedOrder = SepayOrder::where('id', $order->id)->lockForUpdate()->first();
 
-                    // Sync trạng thái sang Booking model (nếu có liên kết)
-                    if ($order->booking_id && $order->booking) {
-                        $order->booking->update([
-                            'status' => 'PAID',
-                            'payment_status' => 'PAID',
-                            'paid_at' => now(),
-                        ]);
-
-                        // Tạo Payment record
-                        Payment::create([
-                            'booking_id' => $order->booking_id,
-                            'payment_method' => 'ONLINE',
-                            'amount' => $order->amount,
-                            'transaction_code' => $transactionId,
-                            'status' => 'SUCCESS',
-                            'paid_at' => now(),
-                        ]);
-                        // Tự động tích Coin Membership
-                        app(\App\Services\MembershipService::class)->awardBookingCoin($order->booking);
-
-                        // Trừ xu nếu khách dùng xu để giảm giá
-                        $coinUsed = (int) ($order->metadata['coin_used'] ?? 0);
-                        if ($coinUsed > 0 && $order->booking->user_id) {
-                            app(\App\Services\CoinRedemptionService::class)->deductCoins(
-                                $order->booking->user_id,
-                                $coinUsed,
-                                $order->booking_id
-                            );
+                        // Re-check sau khi lock: đã paid chưa?
+                        if ($lockedOrder->isPaid()) {
+                            return ['already_paid' => true, 'order' => $lockedOrder];
                         }
+
+                        // Đánh dấu order đã thanh toán
+                        $lockedOrder->markAsPaid($transactionId, $transaction);
+
+                        // Sync trạng thái sang Booking model (nếu có liên kết)
+                        if ($lockedOrder->booking_id && $lockedOrder->booking) {
+                            $booking = $lockedOrder->booking;
+
+                            // Kiểm tra booking còn hợp lệ để chuyển PAID không
+                            if (in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
+                                $booking->update([
+                                    'status' => 'PAID',
+                                    'payment_status' => 'PAID',
+                                    'paid_at' => now(),
+                                ]);
+
+                                // Tạo Payment record (check chưa tồn tại)
+                                if (! Payment::where('booking_id', $lockedOrder->booking_id)->where('status', 'SUCCESS')->exists()) {
+                                    Payment::create([
+                                        'booking_id' => $lockedOrder->booking_id,
+                                        'payment_method' => 'ONLINE',
+                                        'amount' => $lockedOrder->amount,
+                                        'transaction_code' => $transactionId,
+                                        'status' => 'SUCCESS',
+                                        'paid_at' => now(),
+                                    ]);
+                                }
+
+                                // Tự động tích Coin Membership
+                                app(\App\Services\MembershipService::class)->awardBookingCoin($booking);
+
+                                // Trừ xu nếu khách dùng xu để giảm giá
+                                $coinUsed = (int) ($lockedOrder->metadata['coin_used'] ?? 0);
+                                if ($coinUsed > 0 && $booking->user_id) {
+                                    app(\App\Services\CoinRedemptionService::class)->deductCoins(
+                                        $booking->user_id,
+                                        $coinUsed,
+                                        $lockedOrder->booking_id
+                                    );
+                                }
+                            } elseif (in_array($booking->status, ['EXPIRED', 'CANCELLED'])) {
+                                // Booking đã expired/cancelled → thanh toán muộn
+                                // Không chiếm lại ghế, để DetectLatePayments xử lý hoàn tiền
+                                Log::warning('Payment received for expired/cancelled booking', [
+                                    'order_code' => $orderCode,
+                                    'booking_id' => $lockedOrder->booking_id,
+                                    'booking_status' => $booking->status,
+                                    'amount' => $amountIn,
+                                ]);
+                            }
+                        }
+
+                        return ['already_paid' => false, 'order' => $lockedOrder];
+                    });
+
+                    // Nếu đã xử lý trước đó, trả kết quả luôn
+                    if ($result['already_paid']) {
+                        return [
+                            'status' => 'paid',
+                            'message' => 'Đã thanh toán',
+                            'order' => $result['order']->fresh(),
+                        ];
                     }
 
                     Log::info('SePay payment confirmed', [
@@ -264,76 +304,37 @@ class SepayService
                         'booking_id' => $order->booking_id,
                     ]);
 
-                    // Chỉ đơn mua vé mới sinh ticket/PDF vé.
-                    $pdfPath = null;
-                    if ($order->isBookingOrder() && $order->booking_id && $order->booking) {
+                    // Chỉ đơn mua vé mới sinh ticket — reload booking để lấy status mới nhất
+                    $freshOrder = $result['order']->fresh();
+                    if ($freshOrder->isBookingOrder() && $freshOrder->booking_id && $freshOrder->booking && $freshOrder->booking->status === 'PAID') {
                         try {
                             $ticketService = app(TicketService::class);
-                            $tickets = DB::transaction(function () use ($ticketService, $order) {
-                                return $ticketService->generateTicketsForBooking($order->booking);
+                            $tickets = DB::transaction(function () use ($ticketService, $freshOrder) {
+                                return $ticketService->generateTicketsForBooking($freshOrder->booking);
                             });
 
                             Log::info('Tickets generated for booking', [
                                 'order_code'   => $orderCode,
-                                'booking_code' => $order->booking->booking_code,
+                                'booking_code' => $freshOrder->booking->booking_code,
                                 'ticket_count' => $tickets->count(),
                             ]);
-
-                            // Sinh PDF vé kèm QR Code
-                            $pdfService = app(TicketPDFService::class);
-                            $pdfPath = $pdfService->generateBookingTicketsPDF($order->booking->fresh());
-
                         } catch (\Exception $ticketEx) {
                             // Không throw — thanh toán vẫn thành công, ticket có thể retry sau
-                            Log::error('Failed to generate tickets or PDF', [
+                            Log::error('Failed to generate tickets', [
                                 'order_code' => $orderCode,
-                                'booking_id' => $order->booking_id,
+                                'booking_id' => $freshOrder->booking_id,
                                 'error'      => $ticketEx->getMessage(),
                             ]);
                         }
                     }
 
-                    // Email và thông báo này dành riêng cho đơn vé phim.
-                    try {
-                        $customerEmail = $order->getCustomerEmail();
-                        $user = $order->booking ? $order->booking->user : null;
-
-                        if ($order->isBookingOrder() && $customerEmail) {
-                            Mail::to($customerEmail)->send(
-                                new BookingInvoiceMail($order->fresh(), $user, $pdfPath)
-                            );
-
-                            // Đánh dấu đã gửi email
-                            $meta = $order->metadata ?? [];
-                            $meta['email_sent'] = true;
-                            $meta['email_sent_at'] = now()->toIso8601String();
-                            $meta['email_sent_to'] = $customerEmail;
-                            $meta['pdf_attached'] = !empty($pdfPath);
-                            $order->update(['metadata' => $meta]);
-
-                            Log::info('Booking invoice email sent', [
-                                'order_code'   => $orderCode,
-                                'email'        => $customerEmail,
-                                'pdf_attached' => !empty($pdfPath),
-                            ]);
-                        }
-
-                        // Tạo thông báo trong hệ thống cho user
-                        if ($order->isBookingOrder() && $user) {
-                            $user->notify(new BookingPaidNotification($order->fresh()));
-                        }
-                    } catch (\Exception $mailEx) {
-                        // Không throw — email lỗi không ảnh hưởng đến thanh toán
-                        Log::error('Failed to send booking invoice email', [
-                            'order_code' => $orderCode,
-                            'error' => $mailEx->getMessage(),
-                        ]);
-                    }
+                    // Đẩy PDF + Email + Notification vào hàng đợi chạy ngầm
+                    \App\Jobs\SendBookingInvoiceJob::dispatch($freshOrder->id);
 
                     return [
                         'status' => 'paid',
                         'message' => 'Thanh toán thành công',
-                        'order' => $order->fresh(),
+                        'order' => $freshOrder,
                     ];
                 }
             }

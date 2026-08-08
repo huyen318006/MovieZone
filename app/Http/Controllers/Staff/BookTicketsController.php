@@ -216,8 +216,8 @@ class BookTicketsController extends Controller
     public function checkout(Request $request)
     {
         $request->validate([
-            'customer_name'  => 'required|string|max:255',
-            'customer_phone' => 'required|string|max:20',
+            'customer_name'  => 'nullable|string|max:255',
+            'customer_phone' => 'nullable|string|max:20',
             'customer_email' => 'nullable|email|max:255',
             'payment_method' => 'required|in:ONLINE,CASH',
         ]);

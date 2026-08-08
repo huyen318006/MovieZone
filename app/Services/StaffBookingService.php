@@ -414,9 +414,9 @@ class StaffBookingService
         $seatIds       = $data['seats'];           // showtime_seat IDs
         $combos        = $data['combos'] ?? [];     // [{id, name, quantity, total_price}, ...]
         $products      = $data['products'] ?? [];   // [{id, name, quantity, total_price}, ...]
-        $customerName  = $data['customer_name'];
-        $customerPhone = $data['customer_phone'];
-        $customerEmail = $data['customer_email'];
+        $customerName  = $data['customer_name'] ?? null;
+        $customerPhone = $data['customer_phone'] ?? null;
+        $customerEmail = $data['customer_email'] ?? null;
         $paymentMethod = $data['payment_method'] ?? 'ONLINE';
         $staffUserId   = $data['staff_user_id'];
 

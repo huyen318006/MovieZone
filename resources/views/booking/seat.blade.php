@@ -580,12 +580,29 @@
             const selectedSeatsEl = document.getElementById('selectedSeats');
             const totalPriceEl = document.getElementById('totalPrice');
             const hiddenSeatInputs = document.getElementById('hidden-seat-inputs');
-            const btnPayment = document.getElementById('btnPayment');
+const btnPayment = document.getElementById('btnPayment');
             const bookingForm = document.getElementById('bookingForm');
             const seatPageReloadLink = document.getElementById('seatPageReloadLink');
 
+            // Giới hạn tối đa số ghế 1 khách được chọn (đồng bộ với MAX_SEATS_PER_BOOKING backend)
+            const MAX_SEATS = 10;
+
+            // === SERVER-AUTHORITATIVE TIMER ===
+            const holdTotalSeconds = {{ $holdTotalSeconds ?? 300 }};
+            let holdExpiresAt = @json($holdExpiresAt ?? null);
+            let clockOffset = 0;
+
+            // Tính clock offset từ serverTime ban đầu
+            const initialServerTime = @json($serverTime ?? null);
+            if (initialServerTime) {
+                clockOffset = new Date(initialServerTime).getTime() - Date.now();
+            }
+
+            // Convert holdExpiresAt thành milliseconds
+            let expiresAtMs = holdExpiresAt ? new Date(holdExpiresAt).getTime() : null;
+
             let timerInterval;
-            let secondsLeft = Math.max(0, {{ $secondsLeft ?? 300 }});
+            let timerExpired = false;
             const currentSearch = window.location.search;
             const tabToken = new URLSearchParams(currentSearch).get('tab_token');
 
@@ -601,6 +618,15 @@
                 seatPageReloadLink.href += (seatPageReloadLink.href.includes('?') ? '&' : '?') + 'tab_token=' + tabToken;
             }
 
+            /**
+             * Tính seconds left dựa trên server timestamp + clock offset.
+             */
+            function getSecondsLeft() {
+                if (!expiresAtMs) return 0;
+                const effectiveNow = Date.now() + clockOffset;
+                return Math.max(0, Math.floor((expiresAtMs - effectiveNow) / 1000));
+            }
+
             // 1. TỰ ĐỘNG KHÔI PHỤC GHẾ ĐANG CHỌN (Từ class HELD_BY_ME trên màn hình)
             document.querySelectorAll('.HELD_BY_ME').forEach(btn => {
                 const seatCode = btn.dataset.seat;
@@ -613,7 +639,7 @@
             });
 
             // 2. NẾU CÓ GHẾ THÌ CHẠY TIMER
-            if (selectedSeats.size > 0 && secondsLeft > 0) {
+            if (selectedSeats.size > 0 && expiresAtMs && getSecondsLeft() > 0) {
                 updateUI();
                 startTimer();
             }
@@ -622,9 +648,9 @@
                 document.getElementById('timer-box').style.display = 'block';
                 updateSeatTimerDisplay();
                 timerInterval = setInterval(() => {
-                    secondsLeft--;
-                    if (secondsLeft <= 0) {
-                        secondsLeft = 0;
+                    const remaining = getSecondsLeft();
+                    if (remaining <= 0) {
+                        timerExpired = true;
                         clearInterval(timerInterval);
                         updateSeatTimerDisplay();
                         // Hiển thị modal hết giờ
@@ -636,13 +662,13 @@
             }
 
             function updateSeatTimerDisplay() {
-                const safe = Math.max(0, secondsLeft);
+                const safe = getSecondsLeft();
                 let m = Math.floor(safe / 60).toString().padStart(2, '0');
                 let s = (safe % 60).toString().padStart(2, '0');
                 document.getElementById('clock').textContent = m + ':' + s;
 
                 // Progress bar
-                const pct = (safe / 300) * 100;
+                const pct = (safe / holdTotalSeconds) * 100;
                 const fillEl = document.getElementById('seatTimerProgressFill');
                 if (fillEl) fillEl.style.width = pct + '%';
 
@@ -653,6 +679,22 @@
                 }
             }
 
+            /**
+             * VISIBILITY CHANGE: Khi user quay lại tab sau khi tab bị background,
+             * tính lại thời gian ngay lập tức.
+             */
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible' && expiresAtMs && !timerExpired) {
+                    const remaining = getSecondsLeft();
+                    updateSeatTimerDisplay();
+                    if (remaining <= 0) {
+                        timerExpired = true;
+                        clearInterval(timerInterval);
+                        document.getElementById('seatExpiredOverlay').classList.add('show');
+                    }
+                }
+            });
+
             document.querySelector('.seat-map').addEventListener('click', async (e) => {
                 const btn = e.target.closest('.seat');
                 if (!btn || btn.disabled) return;
@@ -662,14 +704,34 @@
                 const seatType = btn.dataset.type;
                 const seatPrice = parseInt(btn.dataset.price);
 
-                const seatIds = seatIdAttr.split(',');
+const seatIds = seatIdAttr.split(',');
 
                 const isSelecting = !btn.classList.contains('HELD_BY_ME');
                 const action = isSelecting ? 'hold' : 'release';
 
+                // Chặn chọn quá MAX_SEATS ghế (đồng bộ với backend MAX_SEATS_PER_BOOKING)
+                // Lưu ý: Map key = seatCode, nhưng ghế COUPLE gộp 2 ghế (seat.id = "J1,J2").
+                // Vì vậy phải đếm số ghế THỰC SỰ (tổng các id trong Map) chứ không dùng selectedSeats.size.
+                if (isSelecting) {
+                    let currentSeatCount = 0;
+                    selectedSeats.forEach((seat) => {
+                        currentSeatCount += seat.id.split(',').length;
+                    });
+
+                    if (currentSeatCount + seatIds.length > MAX_SEATS) {
+                        const errorBox = document.getElementById('ajax-error-box');
+                        errorBox.innerText = `Bạn chỉ được chọn tối đa ${MAX_SEATS} ghế cho 1 lần đặt vé.`;
+                        errorBox.style.display = 'block';
+                        errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return;
+                    }
+                }
+
                 try {
                     let allSuccess = true;
                     let lastMessage = '';
+                    let lastServerTime = null;
+                    let lastExpiresAt = null;
 
                     for (const sId of seatIds) {
                         const response = await fetch(holdSeatUrl.toString(), {
@@ -695,12 +757,29 @@
                                 btn.disabled = true;
                             } else {
                                 lastMessage = res.message;
+                                
+                                // Nếu timer hết hạn, hiển thị modal
+                                if (res.error_type === 'EXPIRED') {
+                                    document.getElementById('seatExpiredOverlay').classList.add('show');
+                                }
                             }
                             break;
                         }
+
+                        // Cập nhật serverTime và expiresAt từ response
+                        if (res.serverTime) lastServerTime = res.serverTime;
+                        if (res.expiresAt) lastExpiresAt = res.expiresAt;
                     }
 
                     if (allSuccess) {
+                        // Cập nhật clock offset và expiresAt từ response mới nhất
+                        if (lastServerTime) {
+                            clockOffset = new Date(lastServerTime).getTime() - Date.now();
+                        }
+                        if (lastExpiresAt) {
+                            expiresAtMs = new Date(lastExpiresAt).getTime();
+                        }
+
                         if (isSelecting) {
                             if (selectedSeats.size === 0) startTimer();
 

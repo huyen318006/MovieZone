@@ -275,7 +275,7 @@
     @forelse($articles as $article)
         <div class="articles-card">
             @if($article->thumbnail_url)
-                <img src="{{ asset($article->thumbnail_url) }}" alt="{{ $article->title }}" class="articles-card-img">
+                <img src="{{ asset( 'storage/' . $article->thumbnail_url) }}" alt="{{ $article->title }}" class="articles-card-img">
             @else
                 <div class="articles-card-img-placeholder">
                     <i class="bi bi-newspaper" style="font-size: 48px; color: rgba(255,255,255,0.3);"></i>

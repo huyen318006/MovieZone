@@ -47,16 +47,19 @@ class VoucherController extends Controller
                 $booking['combos'] = array_values($decodedCombos);
                 $booking['total_combo_amount'] = $comboTotal;
                 $booking['subtotal'] = ($booking['total_seat_amount'] ?? 0) + $comboTotal;
-                $booking['total'] = max(0, $booking['subtotal'] - ($booking['discount_amount'] ?? 0));
+                $booking['total'] = max(0, $booking['subtotal'] - ($booking['tier_discount_amount'] ?? 0) - ($booking['discount_amount'] ?? 0));
 
                 session()->put('booking_tam', $booking);
             }
         }
 
+        $userId = \App\Helpers\TabAuthHelper::currentUser()?->id ?? Auth::id() ?? 0;
+        $orderTotalForVoucher = max(0, ($booking['subtotal'] ?? 0) - ($booking['tier_discount_amount'] ?? 0));
+
         $result = $voucherService->applyVoucher(
             strtoupper(trim($request->code)),
-            $booking['subtotal'],
-            Auth::id()
+            $orderTotalForVoucher,
+            $userId
         );
 
         if (!$result['success']) {
