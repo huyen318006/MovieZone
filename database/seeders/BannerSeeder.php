@@ -15,9 +15,9 @@ class BannerSeeder extends Seeder
     {
         Banner::query()->delete();
 
-        Banner::insert([
+Banner::insert([
             [
-                'image_url' => 'banners/banner1.png',
+                'image_url' => 'banners/banner1.jpg',
                 'link_url' => 'http://127.0.0.1:8000/showtimes',
                 'position' => 'HOME_TOP',
                 'start_date' => now(),
@@ -27,7 +27,7 @@ class BannerSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'image_url' => 'banners/banner2.png',
+                'image_url' => 'banners/banner2.jpg',
                 'link_url' => 'http://127.0.0.1:8000/news',
                 'position' => 'HOME_MIDDLE',
                 'start_date' => now()->addDays(1),
@@ -37,7 +37,7 @@ class BannerSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'image_url' => 'banners/banner3.png',
+                'image_url' => 'banners/banner3.jpg',
                 'link_url' => 'http://127.0.0.1:8000/movies',
                 'position' => 'HOME_MIDDLE',
                 'start_date' => now()->addDays(1),
