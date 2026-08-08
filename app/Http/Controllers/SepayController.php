@@ -150,7 +150,7 @@ class SepayController extends Controller
         $seats = json_decode($seatsJson, true);
 
         if (empty($seats)) {
-            return redirect()->route('booking.seat')
+            return redirect()->back()
                 ->with('error', 'Vui lòng chọn ít nhất 1 ghế.');
         }
 
@@ -169,7 +169,7 @@ class SepayController extends Controller
         $order = $this->sepayService->createBookingOrder($bookingData);
 
         if (! $order) {
-            return redirect()->route('booking.seat')
+            return redirect()->back()
                 ->with('error', 'Không thể tạo đơn hàng. Vui lòng thử lại.');
         }
 
@@ -184,7 +184,7 @@ class SepayController extends Controller
         $order = $this->sepayService->getOrderByCode($orderCode);
 
         if (! $order) {
-            return redirect()->route('booking.seat')
+            return redirect()->route('home')
                 ->with('error', 'Đơn hàng không tồn tại.');
         }
 
@@ -195,7 +195,13 @@ class SepayController extends Controller
         if ($order->isExpired()) {
             $order->markAsExpired();
 
-            return redirect()->route('booking.seat')
+            $showtimeId = $order->metadata['showtime_id'] ?? null;
+            if ($showtimeId) {
+                return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+                    ->with('error', 'Đơn hàng đã hết hạn. Vui lòng đặt vé lại.');
+            }
+
+            return redirect()->route('home')
                 ->with('error', 'Đơn hàng đã hết hạn. Vui lòng đặt vé lại.');
         }
 
@@ -219,7 +225,7 @@ class SepayController extends Controller
         $order = $this->sepayService->getOrderByCode($orderCode);
 
         if (! $order) {
-            return redirect()->route('booking.seat')
+            return redirect()->route('home')
                 ->with('error', 'Đơn hàng không tồn tại.');
         }
 

@@ -184,8 +184,8 @@
     // ============================
     // Payment Polling (giữ nguyên)
     // ============================
-    const checkUrl = '{{ route("booking.check", $order->order_code) }}';
-    const billUrl = '{{ route("booking.bill", $order->order_code) }}';
+    const checkUrl = '{{ \App\Helpers\TabAuthHelper::route("booking.check", $order->order_code) }}';
+    const billUrl = '{{ \App\Helpers\TabAuthHelper::route("booking.bill", $order->order_code) }}';
     const pollMs = {{ $pollingInterval }};
 
     const statusText = document.getElementById('statusText');

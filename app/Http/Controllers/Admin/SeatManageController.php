@@ -310,8 +310,9 @@ private function assertSeatNotLockedForRealtime(Seat $seat): void
                         'showtime_id' => $showtime->id,
                         'seat_id' => $seat->id,
                     ],
-[
+                    [
                         'price' => $seat->price, // Lấy giá từ bảng Seat gốc
+                    ]
                 );
             }
         }

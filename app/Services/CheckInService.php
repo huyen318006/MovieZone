@@ -428,14 +428,7 @@ class CheckInService
             return ['code' => 'SHOWTIME_ENDED', 'message' => 'Suất chiếu đã kết thúc.'];
         }
 
-        $earlyWindow = $showtime->start_time->copy()->subMinutes(self::EARLY_CHECKIN_MINUTES);
-        if (now()->lt($earlyWindow)) {
-            $allowedTime = $earlyWindow->format('H:i d/m/Y');
-            return [
-                'code' => 'TOO_EARLY',
-                'message' => "Chưa đến giờ check-in. Vui lòng quay lại lúc {$allowedTime}.",
-            ];
-        }
+        // Đã bỏ tính năng bắt buộc chờ đến giờ chiếu, cho phép scan và in vé bất kỳ lúc nào.
 
         return null;
     }

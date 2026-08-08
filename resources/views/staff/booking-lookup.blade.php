@@ -12,7 +12,6 @@
             <div class="search-type-wrap">
                 <select id="searchType" class="search-type-select">
                     <option value="booking_code">Mã Booking</option>
-                    <option value="ticket_code">Mã Vé / QR</option>
                     <option value="phone">Số điện thoại</option>
                     <option value="email">Email</option>
                 </select>

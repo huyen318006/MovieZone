@@ -21,15 +21,19 @@
     </div>
     <div class="info-item">
         <span class="info-label">Phòng</span>
-        <span class="info-value">{{ $booking->showtime?->room?->name ?? 'N/A' }} {{ $booking->showtime?->room?->room_type ? '('.$booking->showtime->room->room_type.')' : '' }}</span>
+        <span class="info-value">{{ $booking->showtime?->room?->name ?? 'N/A' }}
+            {{ $booking->showtime?->room?->room_type ? '(' . $booking->showtime->room->room_type . ')' : '' }}</span>
     </div>
     <div class="info-item">
         <span class="info-label">Ngày chiếu</span>
-        <span class="info-value">{{ $booking->showtime?->start_time ? $booking->showtime->start_time->format('d/m/Y') : 'N/A' }}</span>
+        <span
+            class="info-value">{{ $booking->showtime?->start_time ? $booking->showtime->start_time->format('d/m/Y') : 'N/A' }}</span>
     </div>
     <div class="info-item">
         <span class="info-label">Suất chiếu</span>
-        <span class="info-value">{{ $booking->showtime?->start_time ? $booking->showtime->start_time->format('H:i') : 'N/A' }} - {{ $booking->showtime?->end_time ? $booking->showtime->end_time->format('H:i') : '' }}</span>
+        <span
+            class="info-value">{{ $booking->showtime?->start_time ? $booking->showtime->start_time->format('H:i') : 'N/A' }}
+            - {{ $booking->showtime?->end_time ? $booking->showtime->end_time->format('H:i') : '' }}</span>
     </div>
     <div class="info-item">
         <span class="info-label">Trạng thái</span>
@@ -38,25 +42,6 @@
         </span>
     </div>
 </div>
-
-{{-- Customer --}}
-@if($booking->user_id || $booking->customer_name || $booking->customer_phone || $booking->customer_email)
-<div class="section-title">👤 Khách hàng</div>
-<div class="info-grid">
-    <div class="info-item">
-        <span class="info-label">Họ tên</span>
-        <span class="info-value">{{ $booking->user?->name ?? $booking->customer_name ?? 'N/A' }}</span>
-    </div>
-    <div class="info-item">
-        <span class="info-label">SĐT</span>
-        <span class="info-value">{{ $booking->user?->phone ?? $booking->customer_phone ?? 'N/A' }}</span>
-    </div>
-    <div class="info-item" style="grid-column: span 2;">
-        <span class="info-label">Email</span>
-        <span class="info-value">{{ $booking->user?->email ?? $booking->customer_email ?? 'N/A' }}</span>
-    </div>
-</div>
-@endif
 
 {{-- Seat detail --}}
 <div class="section-title">🎟️ Chi tiết vé</div>
@@ -70,21 +55,21 @@
         </tr>
     </thead>
     <tbody>
-        @if($seat)
-        <tr>
-            <td><strong>{{ $seat->seat_code }}</strong></td>
-            <td class="seat-type">
-                @if($seat->seat_type === 'vip')
-                    👑 VIP
-                @elseif($seat->seat_type === 'sweetbox')
-                    💕 Sweetbox
-                @else
-                    🎬 Thường
-                @endif
-            </td>
-            <td style="font-family:'Courier New',monospace; font-size:11px;">{{ $ticket->ticket_code }}</td>
-            <td class="seat-price">{{ number_format($seat->price, 0, ',', '.') }}đ</td>
-        </tr>
+        @if ($seat)
+            <tr>
+                <td><strong>{{ $seat->seat_code }}</strong></td>
+                <td class="seat-type">
+                    @if ($seat->seat_type === 'vip')
+                        👑 VIP
+                    @elseif($seat->seat_type === 'sweetbox')
+                        💕 Sweetbox
+                    @else
+                        🎬 Thường
+                    @endif
+                </td>
+                <td style="font-family:'Courier New',monospace; font-size:11px;">{{ $ticket->ticket_code }}</td>
+                <td class="seat-price">{{ number_format($seat->price, 0, ',', '.') }}đ</td>
+            </tr>
         @endif
     </tbody>
 </table>
@@ -97,8 +82,10 @@
 
 {{-- Mã vé (thay thế QR đã loại bỏ) --}}
 <div style="text-align: center; padding: 10px 0; margin-top: 10px; border-top: 1px dashed #ccc;">
-    <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Mã vé</div>
-    <div style="font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px;">{{ $ticket->ticket_code }}</div>
+    <div style="font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Mã vé
+    </div>
+    <div style="font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700; letter-spacing: 2px;">
+        {{ $ticket->ticket_code }}</div>
     <div style="font-size: 10px; color: #888; margin-top: 2px;">Ghế {{ $seat?->seat_code ?? 'N/A' }}</div>
 </div>
 
@@ -108,15 +95,15 @@
         <span>Mã Booking</span>
         <span class="val">{{ $booking->booking_code }}</span>
     </div>
-    @if($booking->payment)
-    <div class="trans-row">
-        <span>Phương thức TT</span>
-        <span class="val">{{ $booking->payment->payment_method ?? 'N/A' }}</span>
-    </div>
-    <div class="trans-row">
-        <span>Mã giao dịch</span>
-        <span class="val">{{ $booking->payment->transaction_code ?? 'N/A' }}</span>
-    </div>
+    @if ($booking->payment)
+        <div class="trans-row">
+            <span>Phương thức TT</span>
+            <span class="val">{{ $booking->payment->payment_method ?? 'N/A' }}</span>
+        </div>
+        <div class="trans-row">
+            <span>Mã giao dịch</span>
+            <span class="val">{{ $booking->payment->transaction_code ?? 'N/A' }}</span>
+        </div>
     @endif
     <div class="trans-row">
         <span>Thời gian đặt</span>
@@ -124,7 +111,8 @@
     </div>
     <div class="trans-row">
         <span>Thời gian TT</span>
-        <span class="val">{{ $booking->paid_at ? \Carbon\Carbon::parse($booking->paid_at)->format('d/m/Y H:i:s') : '—' }}</span>
+        <span
+            class="val">{{ $booking->paid_at ? \Carbon\Carbon::parse($booking->paid_at)->format('d/m/Y H:i:s') : '—' }}</span>
     </div>
 </div>
 

@@ -529,15 +529,40 @@ $request->validate([
                 ->with('error', 'Hết thời gian giữ ghế. Vui lòng chọn lại.');
         }
 
-        // GUARD: Kiểm tra đã tạo booking cho session này chưa (chống trùng khi user bấm back rồi submit lại)
+        // GUARD: Kiểm tra đã tạo booking cho session này chưa
         $existingOrderCode = session('pending_order_code');
         if ($existingOrderCode) {
-            $existingOrder = SepayOrder::where('order_code', $existingOrderCode)
-                ->whereIn('status', ['pending', 'paid'])
-                ->first();
+            $existingOrder = SepayOrder::where('order_code', $existingOrderCode)->first();
             if ($existingOrder) {
-                // Đơn hàng đã tồn tại, redirect thẳng tới trang thanh toán
-                return redirect()->route('booking.payment', ['orderCode' => $existingOrderCode]);
+                if ($existingOrder->status === 'paid' || ($existingOrder->booking && $existingOrder->booking->status === 'PAID')) {
+                    // Nếu đã thanh toán, chuyển thẳng sang trang bill
+                    return redirect()->route('booking.bill', ['orderCode' => $existingOrderCode]);
+                }
+                
+                // Nếu chưa thanh toán (đang pending), hủy đơn cũ để tạo đơn mới với tùy chọn thanh toán mới
+                $booking = $existingOrder->booking;
+                if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
+                    $booking->update([
+                        'status' => 'CANCELLED',
+                        'payment_status' => 'FAILED',
+                    ]);
+
+                    // Hoàn xu nếu đã trừ cho đơn cũ
+                    $redeemTx = \App\Models\PointTransaction::where('booking_id', $booking->id)
+                        ->where('type', 'REDEEM')
+                        ->first();
+                    if ($redeemTx && $booking->user_id) {
+                        app(\App\Services\CoinRedemptionService::class)->refundCoins(
+                            $booking->user_id,
+                            abs($redeemTx->points),
+                            $booking->id
+                        );
+                    }
+                }
+                if ($existingOrder->status === 'pending') {
+                    $existingOrder->update(['status' => 'expired']);
+                }
+                session()->forget('pending_order_code');
             }
         }
 
@@ -1017,38 +1042,8 @@ $request->validate([
                     'transaction_id' => 'COIN_' . time(),
                 ]);
 
-                // Sinh PDF vé và gửi email (giống SepayService flow)
-                try {
-                    $pdfPath = null;
-                    $pdfService = app(\App\Services\TicketPDFService::class);
-                    $pdfPath = $pdfService->generateBookingTicketsPDF($booking->fresh());
-
-                    $customerEmail = $sepayOrder->getCustomerEmail();
-                    $user = $booking->user;
-
-                    if ($customerEmail) {
-                        \Illuminate\Support\Facades\Mail::to($customerEmail)->send(
-                            new \App\Mail\BookingInvoiceMail($sepayOrder->fresh(), $user, $pdfPath)
-                        );
-
-                        // Đánh dấu đã gửi email
-                        $meta = $sepayOrder->metadata ?? [];
-                        $meta['email_sent'] = true;
-                        $meta['email_sent_at'] = now()->toIso8601String();
-                        $meta['email_sent_to'] = $customerEmail;
-                        $meta['pdf_attached'] = !empty($pdfPath);
-                        $sepayOrder->update(['metadata' => $meta]);
-                    }
-
-                    if ($user) {
-                        $user->notify(new \App\Notifications\BookingPaidNotification($sepayOrder->fresh()));
-                    }
-                } catch (\Exception $mailEx) {
-                    \Illuminate\Support\Facades\Log::error('Failed to send email for coin payment', [
-                        'booking_id' => $booking->id,
-                        'error' => $mailEx->getMessage(),
-                    ]);
-                }
+                // Đẩy PDF + Email + Notification vào hàng đợi chạy ngầm
+                \App\Jobs\SendBookingInvoiceJob::dispatch($sepayOrder->id);
             }
 
             return redirect()->route('booking.bill', ['orderCode' => $booking->booking_code])
