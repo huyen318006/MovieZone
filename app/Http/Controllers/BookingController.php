@@ -355,7 +355,7 @@ $request->validate([
             ],
         ]);
 
-        return redirect()->route('booking.combo');
+        return redirect(\App\Helpers\TabAuthHelper::route('booking.combo'));
     }
 
     // ==========================================
