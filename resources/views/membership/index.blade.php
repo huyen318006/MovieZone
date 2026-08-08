@@ -429,8 +429,7 @@
                     <div>
                         <h4 class="fw-bold mb-1 text-white"><i class="bi bi-award text-warning me-2"></i>Danh Sách Hạng & Quy Định Tích Điểm</h4>
                         <p class="small mb-0" style="color: #cbd5e1 !important; line-height: 1.6;">
-                            Thăng hạng tự động dựa trên <strong>tổng chi tiêu mua vé tích lũy</strong>. Khi mua vé, hệ thống quy đổi thưởng: 
-                            <strong class="text-warning">10.000đ chi tiêu = 1 Coin</strong> (Quy đổi: <strong class="text-info">1 Coin = 1 VNĐ</strong>, dùng để trừ trực tiếp tiền vé cho các lần đặt sau).
+                            Thăng hạng tự động dựa trên <strong>tổng chi tiêu mua vé tích lũy</strong>. Hạng càng cao, <strong>tỷ lệ tích Coin thưởng càng lớn</strong> (từ <strong>1% đến 10%</strong> giá trị đơn hàng, quy đổi <strong class="text-info">1 Coin = 1 VNĐ</strong> dùng để trừ trực tiếp tiền vé cho các lần đặt sau).
                         </p>
                     </div>
                 </div>
@@ -447,6 +446,13 @@
                             'PLATINUM' => 'icon-platinum',
                             'DIAMOND' => 'icon-diamond',
                             default => 'icon-bronze',
+                        };
+                        $earnRatePercent = match($lvlName) {
+                            'SILVER'   => 3,
+                            'GOLD'     => 5,
+                            'PLATINUM' => 7,
+                            'DIAMOND'  => 10,
+                            default    => 1,
                         };
                     @endphp
                     <div class="col-md-6 col-lg-4 col-xl">
@@ -471,7 +477,11 @@
                             <div class="pt-3 border-top border-secondary border-opacity-25">
                                 <div class="d-flex align-items-center gap-2 mb-2 small" style="color: #f1f5f9 !important;">
                                     <i class="bi bi-check-circle-fill text-success"></i>
-                                    <span>Giảm <strong>{{ number_format($lvl->discount_percent, 0) }}%</strong> khi mua vé</span>
+                                    <span>Tích <strong>{{ $earnRatePercent }}%</strong> Coin thưởng khi mua vé</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mb-2 small" style="color: #f1f5f9 !important;">
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    <span>Giảm <strong>{{ number_format($lvl->discount_percent, 0) }}%</strong> giá vé</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2 small" style="color: #f1f5f9 !important;">
                                     <i class="bi bi-check-circle-fill text-success"></i>

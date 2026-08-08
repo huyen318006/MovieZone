@@ -286,14 +286,28 @@ $request->validate([
 
         $totalSeatAmount = $seats->sum('price');
 
+        $userId = \App\Helpers\TabAuthHelper::currentUser()?->id ?? Auth::id();
+        $tierDiscountPercent = 0;
+        $tierName = 'BRONZE';
+        if ($userId) {
+            $userMembership = \App\Models\UserMembership::with('level')->where('user_id', $userId)->first();
+            $tierDiscountPercent = (float) ($userMembership?->level?->discount_percent ?? 0);
+            $tierName = strtoupper($userMembership?->level?->name ?? 'BRONZE');
+        }
+        $tierDiscountAmount = (float) round(($totalSeatAmount * $tierDiscountPercent) / 100);
+
         session([
             'booking_tam' => [
                 'showtime_id' => $request->showtime_id,
                 'seats' => $request->seats,
-                'seats' => $request->seats,
 
                 // Ticket
                 'total_seat_amount' => $totalSeatAmount,
+
+                // Tier Discount (% theo Hạng)
+                'tier_name' => $tierName,
+                'tier_percent' => $tierDiscountPercent,
+                'tier_discount_amount' => $tierDiscountAmount,
 
                 // Combo
                 'combos' => [],
@@ -306,7 +320,7 @@ $request->validate([
 
                 // Total
                 'subtotal' => $totalSeatAmount,
-                'total' => $totalSeatAmount,
+                'total' => max(0, $totalSeatAmount - $tierDiscountAmount),
             ],
         ]);
 
@@ -415,12 +429,13 @@ $request->validate([
         $bookingTam['combos'] = $selectedCombos;
         $bookingTam['total_combo_amount'] = $comboTotal;
 
-        // 🔥 BẮT BUỘC: lấy lại seat total + discount từ session hiện tại
+        // 🔥 BẮT BUỘC: lấy lại seat total + tier discount + voucher discount từ session hiện tại
         $seatTotal = $bookingTam['total_seat_amount'] ?? 0;
+        $tierDiscountAmount = $bookingTam['tier_discount_amount'] ?? 0;
         $discount = $bookingTam['discount_amount'] ?? 0;
 
         $bookingTam['subtotal'] = $seatTotal + $comboTotal;
-        $bookingTam['total'] = max(0, $bookingTam['subtotal'] - $discount);
+        $bookingTam['total'] = max(0, $bookingTam['subtotal'] - $tierDiscountAmount - $discount);
 
         // 🔥 Reset lại Xu nếu khách hàng quay lại đổi Combo (tránh lệch tổng tiền)
         $bookingTam['coin_used'] = 0;
@@ -456,7 +471,7 @@ $request->validate([
                 ->with('error', 'Hết thời gian giữ ghế (5 phút). Vui lòng chọn lại.');
         }
 
-$showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_id']);
+        $showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_id']);
         $showtime_id = $bookingTam['showtime_id'];
         $seats = ShowtimeSeat::with('seat')
             ->whereIn('id', $bookingTam['seats'])
@@ -465,24 +480,28 @@ $showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_
         $totalTicketPrice = $seats->sum('price');
         $combos = $bookingTam['combos'] ?? [];
         $totalComboPrice = $bookingTam['total_combo_amount'] ?? 0;
+        $tierDiscountAmount = $bookingTam['tier_discount_amount'] ?? 0;
+        $tierName = $bookingTam['tier_name'] ?? 'BRONZE';
+        $tierPercent = $bookingTam['tier_percent'] ?? 0;
         $discountAmount = $bookingTam['discount_amount'] ?? 0; // Voucher discount
 
         // Coin discount (từ session nếu đã áp dụng)
         $coinUsed = $bookingTam['coin_used'] ?? 0;
         $coinDiscountAmount = $bookingTam['coin_discount_amount'] ?? 0;
 
-        // Tính tổng: subtotal - voucher - xu
+        // Tính tổng: subtotal - giảm hạng - voucher - xu
         $subtotal = $totalTicketPrice + $totalComboPrice;
-        $afterVoucher = max(0, $subtotal - $discountAmount);
-        $totalPrice = max(0, $afterVoucher - $coinDiscountAmount);
+        $afterDiscounts = max(0, $subtotal - $tierDiscountAmount - $discountAmount);
+        $totalPrice = max(0, $afterDiscounts - $coinDiscountAmount);
 
         // Tính thông tin xu cho UI
         $coinService = app(CoinRedemptionService::class);
-        $coinInfo = $coinService->calculateMaxRedeemable(Auth::id(), $afterVoucher);
+        $coinInfo = $coinService->calculateMaxRedeemable(Auth::id(), $afterDiscounts);
 
-return view('booking.confirm', compact(
+        return view('booking.confirm', compact(
             'showtime', 'showtime_id', 'seats', 'totalTicketPrice', 'combos',
-            'totalComboPrice', 'discountAmount', 'totalPrice', 'secondsLeft',
+            'totalComboPrice', 'tierDiscountAmount', 'tierName', 'tierPercent',
+            'discountAmount', 'totalPrice', 'secondsLeft',
             'coinUsed', 'coinDiscountAmount', 'coinInfo'
         ));
     }
@@ -569,11 +588,12 @@ return view('booking.confirm', compact(
                 }
             }
 
-            // Tính toán tổng tiền vé + combo + voucher
+            // Tính toán tổng tiền vé + combo + voucher + giảm hạng
             $seats = ShowtimeSeat::whereIn('id', $seatIds)->get();
 
             $totalTicketAmount = $seats->sum('price');
             $totalComboAmount = $bookingTam['total_combo_amount'] ?? 0;
+            $tierDiscountAmount = $bookingTam['tier_discount_amount'] ?? 0;
             $voucherDiscount = $bookingTam['discount_amount'] ?? 0;
 
             // Coin discount (intent từ session)

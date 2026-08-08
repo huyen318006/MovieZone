@@ -50,26 +50,31 @@ class MembershipController extends Controller
         $todayStep = max(1, min(7, (int) $todayStep));
         $todayReward = $rewardTable[$todayStep] ?? $rewardTable[1];
 
-        // 2. Tất cả 5 mốc hạng & Tính toán thăng hạng dựa theo Tổng chi tiêu (total_spent)
+        // 2. Tất cả 5 mốc hạng & Lấy Hạng hiện tại của Khách hàng
         $totalSpent = (float) ($userMembership->total_spent ?? 0);
         $levels = MembershipLevel::orderBy('min_points', 'asc')->get();
 
-        // Tìm hạng hiện tại dựa theo Tổng chi tiêu mua vé
-        $currentLevel = $levels->where('min_points', '<=', $totalSpent)->last() ?? $levels->first();
+        // Hạng thực tế của khách hàng từ DB
+        $currentLevel = $userMembership->level ?? $levels->first();
 
-        // Cập nhật lại level_id nếu tổng chi tiêu phù hợp với mốc hạng lớn hơn
-        if ($currentLevel && $currentLevel->id != $userMembership->level_id) {
-            $userMembership->update(['level_id' => $currentLevel->id]);
-            $userMembership->level = $currentLevel;
-        }
+        // Tìm hạng tiếp theo có mốc min_points lớn hơn Hạng hiện tại
+        $nextLevel = $levels->where('min_points', '>', $currentLevel->min_points)->first();
 
-        // Tìm hạng tiếp theo
-        $nextLevel = $levels->where('min_points', '>', $totalSpent)->first();
+        // Tính số tiền cần chi tiêu thêm và % tiến độ dựa trên khoảng chênh lệch giữa Hạng hiện tại và Hạng kế tiếp
+        if ($nextLevel && $nextLevel->min_points > $currentLevel->min_points) {
+            $stepTotal = $nextLevel->min_points - $currentLevel->min_points;
 
-        // Tính số tiền còn thiếu và phần trăm tiến độ
-        if ($nextLevel && $nextLevel->min_points > 0) {
-            $pointsNeeded = max(0, $nextLevel->min_points - $totalSpent);
-            $progress = min(100, max(0, round(($totalSpent / $nextLevel->min_points) * 100)));
+            if ($totalSpent >= $nextLevel->min_points) {
+                // Khách hàng bị hạ hạng quá hạn hoặc reset hạng thủ công:
+                // Cần chi tiêu lại đủ nấc chênh lệch giữa Hạng hiện tại và Hạng kế tiếp
+                $pointsNeeded = $stepTotal;
+                $progress = 0;
+            } else {
+                // Tiến trình tích lũy bình thường
+                $pointsNeeded = max(0, $nextLevel->min_points - $totalSpent);
+                $spentInStep = max(0, $totalSpent - $currentLevel->min_points);
+                $progress = min(100, max(0, round(($spentInStep / $stepTotal) * 100)));
+            }
         } else {
             $pointsNeeded = 0;
             $progress = 100;
