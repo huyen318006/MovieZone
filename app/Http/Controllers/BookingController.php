@@ -82,11 +82,13 @@ class BookingController extends Controller
                 if ($isSold) {
                     $displayStatus = 'SOLD';
                 } else {
-                    $heldBy = Cache::get('seat_held_'.$showtime_id.'_'.$showtimeSeat->id);
-                    if ($heldBy) {
+                    $heldBy = $showtimeSeat->held_by ?? Cache::get('seat_held_'.$showtime_id.'_'.$showtimeSeat->id);
+                    $baseStatus = $showtimeSeat->status ?? 'AVAILABLE';
+
+                    if ($baseStatus === 'HELD' || $heldBy) {
                         $displayStatus = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
                     } else {
-                        $displayStatus = $showtimeSeat->status ?? 'AVAILABLE';
+                        $displayStatus = 'AVAILABLE';
                     }
                 }
             }

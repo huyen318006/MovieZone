@@ -689,7 +689,13 @@
                         const res = await response.json();
                         if (!res.success) {
                             allSuccess = false;
-                            lastMessage = res.message;
+                            if (res.error_type === 'HELD' || res.error_type === 'UNAVAILABLE') {
+                                btn.classList.remove('AVAILABLE', 'available-seat-btn', 'vip-seat-btn', 'sweet-seat-btn', 'HELD_BY_ME');
+                                btn.classList.add(res.error_type === 'HELD' ? 'HELD' : 'SOLD');
+                                btn.disabled = true;
+                            } else {
+                                lastMessage = res.message;
+                            }
                             break;
                         }
                     }
@@ -711,10 +717,11 @@
                         }
                         updateUI();
                     } else {
-                        document.getElementById('ajax-error-box').innerText = lastMessage ||
-                            'Có lỗi khi giữ ghế.';
-                        document.getElementById('ajax-error-box').style.display = 'block';
-                        setTimeout(() => location.reload(), 1500);
+                        if (lastMessage) {
+                            document.getElementById('ajax-error-box').innerText = lastMessage;
+                            document.getElementById('ajax-error-box').style.display = 'block';
+                            setTimeout(() => location.reload(), 1500);
+                        }
                     }
                 } catch (error) {
                     document.getElementById('ajax-error-box').innerText =
@@ -724,6 +731,48 @@
                     btn.disabled = false;
                 }
             });
+
+            if (window.Echo && typeof window.Echo.channel === 'function') {
+                window.Echo.channel(`showtime.{{ $showtime->id }}`)
+                    .listen('.seat.updated', (payload) => {
+                        if (!payload || payload.showtime_id != {{ $showtime->id }}) {
+                            return;
+                        }
+
+                        const updatedSeatId = String(payload.seat_id);
+                        const status = payload.status;
+                        const seatButtons = document.querySelectorAll('.seat[data-id]');
+
+                        seatButtons.forEach((b) => {
+                            const ids = b.dataset.id.split(',');
+                            if (!ids.includes(updatedSeatId)) return;
+
+                            if (b.classList.contains('HELD_BY_ME') && status === 'HELD') return;
+
+                            b.classList.remove('AVAILABLE', 'HELD', 'HELD_BY_ME', 'SOLD', 'BLOCKED', 'LOCKED', 'available-seat-btn', 'vip-seat-btn', 'sweet-seat-btn');
+                            b.disabled = false;
+
+                            if (status === 'AVAILABLE') {
+                                if (b.dataset.type === 'vip') {
+                                    b.classList.add('vip-seat-btn');
+                                } else if (b.dataset.type === 'COUPLE') {
+                                    b.classList.add('sweet-seat-btn');
+                                } else {
+                                    b.classList.add('available-seat-btn');
+                                }
+                            } else if (status === 'HELD') {
+                                b.classList.add('HELD');
+                                b.disabled = true;
+                            } else if (status === 'SOLD') {
+                                b.classList.add('SOLD');
+                                b.disabled = true;
+                            } else if (status === 'BLOCKED' || status === 'LOCKED') {
+                                b.classList.add(status);
+                                b.disabled = true;
+                            }
+                        });
+                    });
+            }
 
             function updateUI() {
                 hiddenSeatInputs.innerHTML = '';

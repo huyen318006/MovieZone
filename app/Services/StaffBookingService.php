@@ -201,18 +201,24 @@ class StaffBookingService
             if (in_array($baseStatus, ['BLOCKED', 'BROKEN'])) {
                 $displayStatus = $baseStatus;
             } else {
-                $heldBy = Cache::get('seat_held_' . $id . '_' . $showtimeSeat->id);
-                if ($heldBy) {
-                    $displayStatus = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
-                } else {
-                    $isSold = DB::table('booking_seats')
-                        ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
-                        ->where('booking_seats.showtime_seat_id', $showtimeSeat->id)
-                        ->where('bookings.showtime_id', $id)
-                        ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
-                        ->exists();
+                $isSold = DB::table('booking_seats')
+                    ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                    ->where('booking_seats.showtime_seat_id', $showtimeSeat->id)
+                    ->where('bookings.showtime_id', $id)
+                    ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                    ->exists();
 
-                    $displayStatus = $isSold ? 'SOLD' : ($showtimeSeat->status ?? 'AVAILABLE');
+                if ($isSold) {
+                    $displayStatus = 'SOLD';
+                } else {
+                    $heldBy = $showtimeSeat->held_by ?? Cache::get('seat_held_' . $id . '_' . $showtimeSeat->id);
+                    $baseStatus = $showtimeSeat->status ?? 'AVAILABLE';
+
+                    if ($baseStatus === 'HELD' || $heldBy) {
+                        $displayStatus = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
+                    } else {
+                        $displayStatus = 'AVAILABLE';
+                    }
                 }
             }
 

@@ -580,6 +580,48 @@
             }
         }
 
+        if (window.Echo && typeof window.Echo.channel === 'function') {
+            window.Echo.channel(`showtime.{{ $showtime->id }}`)
+                .listen('.seat.updated', (payload) => {
+                    if (!payload || payload.showtime_id != {{ $showtime->id }}) {
+                        return;
+                    }
+
+                    const updatedSeatId = String(payload.seat_id);
+                    const status = payload.status;
+                    const seatButtons = document.querySelectorAll('.seat[data-id]');
+
+                    seatButtons.forEach((b) => {
+                        const ids = b.dataset.id.split(',');
+                        if (!ids.includes(updatedSeatId)) return;
+
+                        if (b.classList.contains('HELD_BY_ME') && status === 'HELD') return;
+
+                        b.classList.remove('AVAILABLE', 'HELD', 'HELD_BY_ME', 'SOLD', 'BLOCKED', 'LOCKED', 'available-seat-btn', 'vip-seat-btn', 'sweet-seat-btn');
+                        b.disabled = false;
+
+                        if (status === 'AVAILABLE') {
+                            if (b.dataset.type === 'vip') {
+                                b.classList.add('vip-seat-btn');
+                            } else if (b.dataset.type === 'COUPLE') {
+                                b.classList.add('sweet-seat-btn');
+                            } else {
+                                b.classList.add('available-seat-btn');
+                            }
+                        } else if (status === 'HELD') {
+                            b.classList.add('HELD');
+                            b.disabled = true;
+                        } else if (status === 'SOLD') {
+                            b.classList.add('SOLD');
+                            b.disabled = true;
+                        } else if (status === 'BLOCKED' || status === 'LOCKED') {
+                            b.classList.add(status);
+                            b.disabled = true;
+                        }
+                    });
+                });
+        }
+
         setInterval(refreshSeatStates, 2500);
 
         async function syncSeatHold(seatIds, action) {
@@ -620,7 +662,18 @@
                 const hasSuccess = results.every((result) => result.success);
 
                 if (!hasSuccess) {
-                    alert('Không thể cập nhật trạng thái ghế lúc này.');
+                    const firstError = results.find(r => !r.success);
+                    if (firstError && firstError.error_type === 'HELD') {
+                        btn.classList.remove('AVAILABLE', 'available-seat-btn', 'vip-seat-btn', 'sweet-seat-btn');
+                        btn.classList.add('HELD');
+                        btn.disabled = true;
+                    } else if (firstError && firstError.error_type === 'UNAVAILABLE') {
+                        btn.classList.remove('AVAILABLE', 'available-seat-btn', 'vip-seat-btn', 'sweet-seat-btn');
+                        btn.classList.add('SOLD');
+                        btn.disabled = true;
+                    } else {
+                        alert(firstError ? firstError.message : 'Không thể cập nhật trạng thái ghế lúc này.');
+                    }
                     return;
                 }
 
