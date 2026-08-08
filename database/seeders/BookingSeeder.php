@@ -47,15 +47,15 @@ class BookingSeeder extends Seeder
             $isPaid = $statusPair['status'] === 'PAID';
 
             Booking::create([
-                'user_id'              => rand(1, 4),
+                'user_id'              => ($i === 1) ? 7 : rand(1, 4),
                 'showtime_id'          => rand(1, 20),
                 'booking_code'         => $bookingCode,
                 'total_ticket_amount'  => $totalTicketAmount,
                 'total_combo_amount'   => $totalComboAmount,
                 'discount_amount'      => $discountAmount,
                 'final_amount'         => $finalAmount,
-                'status'               => $statusPair['status'],
-                'payment_status'       => $statusPair['payment_status'],
+                'status'               => ($i === 1) ? 'PAID' : $statusPair['status'],
+                'payment_status'       => ($i === 1) ? 'PAID' : $statusPair['payment_status'],
                 'expired_at'           => $createdDate->copy()->addMinutes(15),
                 'paid_at'              => $isPaid ? $createdDate->copy()->addMinutes(rand(1, 10)) : null,
                 'created_at'           => $createdDate,
