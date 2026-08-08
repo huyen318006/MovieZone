@@ -54,16 +54,27 @@ class MembershipController extends Controller
         $totalSpent = (float) ($userMembership->total_spent ?? 0);
         $levels = MembershipLevel::orderBy('min_points', 'asc')->get();
 
-        // Hạng thực tế của khách hàng từ DB (Không tự ý update đè khi load trang)
+        // Hạng thực tế của khách hàng từ DB
         $currentLevel = $userMembership->level ?? $levels->first();
 
         // Tìm hạng tiếp theo có mốc min_points lớn hơn Hạng hiện tại
         $nextLevel = $levels->where('min_points', '>', $currentLevel->min_points)->first();
 
-        // Tính số tiền còn thiếu và phần trăm tiến độ
-        if ($nextLevel && $nextLevel->min_points > 0) {
-            $pointsNeeded = max(0, $nextLevel->min_points - $totalSpent);
-            $progress = min(100, max(0, round(($totalSpent / $nextLevel->min_points) * 100)));
+        // Tính số tiền cần chi tiêu thêm và % tiến độ dựa trên khoảng chênh lệch giữa Hạng hiện tại và Hạng kế tiếp
+        if ($nextLevel && $nextLevel->min_points > $currentLevel->min_points) {
+            $stepTotal = $nextLevel->min_points - $currentLevel->min_points;
+
+            if ($totalSpent >= $nextLevel->min_points) {
+                // Khách hàng bị hạ hạng quá hạn hoặc reset hạng thủ công:
+                // Cần chi tiêu lại đủ nấc chênh lệch giữa Hạng hiện tại và Hạng kế tiếp
+                $pointsNeeded = $stepTotal;
+                $progress = 0;
+            } else {
+                // Tiến trình tích lũy bình thường
+                $pointsNeeded = max(0, $nextLevel->min_points - $totalSpent);
+                $spentInStep = max(0, $totalSpent - $currentLevel->min_points);
+                $progress = min(100, max(0, round(($spentInStep / $stepTotal) * 100)));
+            }
         } else {
             $pointsNeeded = 0;
             $progress = 100;
