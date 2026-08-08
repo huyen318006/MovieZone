@@ -215,6 +215,7 @@ class StaffBookingService
                     $baseStatus = $showtimeSeat->status ?? 'AVAILABLE';
 
                     if ($baseStatus === 'HELD' || $heldBy) {
+                        // Nếu ghế do CHÍNH staff đang đăng nhập giữ → hiển thị HELD_BY_ME (xanh lá, tương tác/bỏ chọn được)
                         $displayStatus = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
                     } else {
                         $displayStatus = 'AVAILABLE';

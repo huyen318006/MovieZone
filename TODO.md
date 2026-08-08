@@ -1,29 +1,23 @@
-# TODO: Sửa validate chọn ghế & layout ghế (Customer)
+# TODO: Sửa chọn ghế Staff giống Customer
 
-## Thông tin
-- **Max ghế/1 lần đặt:** 10 ghế (1 hàng)
-- **Layout:** bỏ lối đi (aisle) cho view customer, staff KHÔNG đụng
-- **Validate lẻ ghế:** đồng bộ frontend & backend (chỉ chặn khi lựa chọn khách tạo ra ghế trống cô lập)
-- **Thông báo:** đổi "E2: Ghế đang được người khác giữ" → thân thiện
+## Step 1: BookTicketsController::sell_seat()
+- [x] Thêm dữ liệu timer (holdExpiresAt, serverTime, holdTotalSeconds) truyền vào view
 
-## Trạng thái: HOÀN THÀNH ✅
+## Step 2: staff/sell-tickets-seats.blade.php
+- [x] Thêm HTML timer box + CSS
+- [x] Thêm HTML modal hết giờ + CSS
+- [x] Thêm giới hạn MAX_SEATS = 10 trong JS
+- [x] Bắt serverTime/expiresAt từ syncSeatHold để chạy timer
+- [x] Đổi text nút: "Vui lòng chọn ghế" (disabled) → "Tiếp tục" (enabled)
+- [x] Thêm kiểm tra lỗi ghế lẻ khi submit form
 
-### 1. BookingController.php
-- [x] Thêm hằng số `MAX_SEATS_PER_BOOKING = 10`
-- [x] `showSeats` — bỏ lối đi ghế (`is_aisle => false`) cho view khách, nhóm không bị tách
-- [x] `submitSeats` — thêm validate `max:10` (BR: tối đa 10 ghế)
-- [x] `holdSeat` — sửa thông báo E2 thành "Rất tiếc, ghế này đã được người khác giữ..."
-- [x] `hasSingleSeatGap` — đồng bộ logic: chỉ báo lỗi khi ghế trống cô lập do CHÍNH ghế khách chọn (SELECTED) gây ra, không báo khi bị chặn bởi ghế người khác (SOLD/HELD/BLOCKED)
+## Step 4: Fix màu ghế khi chọn (bến staff)
+- [x] `StaffBookingService::sell_seat()`: ghế do chính staff giữ → render `HELD_BY_ME` (xanh lá, bỏ chọn được)
+- [x] Blade: tự khôi phục ghế `HELD_BY_ME` từ server vào map selectedSeats
+- [x] Ghế bị người khác giữ → `HELD` (cam, không tương tác), ghế đã bán → `SOLD` (xám)
 
-### 2. resources/views/booking/seat.blade.php
-- [x] JS chặn chọn quá 10 ghế, đếm đúng số ghế THỰC SỰ (kể cả ghế COUPLE gộp 2 ghế)
-- [x] Giữ nguyên validate lẻ ghế frontend (đã đồng bộ với backend)
-
-### 3. Admin (nhiệm vụ phụ — đánh số lại ghế sau khi xóa)
-- [x] `SeatManageController` — khôi phục `renumberRowSeats()` + `applySeatNumber()` để đánh số ghế liền mạch (1,2,3...) sau khi xóa ghế
-- [x] Xử lý tránh lỗi `Duplicate entry` (unique room_id + seat_code): đổi seat_code ghế đã xóa sang mã tạm `DEL_<id>` trước khi đánh số lại
-- [x] `store` / `storeBatch` — luôn khôi phục `seat_code` đúng khi restore ghế đã xóa (không giữ mã `DEL_...`)
-
-## Kiểm tra
-- [x] `php -l` tất cả file PHP đã sửa → không lỗi cú pháp
-</content>
+## Step 3: Kiểm thử
+- [ ] Chạy staff, chọn ghế, kiểm tra đồng hồ đếm ngược
+- [ ] Kiểm tra modal hết giờ, giới hạn 10 ghế, lỗi ghế lẻ
+- [ ] Chọn ghế → xanh lá, bấm lại → bỏ chọn được
+- [ ] Ghế người khác giữ → cam, ghế đã bán → xám

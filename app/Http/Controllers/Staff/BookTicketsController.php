@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
+use App\Helpers\TabAuthHelper;
 use App\Models\Combo;
 use App\Models\SepayOrder;
 use App\Services\SepayService;
@@ -11,6 +12,7 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Services\StaffBookingService as ServicesStaffBookingService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -30,7 +32,7 @@ class BookTicketsController extends Controller
         return view('staff.sell-tickets', compact('movies'));
     }
 
-    // hàm lấy ra ghế của suất chiếu đó + thông tin phim, phòng
+// hàm lấy ra ghế của suất chiếu đó + thông tin phim, phòng
     public function sell_seat($id)
     {
         $data = $this->staffBookingService->sell_seat($id);
@@ -38,7 +40,20 @@ class BookTicketsController extends Controller
         $showtime = $data['showtime'];  // có sẵn ->movie (tên phim, poster...) và ->room (tên phòng)
         $seatMap  = $data['seatMap'];   // sơ đồ ghế theo hàng
 
-        return view('staff.sell-tickets-seats', compact('showtime', 'seatMap'));
+        // TÍNH THỜI GIAN CÒN LẠI — truyền timestamp cho frontend (giống BookingController)
+        $holdMinutes = (int) config('booking.hold_minutes', 5);
+        $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$id;
+        $holdExpiresAt = null;
+        $serverTime = now()->toIso8601String();
+        $holdTotalSeconds = $holdMinutes * 60;
+        if (Cache::has($masterTimerKey)) {
+            $ts = Cache::get($masterTimerKey);
+            if ($ts > now()->timestamp) {
+                $holdExpiresAt = \Carbon\Carbon::createFromTimestamp($ts)->toIso8601String();
+            }
+        }
+
+        return view('staff.sell-tickets-seats', compact('showtime', 'seatMap', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds'));
     }
 
     /**
@@ -353,18 +368,24 @@ class BookTicketsController extends Controller
                         'transaction_id' => 'CASH_' . time(),
                     ]);
                 }
+            });
 
-                // Sinh Tickets
+            try {
                 $ticketService = app(TicketService::class);
                 $ticketService->generateTicketsForBooking($booking);
-            });
+            } catch (\Exception $ticketEx) {
+                Log::warning('Staff cash payment succeeded but ticket generation failed', [
+                    'booking_code' => $bookingCode,
+                    'error'        => $ticketEx->getMessage(),
+                ]);
+            }
 
             Log::info('Staff cash payment confirmed', [
                 'booking_code' => $bookingCode,
                 'staff_id'     => Auth::id(),
             ]);
 
-            return redirect()->route('staff.print-bill', $bookingCode)
+            return redirect(TabAuthHelper::route('staff.print-bill', $bookingCode))
                 ->with('success', 'Thanh toán tiền mặt thành công! Hóa đơn đã được tạo.');
 
         } catch (\Exception $e) {
@@ -373,7 +394,7 @@ class BookTicketsController extends Controller
                 'error'        => $e->getMessage(),
             ]);
 
-            return redirect()->route('staff.sell-tickets')
+            return redirect(TabAuthHelper::route('staff.sell-tickets'))
                 ->with('error', 'Lỗi xác nhận thanh toán: ' . $e->getMessage());
         }
     }
