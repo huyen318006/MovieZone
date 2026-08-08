@@ -17,12 +17,15 @@ class StaffIssueSupportController extends Controller
         protected QRCodeService $qrCodeService,
     ) {}
 
-    /**
+/**
      * GET màn hình Staff UC-STAFF-04
      */
     public function index()
     {
-        return view('staff.issue-support');
+        $issueService = app(IssueSupportService::class);
+        $problemBookings = $issueService->listProblemBookings(20);
+
+        return view('staff.issue-support', compact('problemBookings'));
     }
 
     /**
