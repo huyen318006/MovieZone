@@ -318,4 +318,126 @@ class CustomerMembershipController extends Controller
             return redirect()->back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Admin đổi Hạng thành viên trực tiếp cho 1 Khách hàng
+     */
+    public function changeLevel(Request $request, $id, MembershipService $membershipService)
+    {
+        $request->validate([
+            'level_id' => 'required|exists:membership_levels,id',
+            'reason'   => 'required|string|max:255',
+        ], [
+            'level_id.required' => 'Vui lòng chọn Hạng mới.',
+            'reason.required'   => 'Vui lòng nhập lý do đổi Hạng (Bắt buộc ghi Audit Log).',
+        ]);
+
+        try {
+            $customer = User::with('membership.level')->findOrFail($id);
+            $membershipService->ensureMembership($customer);
+
+            $userMembership = $customer->membership;
+            $oldLevelId = $userMembership->level_id;
+            $oldLevelName = $userMembership->level?->name ?? 'BRONZE';
+
+            $newLevel = MembershipLevel::findOrFail($request->level_id);
+
+            $userMembership->update([
+                'level_id' => $newLevel->id,
+                'level_expired_at' => now()->addMonths(6),
+                'updated_at' => now(),
+            ]);
+
+            MembershipLevelHistory::create([
+                'user_id'      => $customer->id,
+                'old_level_id' => $oldLevelId,
+                'new_level_id' => $newLevel->id,
+                'reason'       => $request->reason,
+            ]);
+
+            $adminUser = \App\Helpers\TabAuthHelper::currentUser() ?? Auth::user();
+            $adminUserId = $adminUser ? $adminUser->id : Auth::id();
+
+            if (class_exists(\App\Models\AuditLog::class)) {
+                \App\Models\AuditLog::create([
+                    'user_id'     => $adminUserId,
+                    'action'      => 'CHANGE_MEMBERSHIP_LEVEL',
+                    'entity_name' => 'UserMembership',
+                    'entity_id'   => $customer->id,
+                    'old_value'   => "Hạng cũ: {$oldLevelName}",
+                    'new_value'   => "Hạng mới: {$newLevel->name} (Lý do: {$request->reason})",
+                    'created_at'  => now(),
+                ]);
+            }
+
+            return redirect()->back()->with('success', "Đã đổi Hạng thành viên của khách hàng {$customer->name} sang {$newLevel->name} thành công!");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Admin đổi Hạng thành viên HÀNG LOẠT cho nhiều Khách hàng
+     */
+    public function bulkChangeLevel(Request $request, MembershipService $membershipService)
+    {
+        $request->validate([
+            'user_ids'   => 'required|array|min:1',
+            'user_ids.*' => 'integer|exists:users,id',
+            'level_id'   => 'required|exists:membership_levels,id',
+            'reason'     => 'required|string|max:255',
+        ], [
+            'user_ids.required' => 'Vui lòng chọn ít nhất 1 khách hàng.',
+            'level_id.required' => 'Vui lòng chọn Hạng mới.',
+            'reason.required'   => 'Vui lòng nhập lý do đổi Hạng.',
+        ]);
+
+        try {
+            $newLevel = MembershipLevel::findOrFail($request->level_id);
+            $adminUser = \App\Helpers\TabAuthHelper::currentUser() ?? Auth::user();
+            $adminUserId = $adminUser ? $adminUser->id : Auth::id();
+
+            $successCount = 0;
+
+            foreach ($request->user_ids as $userId) {
+                $customer = User::with('membership.level')->find($userId);
+                if (!$customer) continue;
+
+                $membershipService->ensureMembership($customer);
+                $userMembership = $customer->membership;
+                $oldLevelId = $userMembership->level_id;
+                $oldLevelName = $userMembership->level?->name ?? 'BRONZE';
+
+                $userMembership->update([
+                    'level_id' => $newLevel->id,
+                    'level_expired_at' => now()->addMonths(6),
+                    'updated_at' => now(),
+                ]);
+
+                MembershipLevelHistory::create([
+                    'user_id'      => $customer->id,
+                    'old_level_id' => $oldLevelId,
+                    'new_level_id' => $newLevel->id,
+                    'reason'       => $request->reason . ' (Đổi hàng loạt)',
+                ]);
+
+                if (class_exists(\App\Models\AuditLog::class)) {
+                    \App\Models\AuditLog::create([
+                        'user_id'     => $adminUserId,
+                        'action'      => 'CHANGE_MEMBERSHIP_LEVEL_BULK',
+                        'entity_name' => 'UserMembership',
+                        'entity_id'   => $customer->id,
+                        'old_value'   => "Hạng cũ: {$oldLevelName}",
+                        'new_value'   => "Hạng mới: {$newLevel->name}",
+                        'created_at'  => now(),
+                    ]);
+                }
+                $successCount++;
+            }
+
+            return redirect()->back()->with('success', "Đã đổi Hạng cho {$successCount} khách hàng sang {$newLevel->name} thành công!");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
+        }
+    }
 }

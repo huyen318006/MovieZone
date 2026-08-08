@@ -89,9 +89,6 @@ class MembershipService
                 'created_at'  => now(),
             ]);
 
-            // 4. Tính toán lại Hạng của khách hàng
-            $this->recalculateLevel($targetUser->id, "Admin điều chỉnh Coin thủ công ({$actionType} {$amount} Coin). Lý do: {$reason}");
-
             return $transaction;
         });
     }
@@ -232,11 +229,11 @@ class MembershipService
     }
 
     /**
-     * Tự động tính lại Hạng và gia hạn thời gian duy trì hạng (6 tháng) dựa trên Tổng tiền chi tiêu tích lũy (total_spent).
+     * Tự động thăng Hạng và gia hạn thời gian duy trì hạng (6 tháng) khi mua vé tích lũy đủ chi tiêu.
      */
-    public function recalculateLevel(int $userId, string $reason = 'Thay đổi hạng tự động'): void
+    public function recalculateLevel(int $userId, string $reason = 'Thăng hạng tự động khi tích lũy mua vé'): void
     {
-        $userMembership = UserMembership::where('user_id', $userId)->first();
+        $userMembership = UserMembership::with('level')->where('user_id', $userId)->first();
         if (!$userMembership) {
             return;
         }
@@ -249,23 +246,25 @@ class MembershipService
             return;
         }
 
+        $currentLevel = $userMembership->level;
         $oldLevelId = $userMembership->level_id;
-        $isLevelChanged = ($matchedLevel->id != $oldLevelId);
 
-        $userMembership->update([
-            'level_id' => $matchedLevel->id,
-            'level_expired_at' => now()->addMonths(6), // Gia hạn hạng 6 tháng
-            'updated_at' => now(),
-        ]);
-
-        // Nếu có sự thay đổi hạng, ghi nhận lịch sử biến động Hạng
-        if ($isLevelChanged) {
-            MembershipLevelHistory::create([
-                'user_id'      => $userId,
-                'old_level_id' => $oldLevelId,
-                'new_level_id' => $matchedLevel->id,
-                'reason'       => $reason,
+        // Chỉ tự động THĂNG HẠNG khi mốc mới cao hơn mốc hiện tại
+        if (!$currentLevel || (float)$matchedLevel->min_points > (float)$currentLevel->min_points) {
+            $userMembership->update([
+                'level_id' => $matchedLevel->id,
+                'level_expired_at' => now()->addMonths(6),
+                'updated_at' => now(),
             ]);
+
+            if ($oldLevelId != $matchedLevel->id) {
+                MembershipLevelHistory::create([
+                    'user_id'      => $userId,
+                    'old_level_id' => $oldLevelId,
+                    'new_level_id' => $matchedLevel->id,
+                    'reason'       => $reason,
+                ]);
+            }
         }
     }
 

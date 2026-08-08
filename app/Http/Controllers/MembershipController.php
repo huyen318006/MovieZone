@@ -50,21 +50,15 @@ class MembershipController extends Controller
         $todayStep = max(1, min(7, (int) $todayStep));
         $todayReward = $rewardTable[$todayStep] ?? $rewardTable[1];
 
-        // 2. Tất cả 5 mốc hạng & Tính toán thăng hạng dựa theo Tổng chi tiêu (total_spent)
+        // 2. Tất cả 5 mốc hạng & Lấy Hạng hiện tại của Khách hàng
         $totalSpent = (float) ($userMembership->total_spent ?? 0);
         $levels = MembershipLevel::orderBy('min_points', 'asc')->get();
 
-        // Tìm hạng hiện tại dựa theo Tổng chi tiêu mua vé
-        $currentLevel = $levels->where('min_points', '<=', $totalSpent)->last() ?? $levels->first();
+        // Hạng thực tế của khách hàng từ DB (Không tự ý update đè khi load trang)
+        $currentLevel = $userMembership->level ?? $levels->first();
 
-        // Cập nhật lại level_id nếu tổng chi tiêu phù hợp với mốc hạng lớn hơn
-        if ($currentLevel && $currentLevel->id != $userMembership->level_id) {
-            $userMembership->update(['level_id' => $currentLevel->id]);
-            $userMembership->level = $currentLevel;
-        }
-
-        // Tìm hạng tiếp theo
-        $nextLevel = $levels->where('min_points', '>', $totalSpent)->first();
+        // Tìm hạng tiếp theo có mốc min_points lớn hơn Hạng hiện tại
+        $nextLevel = $levels->where('min_points', '>', $currentLevel->min_points)->first();
 
         // Tính số tiền còn thiếu và phần trăm tiến độ
         if ($nextLevel && $nextLevel->min_points > 0) {

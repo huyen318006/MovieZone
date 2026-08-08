@@ -622,9 +622,11 @@ Route::middleware(['tab.auth', 'admin'])->group(function () {
     Route::post('/admin/memberships/scan-expired', [CustomerMembershipController::class, 'scanExpired'])->name('admin.memberships.scan_expired');
     Route::post('/admin/memberships/bulk-adjust-coin', [CustomerMembershipController::class, 'bulkAdjustCoin'])->name('admin.memberships.bulk_adjust_coin');
     Route::post('/admin/memberships/bulk-reset-level', [CustomerMembershipController::class, 'bulkResetLevel'])->name('admin.memberships.bulk_reset_level');
+    Route::post('/admin/memberships/bulk-change-level', [CustomerMembershipController::class, 'bulkChangeLevel'])->name('admin.memberships.bulk_change_level');
     Route::get('/admin/memberships/{id}', [CustomerMembershipController::class, 'show'])->name('admin.memberships.show');
     Route::post('/admin/memberships/{id}/adjust-coin', [CustomerMembershipController::class, 'adjustCoin'])->name('admin.memberships.adjust_coin');
     Route::post('/admin/memberships/{id}/reset-level', [CustomerMembershipController::class, 'resetLevel'])->name('admin.memberships.reset_level');
+    Route::post('/admin/memberships/{id}/change-level', [CustomerMembershipController::class, 'changeLevel'])->name('admin.memberships.change_level');
 
     // Cấu hình Mốc Hạng Thành Viên
     Route::get('/admin/membership-levels', [\App\Http\Controllers\Admin\MembershipLevelController::class, 'index'])->name('admin.membership_levels.index');

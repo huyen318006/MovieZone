@@ -76,11 +76,14 @@
     </div>
 
     <!-- Floating Bulk Action Bar -->
-    <div id="bulkActionBar" class="position-fixed bottom-0 start-50 translate-middle-x mb-4 p-3 bg-dark border border-warning rounded-4 shadow-lg d-none align-items-center gap-3" style="z-index: 1050; min-width: 480px;">
+    <div id="bulkActionBar" class="position-fixed bottom-0 start-50 translate-middle-x mb-4 p-3 bg-dark border border-warning rounded-4 shadow-lg d-none align-items-center gap-3" style="z-index: 1050; min-width: 600px;">
         <div class="text-white fw-bold">
             <i class="bi bi-check-square-fill text-warning me-2"></i>Đã chọn <span id="selectedCount" class="text-warning fs-5">0</span> khách hàng
         </div>
         <div class="d-flex gap-2 ms-auto">
+            <button type="button" class="btn btn-sm btn-info text-dark fw-bold px-3" data-bs-toggle="modal" data-bs-target="#bulkChangeLevelModal">
+                <i class="bi bi-shield-shaded me-1"></i> Đổi Hạng Hàng Loạt
+            </button>
             <button type="button" class="btn btn-sm btn-warning fw-bold px-3" data-bs-toggle="modal" data-bs-target="#bulkAdjustCoinModal">
                 <i class="bi bi-plus-slash-minus me-1"></i> Chỉnh Coin Hàng Loạt
             </button>
@@ -160,6 +163,9 @@
                                     </td>
                                     <td class="text-end pe-4">
                                         <div class="d-flex align-items-center justify-content-end gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-info rounded-circle p-2" style="width: 34px; height: 34px; line-height: 1;" title="Đổi Hạng trực tiếp" data-bs-toggle="modal" data-bs-target="#quickChangeLevelModal{{ $cust->id }}">
+                                                <i class="bi bi-shield-shaded"></i>
+                                            </button>
                                             <button type="button" class="btn btn-sm btn-outline-warning rounded-circle p-2" style="width: 34px; height: 34px; line-height: 1;" title="Chỉnh Coin nhanh" data-bs-toggle="modal" data-bs-target="#quickCoinModal{{ $cust->id }}">
                                                 <i class="bi bi-coin"></i>
                                             </button>
@@ -169,6 +175,43 @@
                                             <a href="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.show', $cust->id) }}" class="btn btn-sm btn-outline-info rounded-pill px-3 ms-1">
                                                 <i class="bi bi-eye me-1"></i> Chi tiết
                                             </a>
+                                        </div>
+
+                                        <!-- Modal Quick Change Level -->
+                                        <div class="modal fade text-start" id="quickChangeLevelModal{{ $cust->id }}" tabindex="-1" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content bg-dark text-white border-secondary">
+                                                    <div class="modal-header border-secondary">
+                                                        <h5 class="modal-title fw-bold text-info"><i class="bi bi-shield-shaded me-2"></i>Đổi Hạng Thẻ cho {{ $cust->name }}</h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form action="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.change_level', $cust->id) }}" method="POST">
+                                                        @csrf
+                                                        <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
+                                                        <div class="modal-body">
+                                                            <p class="small text-muted mb-3">Hạng hiện tại: <span class="badge {{ $badgeClass }} px-2 py-1">{{ $lvlName }}</span></p>
+                                                            <div class="mb-3">
+                                                                <label class="form-label text-white-50">Chọn Hạng Thành Viên Mới</label>
+                                                                <select name="level_id" class="form-select bg-dark text-white border-secondary" required>
+                                                                    @foreach($levels as $lvlOption)
+                                                                        <option value="{{ $lvlOption->id }}" {{ $cust->membership?->level_id == $lvlOption->id ? 'selected' : '' }}>
+                                                                            Hạng {{ $lvlOption->name }} (Ưu đãi {{ $lvlOption->discount_percent }}%)
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label text-white-50">Lý do điều chỉnh Hạng (Bắt buộc ghi Audit Log)</label>
+                                                                <input type="text" name="reason" class="form-control bg-dark text-white border-secondary" required placeholder="Nhập lý do nâng/hạ hạng trực tiếp...">
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer border-secondary">
+                                                            <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Hủy</button>
+                                                            <button type="submit" class="btn btn-info text-dark fw-bold">Xác nhận Đổi Hạng</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <!-- Modal Quick Adjust Coin -->
@@ -185,7 +228,8 @@
                                                         <div class="modal-body">
                                                             <p class="small text-muted mb-3">Số dư hiện tại: <strong class="text-warning">{{ number_format($cust->coin?->balance ?? 0) }} Coin</strong></p>
                                                             <div class="mb-3">
-                                                                <label class="form-label text-white-50">Loại thao tác</label>                                                                <select name="action_type" class="form-select bg-dark text-white border-secondary" required>
+                                                                <label class="form-label text-white-50">Loại thao tác</label>
+                                                                <select name="action_type" class="form-select bg-dark text-white border-secondary" required>
                                                                     <option value="ADD">➕ Cộng Coin vào ví</option>
                                                                     <option value="DEDUCT">➖ Trừ Coin từ ví</option>
                                                                 </select>
@@ -256,6 +300,46 @@
                     <p class="small text-muted mb-0">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc hạng thành viên</p>
                 </div>
             @endif
+        </div>
+    </div>
+</div>
+
+<!-- Modal Bulk Change Level -->
+<div class="modal fade" id="bulkChangeLevelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title fw-bold text-info"><i class="bi bi-shield-shaded me-2"></i>Đổi Hạng Thẻ Hàng Loạt</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="bulkChangeLevelForm" action="{{ \App\Helpers\TabAuthHelper::route('admin.memberships.bulk_change_level') }}" method="POST">
+                @csrf
+                <input type="hidden" name="tab_token" value="{{ request('tab_token') }}">
+                <div id="bulkChangeUserInputs"></div>
+                <div class="modal-body">
+                    <div class="alert alert-info border-0 small mb-3 text-dark">
+                        <i class="bi bi-info-circle me-1"></i> Đang áp dụng cho <strong id="bulkChangeCustCount">0</strong> khách hàng đã chọn.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50">Chọn Hạng Thành Viên Mới</label>
+                        <select name="level_id" class="form-select bg-dark text-white border-secondary" required>
+                            @foreach($levels as $lvlOption)
+                                <option value="{{ $lvlOption->id }}">
+                                    Hạng {{ $lvlOption->name }} (Ưu đãi {{ $lvlOption->discount_percent }}%)
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-white-50">Lý do điều chỉnh Hạng (Bắt buộc ghi Audit Log)</label>
+                        <input type="text" name="reason" class="form-control bg-dark text-white border-secondary" required placeholder="Nhập lý do đổi hạng hàng loạt...">
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-info text-dark fw-bold">Xác nhận Đổi Hạng Hàng Loạt</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -344,6 +428,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const bulkCoinCustCount = document.getElementById('bulkCoinCustCount');
     const bulkResetUserInputs = document.getElementById('bulkResetUserInputs');
     const bulkResetCustCount = document.getElementById('bulkResetCustCount');
+    const bulkChangeUserInputs = document.getElementById('bulkChangeUserInputs');
+    const bulkChangeCustCount = document.getElementById('bulkChangeCustCount');
 
     function updateBulkBar() {
         const checked = document.querySelectorAll('.cust-checkbox:checked');
@@ -373,6 +459,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 bulkResetUserInputs.innerHTML += `<input type="hidden" name="user_ids[]" value="${cb.value}">`;
             });
             if (bulkResetCustCount) bulkResetCustCount.textContent = count;
+        }
+
+        if (bulkChangeUserInputs) {
+            bulkChangeUserInputs.innerHTML = '';
+            checked.forEach(cb => {
+                bulkChangeUserInputs.innerHTML += `<input type="hidden" name="user_ids[]" value="${cb.value}">`;
+            });
+            if (bulkChangeCustCount) bulkChangeCustCount.textContent = count;
         }
     }
 
