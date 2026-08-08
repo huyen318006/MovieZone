@@ -25,22 +25,6 @@
                 </div>
 
 <div class="selected-seat-box">
-                    {{-- Timer giữ ghế đồng bộ thiết kế mới (giống Customer) --}}
-                    <div id="timer-box" class="seat-timer-box" style="display: none;">
-                        <div class="seat-timer-inner">
-                            <div class="seat-timer-icon">
-                                <i class="fa-solid fa-stopwatch"></i>
-                            </div>
-                            <div class="seat-timer-info">
-                                <span class="seat-timer-label">Thời gian giữ ghế</span>
-                                <span class="seat-timer-clock" id="clock">05:00</span>
-                            </div>
-                        </div>
-                        <div class="seat-timer-progress">
-                            <div class="seat-timer-progress-fill" id="seatTimerProgressFill"></div>
-                        </div>
-                    </div>
-
                     <h3>GHẾ ĐÃ CHỌN</h3>
                     <div id="selectedSeats">Chưa chọn ghế</div>
                     <div class="total-price" id="totalPrice">0VNĐ</div>
@@ -179,21 +163,7 @@
 </div>
             </div>
         </div>
-    </section>
-
-    {{-- Modal hết giờ cho seat page (giống Customer) --}}
-    <div class="seat-expired-overlay" id="seatExpiredOverlay">
-        <div class="seat-expired-modal">
-            <div class="expired-icon">
-                <i class="fa-solid fa-clock-rotate-left"></i>
-            </div>
-            <h3>Hết thời gian giữ ghế!</h3>
-            <p>Phiên giữ ghế 5 phút đã hết. Vui lòng chọn lại ghế.</p>
-            <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-seat', $showtime->id) }}" id="seatPageReloadLink" class="btn-reload">
-                <i class="fa-solid fa-rotate-right"></i> Chọn ghế lại
-            </a>
-        </div>
-    </div>
+</section>
 </div>
 
 <style>
@@ -567,232 +537,7 @@
         box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.35);
     }
 
-    /* === SEAT TIMER BOX (đồng bộ design Customer) === */
-    .seat-timer-box {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        border: 1px solid #f59e0b;
-        border-radius: 12px;
-        padding: 14px 16px;
-        margin-bottom: 15px;
-    }
-
-    .seat-timer-inner {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 8px;
-    }
-
-    .seat-timer-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: rgba(245, 158, 11, 0.15);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        color: #f59e0b;
-        flex-shrink: 0;
-        animation: seatIconPulse 2s infinite;
-    }
-
-    @keyframes seatIconPulse {
-
-        0%,
-        100% {
-            transform: scale(1);
-        }
-
-        50% {
-            transform: scale(1.1);
-        }
-    }
-
-    .seat-timer-info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .seat-timer-label {
-        font-size: 11px;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-weight: 500;
-    }
-
-    .seat-timer-clock {
-        font-size: 22px;
-        font-weight: 800;
-        color: #f59e0b;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 2px;
-        line-height: 1;
-    }
-
-    .seat-timer-progress {
-        width: 100%;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    .seat-timer-progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #f59e0b, #eab308);
-        border-radius: 10px;
-        transition: width 1s linear;
-        width: 100%;
-    }
-
-    /* Danger mode */
-    .seat-timer-box.danger {
-        border-color: #ef4444;
-        animation: seatTimerPulse 1s infinite;
-    }
-
-    .seat-timer-box.danger .seat-timer-icon {
-        background: rgba(239, 68, 68, 0.15);
-        color: #ef4444;
-    }
-
-    .seat-timer-box.danger .seat-timer-clock {
-        color: #ef4444;
-        animation: seatTimeBlink 1s infinite;
-    }
-
-    .seat-timer-box.danger .seat-timer-progress-fill {
-        background: linear-gradient(90deg, #ef4444, #dc2626);
-    }
-
-    @keyframes seatTimerPulse {
-
-        0%,
-        100% {
-            border-color: #ef4444;
-        }
-
-        50% {
-            border-color: rgba(239, 68, 68, 0.4);
-        }
-    }
-
-    @keyframes seatTimeBlink {
-
-        0%,
-        100% {
-            opacity: 1;
-        }
-
-        50% {
-            opacity: 0.5;
-        }
-    }
-
-    /* === EXPIRED MODAL cho seat page === */
-    .seat-expired-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: blur(8px);
-        z-index: 9999;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .seat-expired-overlay.show {
-        display: flex;
-        animation: fadeIn 0.4s ease;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    .seat-expired-modal {
-        background: linear-gradient(145deg, #1e293b, #111827);
-        border: 1px solid #374151;
-        border-radius: 20px;
-        padding: 40px;
-        max-width: 420px;
-        width: 90%;
-        text-align: center;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
-        animation: slideUp 0.5s ease;
-    }
-
-    @keyframes slideUp {
-        from {
-            transform: translateY(40px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    .seat-expired-modal .expired-icon {
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        background: rgba(239, 68, 68, 0.1);
-        border: 2px solid rgba(239, 68, 68, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 20px;
-        font-size: 32px;
-        color: #ef4444;
-    }
-
-    .seat-expired-modal h3 {
-        color: #f8fafc;
-        font-size: 20px;
-        margin: 0 0 10px;
-    }
-
-    .seat-expired-modal p {
-        color: #9ca3af;
-        font-size: 14px;
-        margin: 0 0 20px;
-        line-height: 1.6;
-    }
-
-    .seat-expired-modal .btn-reload {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: #ef4444;
-        color: #fff;
-        padding: 12px 24px;
-        border-radius: 10px;
-        font-weight: 600;
-        font-size: 14px;
-        text-decoration: none;
-        transition: all 0.3s;
-    }
-
-    .seat-expired-modal .btn-reload:hover {
-        background: #dc2626;
-        transform: translateY(-2px);
-    }
-
-    /* Responsive */
+/* Responsive */
     @media(max-width:1200px) {
         .seat-wrapper {
             flex-direction: column;
@@ -820,79 +565,6 @@ const showtimeId = {{ $showtime->id }};
 
         // Giới hạn tối đa số ghế 1 lần đặt (đồng bộ với MAX_SEATS_PER_BOOKING backend)
         const MAX_SEATS = 10;
-
-        // === SERVER-AUTHORITATIVE TIMER (giống Customer) ===
-        const holdTotalSeconds = {{ $holdTotalSeconds ?? 300 }};
-        let holdExpiresAt = @json($holdExpiresAt ?? null);
-        let clockOffset = 0;
-
-        const initialServerTime = @json($serverTime ?? null);
-        if (initialServerTime) {
-            clockOffset = new Date(initialServerTime).getTime() - Date.now();
-        }
-
-        let expiresAtMs = holdExpiresAt ? new Date(holdExpiresAt).getTime() : null;
-
-        let timerInterval;
-        let timerExpired = false;
-        const seatPageReloadLink = document.getElementById('seatPageReloadLink');
-
-        // Gắn tab_token vào link reload khi hết giờ
-        const currentSearch = window.location.search;
-        const tabToken = new URLSearchParams(currentSearch).get('tab_token');
-        if (seatPageReloadLink && tabToken && !seatPageReloadLink.href.includes('tab_token=')) {
-            seatPageReloadLink.href += (seatPageReloadLink.href.includes('?') ? '&' : '?') + 'tab_token=' + tabToken;
-        }
-
-        function getSecondsLeft() {
-            if (!expiresAtMs) return 0;
-            const effectiveNow = Date.now() + clockOffset;
-            return Math.max(0, Math.floor((expiresAtMs - effectiveNow) / 1000));
-        }
-
-        function startTimer() {
-            document.getElementById('timer-box').style.display = 'block';
-            updateSeatTimerDisplay();
-            timerInterval = setInterval(() => {
-                const remaining = getSecondsLeft();
-                if (remaining <= 0) {
-                    timerExpired = true;
-                    clearInterval(timerInterval);
-                    updateSeatTimerDisplay();
-                    document.getElementById('seatExpiredOverlay').classList.add('show');
-                    return;
-                }
-                updateSeatTimerDisplay();
-            }, 1000);
-        }
-
-        function updateSeatTimerDisplay() {
-            const safe = getSecondsLeft();
-            let m = Math.floor(safe / 60).toString().padStart(2, '0');
-            let s = (safe % 60).toString().padStart(2, '0');
-            document.getElementById('clock').textContent = m + ':' + s;
-
-            const pct = (safe / holdTotalSeconds) * 100;
-            const fillEl = document.getElementById('seatTimerProgressFill');
-            if (fillEl) fillEl.style.width = pct + '%';
-
-            const timerBox = document.getElementById('timer-box');
-            if (safe <= 60 && safe > 0 && timerBox) {
-                timerBox.classList.add('danger');
-            }
-        }
-
-        document.addEventListener('visibilitychange', function () {
-            if (document.visibilityState === 'visible' && expiresAtMs && !timerExpired) {
-                const remaining = getSecondsLeft();
-                updateSeatTimerDisplay();
-                if (remaining <= 0) {
-                    timerExpired = true;
-                    clearInterval(timerInterval);
-                    document.getElementById('seatExpiredOverlay').classList.add('show');
-                }
-            }
-        });
 
         function initializeSelectedSeatsFromStorage() {
             selectedSeats.clear();
@@ -926,10 +598,6 @@ const showtimeId = {{ $showtime->id }};
 if (selectedSeats.size > 0) {
                 updateUI();
                 restoreSelectedSeatsOnRefreshedMap();
-                // Nếu có ghế đang giữ và còn thời gian → chạy timer
-                if (expiresAtMs && getSecondsLeft() > 0) {
-                    startTimer();
-                }
             }
         }
 
@@ -1105,8 +773,6 @@ if (selectedSeats.size > 0) {
                         btn.classList.remove('AVAILABLE', 'available-seat-btn', 'vip-seat-btn', 'sweet-seat-btn', 'HELD_BY_ME');
                         btn.classList.add(firstError.error_type === 'HELD' ? 'HELD' : 'SOLD');
                         btn.disabled = true;
-                    } else if (firstError && firstError.error_type === 'EXPIRED') {
-                        document.getElementById('seatExpiredOverlay').classList.add('show');
                     } else {
                         document.getElementById('ajax-error-box').innerText = firstError ? firstError.message : 'Không thể cập nhật trạng thái ghế lúc này.';
                         document.getElementById('ajax-error-box').style.display = 'block';
@@ -1114,18 +780,7 @@ if (selectedSeats.size > 0) {
                     return;
                 }
 
-                // Cập nhật clock offset và expiresAt từ response (đồng bộ server timer)
-                const lastResult = results[results.length - 1];
-                if (lastResult && lastResult.serverTime) {
-                    clockOffset = new Date(lastResult.serverTime).getTime() - Date.now();
-                }
-                if (lastResult && lastResult.expiresAt) {
-                    expiresAtMs = new Date(lastResult.expiresAt).getTime();
-                }
-
                 if (isSelecting) {
-                    if (selectedSeats.size === 0) startTimer();
-
                     selectedSeats.set(seatCode, {
                         id: seatIdAttr,
                         code: seatCode,

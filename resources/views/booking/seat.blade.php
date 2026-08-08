@@ -757,7 +757,7 @@ const seatIds = seatIdAttr.split(',');
                                 btn.disabled = true;
                             } else {
                                 lastMessage = res.message;
-                                
+
                                 // Nếu timer hết hạn, hiển thị modal
                                 if (res.error_type === 'EXPIRED') {
                                     document.getElementById('seatExpiredOverlay').classList.add('show');
@@ -852,6 +852,67 @@ const seatIds = seatIdAttr.split(',');
                         });
                     });
             }
+
+// =================================================================
+            // TỰ ĐỘNG CẬP NHẬT GHẾ (giống Staff): khi staff/người khác chọn ghế
+            // thì trang customer tự quét lại sơ đồ ghế mỗi 2,5 giây.
+            // Ghế customer đang chọn (HELD_BY_ME) sẽ được giữ màu xanh lá.
+            // =================================================================
+            function seatTypeClass(type) {
+                if (type === 'vip') return 'vip-seat-btn';
+                if (type === 'COUPLE') return 'couple-seat-btn';
+                if (type === 'sweetbox') return 'sweet-seat-btn';
+                return 'available-seat-btn';
+            }
+
+            function restoreSelectedSeatsOnRefreshedMap() {
+                const seatButtons = document.querySelectorAll('.seat[data-seat]');
+                selectedSeats.forEach((seat, seatCode) => {
+                    let restored = false;
+
+                    seatButtons.forEach((btn) => {
+                        if (btn.dataset.seat !== seat.code) {
+                            return;
+                        }
+
+                        const currentClassList = Array.from(btn.classList);
+                        const isUnavailable = currentClassList.some((cls) => ['HELD', 'SOLD', 'BLOCKED', 'LOCKED'].includes(cls));
+
+                        if (!isUnavailable) {
+                            btn.classList.remove('AVAILABLE', 'HELD', 'HELD_BY_ME', 'SOLD', 'BLOCKED', 'LOCKED', 'available-seat-btn', 'vip-seat-btn', 'sweet-seat-btn');
+                            btn.classList.add('HELD_BY_ME', seatTypeClass(seat.type));
+                            btn.disabled = false;
+                            restored = true;
+                        }
+                    });
+                });
+            }
+
+            async function refreshSeatStates() {
+                try {
+                    const refreshUrl = new URL("{{ \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $showtime->id]) }}", window.location.origin);
+                    refreshUrl.searchParams.set('refresh', '1');
+
+                    const response = await fetch(refreshUrl.toString(), {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const html = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newSeatMap = doc.querySelector('.seat-map');
+                    if (!newSeatMap) return;
+
+                    const currentSeatMap = document.querySelector('.seat-map');
+                    if (currentSeatMap) {
+                        currentSeatMap.innerHTML = newSeatMap.innerHTML;
+                        restoreSelectedSeatsOnRefreshedMap();
+                    }
+                } catch (error) {
+                    console.error('Refresh seat states failed', error);
+                }
+            }
+
+            setInterval(refreshSeatStates, 2500);
 
             function updateUI() {
                 hiddenSeatInputs.innerHTML = '';
