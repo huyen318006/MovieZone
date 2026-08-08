@@ -141,8 +141,9 @@
 
                 </div>
 
-                <div class="bottom-action">
-                    <a href="{{ url()->previous() }}" class="btn-back">
+<div class="bottom-action">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? null]) }}"
+                       class="btn-back">
                         ← Quay lại chọn ghế
                     </a>
                 </div>
@@ -182,9 +183,9 @@
 
                 <div class="seat-section">
 
-                    <div class="seat-title">
+<div class="seat-title">
                         <span>Ghế đã chọn</span>
-                        <a href="{{ url()->previous() }}">Sửa</a>
+                        <a href="{{ \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? null]) }}">Sửa</a>
                     </div>
 
                     <div class="seat-list">

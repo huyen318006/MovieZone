@@ -84,7 +84,7 @@
         </div>
     </div>
 
-    {{-- ══════ STATE: EMPTY ══════ --}}
+{{-- ══════ STATE: EMPTY ══════ --}}
     <div id="stateEmpty" class="state-card state-empty">
         <div class="state-illustration">
             <div class="ill-circle">
@@ -108,6 +108,48 @@
                 <span>Nhận chẩn đoán tự động</span>
             </div>
         </div>
+
+        {{-- Danh sách booking có vấn đề hiển thị mặc định --}}
+        @if(!empty($problemBookings) && $problemBookings->isNotEmpty())
+        <div class="problem-bookings mt-4 w-100 text-start">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h6 class="fw-bold m-0 d-flex align-items-center gap-2" style="color: var(--staff-text);">
+                    <i class="bi bi-exclamation-triangle-fill" style="color: var(--staff-warning);"></i>
+                    Booking đang có vấn đề ({{ $problemBookings->count() }})
+                </h6>
+                <span class="badge" style="background: rgba(245,158,11,0.15); color: #f59e0b; font-size: 11px;">
+                    Cần xử lý
+                </span>
+            </div>
+            <div class="problem-bookings-list">
+                @foreach($problemBookings as $pb)
+                <button type="button" class="problem-booking-item" onclick="window.IssueSupport.diagnoseFromBookingCode('{{ $pb->booking_code }}')">
+                    <div class="pb-left">
+                        <span class="pb-code">{{ $pb->booking_code }}</span>
+                        <span class="pb-customer">{{ $pb->customer_name }}</span>
+                    </div>
+                    <div class="pb-mid">
+                        <span class="pb-movie">{{ $pb->movie_title }}</span>
+                        <span class="pb-time">
+                            {{ $pb->showtime ? \Carbon\Carbon::parse($pb->showtime)->format('d/m H:i') : 'N/A' }}
+                            • {{ $pb->cinema_name }}
+                        </span>
+                    </div>
+                    <div class="pb-right">
+                        <span class="badge pb-badge" data-issue="{{ $pb->issue_type }}">{{ $pb->issue_label }}</span>
+                        <span class="btn-diagnose-mini"><i class="bi bi-shield-check"></i> Chẩn đoán</span>
+                    </div>
+                </button>
+                @endforeach
+            </div>
+        </div>
+        @else
+        <div class="no-problem mt-4">
+            <span class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; font-size: 12px;">
+                <i class="bi bi-check-circle me-1"></i> Không có booking nào đang gặp vấn đề
+            </span>
+        </div>
+        @endif
     </div>
 
     {{-- ══════ STATE: LOADING ══════ --}}
@@ -401,6 +443,101 @@
     font-size: 11px;
     font-family: inherit;
     color: var(--staff-text-muted);
+}
+
+/* ── Problem Bookings List ── */
+.problem-bookings {
+    max-height: 420px;
+    overflow-y: auto;
+}
+.problem-bookings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.problem-booking-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--staff-bg);
+    border: 1px solid var(--staff-border);
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+}
+.problem-booking-item:hover {
+    border-color: var(--staff-primary);
+    background: var(--staff-surface-hover);
+    transform: translateY(-1px);
+}
+.pb-left {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+}
+.pb-code {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--staff-primary);
+}
+.pb-customer {
+    font-size: 12px;
+    color: var(--staff-text-muted);
+}
+.pb-mid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.pb-movie {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--staff-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pb-time {
+    font-size: 11px;
+    color: var(--staff-text-muted);
+}
+.pb-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+.pb-badge {
+    background: rgba(245,158,11,0.15);
+    color: #f59e0b;
+    font-size: 11px;
+    padding: 4px 10px;
+    white-space: nowrap;
+}
+.btn-diagnose-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(139,92,246,0.1);
+    color: var(--staff-primary);
+    border: 1px solid rgba(139,92,246,0.3);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.problem-booking-item:hover .btn-diagnose-mini {
+    background: var(--staff-primary);
+    color: #fff;
+}
+.no-problem {
+    text-align: center;
 }
 
 /* ── State Cards ── */
@@ -920,6 +1057,26 @@ function updateClock(){
     if(el) el.textContent = new Date().toLocaleTimeString('vi-VN');
 }
 setInterval(updateClock, 1000);
+
+// ── Public API: chẩn đoán nhanh 1 booking từ danh sách booking có vấn đề ──
+function diagnoseFromBookingCode(bookingCode){
+    if(!bookingCode) return;
+    issueInputType.value = 'booking_code';
+    issueInputValue.value = bookingCode;
+    issueInputValue.placeholder = PLACEHOLDERS.booking_code;
+    btnIssueDiagnose.disabled = false;
+    checkClearButton();
+    hideValidationError();
+    diagnose();
+}
+
+// Expose public API cho các element dùng onclick inline
+window.IssueSupport = {
+    diagnoseFromBookingCode,
+    diagnose,
+    render,
+    showState,
+};
 </script>
 @endpush
 @endsection

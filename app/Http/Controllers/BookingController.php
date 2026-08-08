@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\BookingCancellation;
 use App\Models\BookingCombo;
 use App\Models\Combo;
 use App\Models\PointTransaction;
@@ -599,12 +600,22 @@ $request->validate([
                 }
                 
                 // Nếu chưa thanh toán (đang pending), hủy đơn cũ để tạo đơn mới với tùy chọn thanh toán mới
-                $booking = $existingOrder->booking;
+$booking = $existingOrder->booking;
                 if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
                     $booking->update([
                         'status' => 'CANCELLED',
                         'payment_status' => 'FAILED',
                     ]);
+
+                    // Lưu lý do hủy vào bảng booking_cancellations (hủy đơn cũ để tạo đơn mới)
+                    BookingCancellation::updateOrCreate(
+                        ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
+                        [
+                            'type'        => 'CANCELLATION',
+                            'canceled_by' => Auth::id() ?? $booking->user_id,
+                            'reason'      => 'Khách hàng hủy đơn cũ khi tạo lại đơn mới với tùy chọn thanh toán khác.',
+                        ]
+                    );
 
                     // Hoàn xu nếu đã trừ cho đơn cũ
                     $redeemTx = \App\Models\PointTransaction::where('booking_id', $booking->id)
@@ -709,8 +720,8 @@ $request->validate([
                 'total_ticket_amount' => $totalTicketAmount,
                 'total_combo_amount' => $totalComboAmount,
                 'discount_amount' => $totalDiscount,
-                'final_amount' => $finalAmount,
-                'status' => 'PENDING',
+'final_amount' => $finalAmount,
+                'status' => $status,
                 'payment_status' => 'UNPAID',
                 'expired_at' => $holdExpireAt,
             ]);
@@ -962,13 +973,23 @@ $request->validate([
 
         $showtimeId = $order->getBookingInfo('showtime_id');
 
-        // Hủy booking nếu còn ở trạng thái chờ thanh toán
+// Hủy booking nếu còn ở trạng thái chờ thanh toán
         $booking = $order->booking;
         if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT'])) {
             $booking->update([
                 'status' => 'CANCELLED',
                 'payment_status' => $booking->payment_status === 'PAID' ? 'REFUNDED' : 'FAILED',
             ]);
+
+            // Lưu lý do hủy vào bảng booking_cancellations (khách tự hủy)
+            BookingCancellation::updateOrCreate(
+                ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
+                [
+                    'type'       => 'CANCELLATION',
+                    'canceled_by' => Auth::id() ?? $booking->user_id,
+                    'reason'     => 'Khách hàng tự hủy đơn hàng từ trang thanh toán / quay lại chọn ghế.',
+                ]
+            );
 
             // Hoàn xu nếu đã trừ
             $redeemTx = PointTransaction::where('booking_id', $booking->id)
