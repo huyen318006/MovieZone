@@ -586,8 +586,18 @@ $request->validate([
                 ->with('error', 'Hết thời gian giữ ghế. Vui lòng chọn lại.');
         }
 
-        // Lấy thời điểm hết hạn gốc từ master timer (KHÔNG reset)
-        $holdExpireAt = Carbon::createFromTimestamp($masterTimerTs);
+        // Master timer giữ ghế đã được kiểm tra còn hiệu lực ở phía trên.
+        // ================================================================
+        // [FIX] Thời hạn thanh toán cho booking.
+        // KHÔNG dùng master timer giữ ghế (có thể đã sắp hết hạn vì khách
+        // mất thời gian ở bước combo/confirm). Thay vào đó, booking được
+        // cấp một khung thời gian thanh toán RIÊNG (order_expiry_minutes)
+        // để đảm bảo ghế vẫn bị khóa (PENDING_PAYMENT) suốt lúc khách
+        // đang ở trang thanh toán, tránh việc scheduler ExpireBookings
+        // giải phóng ghế sớm khiến người khác chọn được.
+        // ================================================================
+        $paymentExpiryMinutes = (int) config('sepay.order_expiry_minutes', 15);
+        $paymentExpireAt = now()->addMinutes($paymentExpiryMinutes);
 
         // GUARD: Kiểm tra đã tạo booking cho session này chưa
         $existingOrderCode = session('pending_order_code');
@@ -598,7 +608,7 @@ $request->validate([
                     // Nếu đã thanh toán, chuyển thẳng sang trang bill
                     return redirect()->route('booking.bill', ['orderCode' => $existingOrderCode]);
                 }
-                
+
                 // Nếu chưa thanh toán (đang pending), hủy đơn cũ để tạo đơn mới với tùy chọn thanh toán mới
 $booking = $existingOrder->booking;
                 if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
@@ -719,9 +729,10 @@ $booking = $existingOrder->booking;
                 'total_combo_amount' => $totalComboAmount,
                 'discount_amount' => $totalDiscount,
 'final_amount' => $finalAmount,
-                'status' => $status,
+'status' => $status,
                 'payment_status' => 'UNPAID',
-                'expired_at' => $holdExpireAt,
+                // [FIX] Dùng khung thời gian thanh toán riêng thay vì master timer giữ ghế
+                'expired_at' => $paymentExpireAt,
             ]);
 
             // Lưu danh sách ghế vào bảng trung gian
