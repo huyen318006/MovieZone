@@ -93,7 +93,7 @@ class BookingController extends Controller
                     ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
                     ->where('booking_seats.showtime_seat_id', $showtimeSeat->id)
                     ->where('bookings.showtime_id', $showtime_id)
-                    ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                    ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
                     ->exists();
 
                 if ($isSold) {
@@ -214,7 +214,7 @@ class BookingController extends Controller
                 ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
                 ->where('booking_seats.showtime_seat_id', $seatId)
                 ->where('bookings.showtime_id', $showtimeId)
-                ->whereIn('bookings.status', ['PAID', 'PENDING_CASH_PAYMENT', 'PENDING_PAYMENT'])
+                ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_CASH_PAYMENT', 'PENDING_PAYMENT'])
                 ->where(function ($q) {
                     $q->whereNull('bookings.expired_at')
                       ->orWhere('bookings.expired_at', '>', now());
@@ -664,7 +664,7 @@ $booking = $existingOrder->booking;
                 ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
                 ->where('bookings.showtime_id', $showtimeId)
                 ->whereIn('booking_seats.showtime_seat_id', $seatIds)
-                ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
                 ->where(function ($q) {
                     $q->whereNull('bookings.expired_at')
                       ->orWhere('bookings.expired_at', '>', now());
@@ -699,9 +699,7 @@ $booking = $existingOrder->booking;
             // BR03: Mã định danh duy nhất (CSPRNG + safe alphabet + kiểm tra trùng)
             $bookingCode = app(TicketService::class)->generateUniqueBookingCode();
 
-            // BR07: Trạng thái dựa vào phương thức thanh toán
-            $paymentMethod = $request->input('payment_method', 'ONLINE');
-            $status = ($paymentMethod == 'CASH') ? 'PENDING_CASH_PAYMENT' : 'PENDING_PAYMENT';
+            $status = 'PENDING';
 
             // Lưu thông tin khách hàng từ form xác nhận
             $customerName = $request->input('customer_name');
@@ -857,7 +855,7 @@ $booking = $existingOrder->booking;
         $soldSeatIds = DB::table('booking_seats')
             ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
             ->where('bookings.showtime_id', $showtimeId)
-            ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+            ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
             ->pluck('booking_seats.showtime_seat_id')
             ->all();
 

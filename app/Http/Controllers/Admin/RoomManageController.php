@@ -247,7 +247,7 @@ class RoomManageController extends Controller
             $soldShowtimeSeatIds = DB::table('booking_seats')
                 ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
                 ->where('bookings.showtime_id', $selectedShowtime->id)
-                ->whereIn('bookings.status', ['PAID', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
                 ->pluck('booking_seats.showtime_seat_id');
 
             // Lấy danh sách showtime_seat_id đang được giữ (từ cache)
