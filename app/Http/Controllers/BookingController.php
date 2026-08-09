@@ -41,11 +41,6 @@ class BookingController extends Controller
     // ==========================================
     public function showSeats($showtime_id)
     {
-        $existingOrderCode = session('pending_order_code');
-        if ($existingOrderCode) {
-            return $this->cancelBookingAndRelease($existingOrderCode);
-        }
-
         $showtime = Showtime::with(['movie', 'room'])
             ->findOrFail($showtime_id);
 
@@ -89,15 +84,28 @@ class BookingController extends Controller
             if (in_array($baseStatus, ['BLOCKED', 'BROKEN'])) {
                 $displayStatus = $baseStatus;
             } else {
-                $isSold = DB::table('booking_seats')
+                $isPaid = DB::table('booking_seats')
                     ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
                     ->where('booking_seats.showtime_seat_id', $showtimeSeat->id)
                     ->where('bookings.showtime_id', $showtime_id)
-                    ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                    ->where('bookings.status', 'PAID')
                     ->exists();
 
-                if ($isSold) {
+                $isPendingPayment = DB::table('booking_seats')
+                    ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                    ->where('booking_seats.showtime_seat_id', $showtimeSeat->id)
+                    ->where('bookings.showtime_id', $showtime_id)
+                    ->whereIn('bookings.status', ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                    ->where(function ($q) {
+                        $q->whereNull('bookings.expired_at')
+                          ->orWhere('bookings.expired_at', '>', now());
+                    })
+                    ->exists();
+
+                if ($isPaid) {
                     $displayStatus = 'SOLD';
+                } elseif ($isPendingPayment) {
+                    $displayStatus = 'HELD';
                 } else {
                     $heldBy = $showtimeSeat->held_by ?? Cache::get('seat_held_'.$showtime_id.'_'.$showtimeSeat->id);
                     $baseStatus = $showtimeSeat->status ?? 'AVAILABLE';
@@ -364,11 +372,6 @@ $request->validate([
     // ==========================================
     public function showCombo()
     {
-        $existingOrderCode = session('pending_order_code');
-        if ($existingOrderCode) {
-            return $this->cancelBookingAndRelease($existingOrderCode);
-        }
-
         $bookingTam = session('booking_tam');
 
         // TIMER: Tính thời gian còn lại từ master timer
@@ -496,11 +499,6 @@ $request->validate([
     // ==========================================
     public function showConfirm()
     {
-        $existingOrderCode = session('pending_order_code');
-        if ($existingOrderCode) {
-            return $this->cancelBookingAndRelease($existingOrderCode);
-        }
-
         $bookingTam = session('booking_tam');
         if (! $bookingTam) {
             return redirect()->route('home');
@@ -586,8 +584,8 @@ $request->validate([
                 ->with('error', 'Hết thời gian giữ ghế. Vui lòng chọn lại.');
         }
 
-        // Lấy thời điểm hết hạn gốc từ master timer (KHÔNG reset)
-        $holdExpireAt = Carbon::createFromTimestamp($masterTimerTs);
+        // Cấp thêm 5 phút dành riêng cho bước chuyển khoản thanh toán QR
+        $paymentExpireAt = now()->addMinutes($this->holdMinutes());
 
         // GUARD: Kiểm tra đã tạo booking cho session này chưa
         $existingOrderCode = session('pending_order_code');
@@ -721,7 +719,7 @@ $booking = $existingOrder->booking;
 'final_amount' => $finalAmount,
                 'status' => $status,
                 'payment_status' => 'UNPAID',
-                'expired_at' => $holdExpireAt,
+                'expired_at' => $paymentExpireAt,
             ]);
 
             // Lưu danh sách ghế vào bảng trung gian
@@ -744,9 +742,13 @@ $booking = $existingOrder->booking;
                     'updated_at' => now(),
                 ]);
 
-                // GIỮ NGUYÊN cache giữ ghế — chỉ xóa khi thanh toán thành công hoặc hủy
-                // (Ghế đã có trong DB với booking status PENDING_PAYMENT nên hiển thị SOLD)
+                // Gia hạn cache giữ ghế theo thời gian thanh toán 5 phút mới
+                $cacheKey = 'seat_held_' . $showtimeId . '_' . $seat->id;
+                Cache::put($cacheKey, Auth::id(), $paymentExpireAt);
             }
+
+            // Gia hạn master timer theo thời gian thanh toán mới
+            Cache::put($masterTimerKey, $paymentExpireAt->timestamp, $paymentExpireAt);
 
             foreach (($bookingTam['combos'] ?? []) as $comboItem) {
                 BookingCombo::create([

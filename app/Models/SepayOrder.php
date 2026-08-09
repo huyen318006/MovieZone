@@ -96,10 +96,11 @@ class SepayOrder extends Model
      */
     public function isExpired(): bool
     {
-        $expiryMinutes = config('sepay.order_expiry_minutes', 15);
+        if ($this->status === 'paid') {
+            return false;
+        }
 
-        return $this->status === 'pending'
-            && $this->created_at->addMinutes($expiryMinutes)->isPast();
+        return $this->status === 'expired' || $this->getExpiresAt()->isPast();
     }
 
     /**
@@ -111,13 +112,17 @@ class SepayOrder extends Model
     }
 
     /**
-     * Lấy thời gian hết hạn
+     * Lấy thời gian hết hạn (Ưu tiên lấy expired_at từ booking)
      */
     public function getExpiresAt(): Carbon
     {
-        $expiryMinutes = config('sepay.order_expiry_minutes', 15);
+        if ($this->booking && $this->booking->expired_at) {
+            return Carbon::parse($this->booking->expired_at);
+        }
 
-        return $this->created_at->addMinutes($expiryMinutes);
+        $expiryMinutes = config('sepay.order_expiry_minutes', 5);
+
+        return $this->created_at ? $this->created_at->copy()->addMinutes($expiryMinutes) : now()->addMinutes($expiryMinutes);
     }
 
     /**
