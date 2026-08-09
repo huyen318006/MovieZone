@@ -596,7 +596,7 @@ $request->validate([
                     // Nếu đã thanh toán, chuyển thẳng sang trang bill
                     return redirect()->route('booking.bill', ['orderCode' => $existingOrderCode]);
                 }
-                
+
                 // Nếu chưa thanh toán (đang pending), hủy đơn cũ để tạo đơn mới với tùy chọn thanh toán mới
 $booking = $existingOrder->booking;
                 if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
@@ -717,7 +717,7 @@ $booking = $existingOrder->booking;
                 'total_combo_amount' => $totalComboAmount,
                 'discount_amount' => $totalDiscount,
 'final_amount' => $finalAmount,
-                'status' => $status,
+'status' => $status,
                 'payment_status' => 'UNPAID',
                 'expired_at' => $paymentExpireAt,
             ]);
