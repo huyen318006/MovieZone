@@ -81,7 +81,7 @@ class StaffDashboardService
     {
         return Booking::query()
             ->whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->whereIn('status', ['PENDING_PAYMENT', 'PENDING_CASH_PAYMENT', 'PAID'])
+            ->whereIn('status', ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT', 'PAID'])
             ->count();
     }
 
