@@ -186,6 +186,53 @@
 
 
 
+                {{-- Coin thưởng khi đặt vé thành công --}}
+                @if (!empty($order->metadata['coin_earned']) && $order->metadata['coin_earned'] > 0)
+                    <div style="margin-bottom: 25px; padding: 20px; background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.08)); border-radius: 14px; border: 1px solid rgba(251, 191, 36, 0.3); position: relative; overflow: hidden;">
+                        {{-- Decorative glow --}}
+                        <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(251, 191, 36, 0.2), transparent); border-radius: 50%;"></div>
+
+                        <h4 style="margin: 0 0 16px 0; color: #fbbf24; font-size: 15px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 20px;">🪙</span> Coin thưởng đặt vé
+                        </h4>
+
+                        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 36px; font-weight: 800; color: #fbbf24; line-height: 1;">
+                                    +{{ number_format($order->metadata['coin_earned'], 0, ',', '.') }}
+                                </div>
+                                <div style="font-size: 13px; color: #f59e0b; margin-top: 4px; font-weight: 500;">Coin đã cộng vào ví</div>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 12px; text-align: center;">
+                                <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Hạng thành viên</div>
+                                <div style="font-size: 14px; font-weight: 700; color: #fbbf24;">
+                                    @php
+                                        $levelIcons = ['BRONZE' => '🥉', 'SILVER' => '🥈', 'GOLD' => '🥇', 'PLATINUM' => '💎', 'DIAMOND' => '👑'];
+                                        $lvl = $order->metadata['membership_level'] ?? 'BRONZE';
+                                    @endphp
+                                    {{ $levelIcons[$lvl] ?? '🎖️' }} {{ $lvl }}
+                                </div>
+                            </div>
+                            <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 12px; text-align: center;">
+                                <div style="font-size: 11px; color: #94a3b8; margin-bottom: 4px;">Tỷ lệ tích coin</div>
+                                <div style="font-size: 14px; font-weight: 700; color: #fbbf24;">
+                                    {{ $order->metadata['coin_earn_rate'] ?? 1 }}%
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (!empty($order->metadata['coin_new_balance']))
+                            <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 8px; text-align: center;">
+                                <span style="font-size: 12px; color: #94a3b8;">Số dư ví hiện tại: </span>
+                                <span style="font-size: 14px; font-weight: 700; color: #f1f5f9;">{{ number_format($order->metadata['coin_new_balance'], 0, ',', '.') }} coin</span>
+                            </div>
+                        @endif
+                    </div>
+                @endif
+
                 {{-- Thông tin giao dịch --}}
                 <div class="bill-transaction-info">
                     @if ($order->transaction_id)

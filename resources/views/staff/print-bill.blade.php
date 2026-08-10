@@ -174,9 +174,16 @@
     </style>
 </head>
 <body>
-    {{-- ═══ MỖI VÉ 1 TRANG RIÊNG (1 ghế / 1 vé) ═══ --}}
-    @foreach($ticketPages as $index => $page)
+    {{-- 1. PHIẾU NHẬN COMBO (Chỉ in nếu có mua combo) --}}
+    @if($booking->bookingCombos->isNotEmpty())
         <div class="bill-container page-break">
+            @include('staff.partials.print-bill-combo', ['booking' => $booking])
+        </div>
+    @endif
+
+    {{-- 2. MỖI VÉ 1 TRANG RIÊNG (1 ghế / 1 vé) ═══ --}}
+    @foreach($ticketPages as $index => $page)
+        <div class="bill-container {{ $loop->last ? '' : 'page-break' }}">
             @include('staff.partials.print-bill-ticket', [
                 'booking' => $booking,
                 'ticket' => $page['ticket'],
