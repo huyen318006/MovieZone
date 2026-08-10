@@ -340,6 +340,9 @@ Route::middleware(['tab.auth', 'cache.headers:private;max_age=0;no_cache;no_stor
     // UC-11: Nút "Xác nhận đặt vé" -> Tạo DB -> Chuyển thanh toán
     Route::post('/booking/checkout', [BookingController::class, 'checkout'])->name('booking.checkout');
 
+    // Browser navigation back release cache/session khi khách back ra khỏi confirm/payment
+    Route::post('/booking/release-on-back', [BookingController::class, 'releaseOnBack'])->name('booking.releaseOnBack');
+
     // Hủy thanh toán và quay lại chọn ghế
     Route::post('/booking/cancel/{orderCode}', [BookingController::class, 'cancelBookingAndRelease'])->name('booking.cancel');
 });
