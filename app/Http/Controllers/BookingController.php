@@ -41,6 +41,57 @@ class BookingController extends Controller
     // ==========================================
     public function showSeats($showtime_id)
     {
+        $pendingOrderCode = session('pending_order_code');
+        if ($pendingOrderCode) {
+            $order = SepayOrder::where('order_code', $pendingOrderCode)->first();
+            if ($order && $order->booking && in_array($order->booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
+                $booking = $order->booking;
+                $booking->update([
+                    'status' => 'CANCELLED',
+                    'payment_status' => 'FAILED',
+                ]);
+
+                BookingCancellation::updateOrCreate(
+                    ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
+                    [
+                        'type' => 'CANCELLATION',
+                        'canceled_by' => Auth::id() ?? $booking->user_id,
+                        'reason' => 'Khách quay lại từ payment qua browser back / seat page reload: tự hủy đơn pending và giải phóng ghế.',
+                    ]
+                );
+
+                $redeemTx = PointTransaction::where('booking_id', $booking->id)
+                    ->where('type', 'REDEEM')
+                    ->first();
+                if ($redeemTx && $booking->user_id) {
+                    app(CoinRedemptionService::class)->refundCoins(
+                        $booking->user_id,
+                        abs($redeemTx->points),
+                        $booking->id
+                    );
+                }
+
+                $bookingSeats = DB::table('booking_seats')
+                    ->where('booking_id', $booking->id)
+                    ->pluck('showtime_seat_id');
+
+                foreach ($bookingSeats as $showtimeSeatId) {
+                    $cacheKey = 'seat_held_' . $booking->showtime_id . '_' . $showtimeSeatId;
+                    Cache::forget($cacheKey);
+                }
+
+                if (Auth::check() && $booking->showtime_id) {
+                    $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $booking->showtime_id;
+                    Cache::forget($masterTimerKey);
+                }
+
+                session()->forget('booking_tam');
+                session()->forget('pending_order_code');
+            } else {
+                session()->forget('pending_order_code');
+            }
+        }
+
         $showtime = Showtime::with(['movie', 'room'])
             ->findOrFail($showtime_id);
 
@@ -560,6 +611,86 @@ $request->validate([
         ));
     }
 
+    public function releaseOnBack(Request $request)
+    {
+        $showtimeId = $request->input('showtime_id');
+        $seatIdsRaw = $request->input('seat_ids');
+
+        $seatIds = [];
+        if (is_array($seatIdsRaw)) {
+            $seatIds = array_map('strval', $seatIdsRaw);
+        } elseif (is_string($seatIdsRaw)) {
+            $decoded = json_decode($seatIdsRaw, true);
+            if (is_array($decoded)) {
+                $seatIds = array_map('strval', $decoded);
+            } else {
+                $seatIds = [$seatIdsRaw];
+            }
+        }
+
+        if (Auth::check() && $showtimeId) {
+            foreach ($seatIds as $seatId) {
+                $cacheKey = 'seat_held_' . $showtimeId . '_' . $seatId;
+                Cache::forget($cacheKey);
+            }
+
+            $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtimeId;
+            Cache::forget($masterTimerKey);
+        }
+
+        $orderCode = session('pending_order_code');
+        if ($orderCode) {
+            $order = SepayOrder::where('order_code', $orderCode)->first();
+            if ($order && $order->booking && in_array($order->booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
+                $booking = $order->booking;
+                $booking->update([
+                    'status' => 'CANCELLED',
+                    'payment_status' => 'FAILED',
+                ]);
+
+                BookingCancellation::updateOrCreate(
+                    ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
+                    [
+                        'type' => 'CANCELLATION',
+                        'canceled_by' => Auth::id() ?? $booking->user_id,
+                        'reason' => 'Khách hàng quay lại bằng browser back / lịch sử trình duyệt, giải phóng giữ ghế.',
+                    ]
+                );
+
+                $redeemTx = PointTransaction::where('booking_id', $booking->id)
+                    ->where('type', 'REDEEM')
+                    ->first();
+                if ($redeemTx && $booking->user_id) {
+                    app(CoinRedemptionService::class)->refundCoins(
+                        $booking->user_id,
+                        abs($redeemTx->points),
+                        $booking->id
+                    );
+                }
+
+                $bookingSeats = DB::table('booking_seats')
+                    ->where('booking_id', $booking->id)
+                    ->pluck('showtime_seat_id');
+
+                foreach ($bookingSeats as $showtimeSeatId) {
+                    $cacheKey = 'seat_held_' . $booking->showtime_id . '_' . $showtimeSeatId;
+                    Cache::forget($cacheKey);
+                }
+            }
+
+            if ($order && $order->status === 'pending') {
+                $order->update(['status' => 'expired']);
+            }
+
+            session()->forget('booking_tam');
+            session()->forget('pending_order_code');
+        } else {
+            session()->forget('booking_tam');
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     public function checkout(Request $request)
     {
         $request->validate([
@@ -779,6 +910,7 @@ $booking = $existingOrder->booking;
                     'code' => $seatCode,
                     'type' => $seatType,
                     'price' => (int) $s->price,
+                    'showtime_seat_id' => (int) $s->id,
                 ];
             }
 

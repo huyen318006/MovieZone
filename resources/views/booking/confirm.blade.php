@@ -166,7 +166,7 @@
                 {{-- Không có xu --}}
                 <div class="coin-empty-state">
                     <i class="fa-solid fa-piggy-bank"></i>
-                    <p>Bạn chưa có xu nào. Hãy <a href="{{ \App\Helpers\TabAuthHelper::route('coin.index', ['id' => auth()->id()]) }}">diểm danh hàng ngày</a> hoặc mua vé để tích xu!</p>
+                    <p>Bạn chưa có xu nào. Hãy <a href="{{ \App\Helpers\TabAuthHelper::route('membership.index', ['id' => auth()->id()]) }}">diểm danh hàng ngày</a> hoặc mua vé để tích xu!</p>
                 </div>
             @else
                 {{-- Có xu --}}
