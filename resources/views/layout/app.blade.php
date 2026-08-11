@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MovieZone</title>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -23,15 +22,6 @@
         <div class="flash-message-container">
             <div id="success-alert" class="alert alert-success">
                 <span>{{ session('success') }}</span>
-                <button type="button" class="btn-close" aria-label="Close">&times;</button>
-            </div>
-        </div>
-    @endif
-    
-    @if(session('error') || $errors->any())
-        <div class="flash-message-container">
-            <div id="error-alert" class="alert alert-danger">
-                <span>{{ session('error') ?? $errors->first() }}</span>
                 <button type="button" class="btn-close" aria-label="Close">&times;</button>
             </div>
         </div>
@@ -79,8 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
         speed: 800,
     });
 
-    const alertBoxes = document.querySelectorAll('.alert');
-    alertBoxes.forEach(alertBox => {
+    const alertBox = document.getElementById('success-alert');
+    if (alertBox) {
         const closeButton = alertBox.querySelector('.btn-close');
         const hideAlert = () => {
             alertBox.style.opacity = '0';
@@ -104,8 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (closeButton) {
             closeButton.addEventListener('click', hideAlert);
         }
-        setTimeout(hideAlert, 5000); // 5s for error messages to be readable
-    });
+        setTimeout(hideAlert, 3000);
+    }
 });
 </script>
 </html>

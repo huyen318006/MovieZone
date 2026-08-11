@@ -34,18 +34,12 @@ class ExpireBookings extends Command
 
         foreach ($expiredBookings as $booking) {
             try {
-                DB::transaction(function () use ($booking, &$expiredCount) {
-                    // Atomic conditional update
-                    $affected = Booking::where('id', $booking->id)
-                        ->whereIn('status', ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
-                        ->update([
-                            'status' => 'EXPIRED',
-                            'payment_status' => $booking->payment_status === 'PAID' ? 'PAID' : 'FAILED',
-                        ]);
-
-                    if ($affected === 0) {
-                        return; // Đã bị process bởi webhook/huỷ
-                    }
+                DB::transaction(function () use ($booking) {
+                    // Chuyển trạng thái booking
+                    $booking->update([
+                        'status' => 'EXPIRED',
+                        'payment_status' => $booking->payment_status === 'PAID' ? 'PAID' : 'FAILED',
+                    ]);
 
                     // Hoàn xu nếu đã trừ
                     $redeemTx = PointTransaction::where('booking_id', $booking->id)
@@ -70,7 +64,7 @@ class ExpireBookings extends Command
                         Cache::forget($cacheKey);
                     }
 
-                    // Hủy hold_session master nếu tồn tại (theo userid - old behavior fallback)
+                    // Giải phóng master timer
                     if ($booking->user_id) {
                         $masterTimerKey = 'hold_timer_' . $booking->user_id . '_' . $booking->showtime_id;
                         Cache::forget($masterTimerKey);
@@ -81,15 +75,15 @@ class ExpireBookings extends Command
                         ->where('booking_id', $booking->id)
                         ->where('status', 'pending')
                         ->update(['status' => 'expired']);
-
-                    $expiredCount++;
-
-                    Log::info('Booking expired by scheduler', [
-                        'booking_id' => $booking->id,
-                        'booking_code' => $booking->booking_code,
-                        'expired_at' => $booking->expired_at,
-                    ]);
                 });
+
+                $expiredCount++;
+
+                Log::info('Booking expired by scheduler', [
+                    'booking_id' => $booking->id,
+                    'booking_code' => $booking->booking_code,
+                    'expired_at' => $booking->expired_at,
+                ]);
 
             } catch (\Exception $e) {
                 Log::error('Lỗi khi expire booking', [

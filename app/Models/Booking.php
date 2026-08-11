@@ -21,15 +21,8 @@ class Booking extends Model
         'final_amount',
         'status',
         'payment_status',
-        'hold_started_at',
         'expired_at',
         'paid_at'
-    ];
-
-    protected $casts = [
-        'hold_started_at' => 'datetime',
-        'expired_at'      => 'datetime',
-        'paid_at'         => 'datetime',
     ];
 
     public function user()
