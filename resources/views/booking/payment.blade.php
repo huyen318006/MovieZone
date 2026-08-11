@@ -166,6 +166,45 @@
 </section>
 
 <script>
+    const releaseOnBackUrl = '{{ \App\Helpers\TabAuthHelper::route('booking.releaseOnBack') }}';
+    const paymentShowtimeId = '{{ $order->getBookingInfo('showtime_id') ?? null }}';
+    const paymentSeatIds = @json($order->getBookingSeats() ? collect($order->getBookingSeats())->map(fn($s) => $s['showtime_seat_id'] ?? null)->filter()->values()->all() : []);
+
+    function releaseBookingSessionOnBack() {
+        if (!paymentShowtimeId || !paymentSeatIds.length) {
+            return;
+        }
+
+        const payload = {
+            showtime_id: paymentShowtimeId,
+            seat_ids: paymentSeatIds
+        };
+
+        const init = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify(payload),
+            keepalive: true
+        };
+
+        try {
+            fetch(releaseOnBackUrl, {
+                ...init,
+                keepalive: true,
+                credentials: 'same-origin'
+            });
+        } catch (e) {
+            console.log('Release-on-back fallback error:', e);
+        }
+    }
+
+    window.addEventListener('pagehide', releaseBookingSessionOnBack);
+    window.addEventListener('beforeunload', releaseBookingSessionOnBack);
+
     // ============================
     // Copy to Clipboard
     // ============================
