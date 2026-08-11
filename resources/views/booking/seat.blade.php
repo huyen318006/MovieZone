@@ -584,8 +584,8 @@ const btnPayment = document.getElementById('btnPayment');
             const bookingForm = document.getElementById('bookingForm');
             const seatPageReloadLink = document.getElementById('seatPageReloadLink');
 
-            // Giới hạn tối đa số ghế 1 khách được chọn (đồng bộ với MAX_SEATS_PER_BOOKING backend)
-            const MAX_SEATS = 10;
+            // Giới hạn tối đa số ghế 1 khách được chọn (lấy từ backend MAX_SEATS_PER_BOOKING — 1 nguồn duy nhất)
+            const MAX_SEATS = {{ $maxSeats }};
 
             // === SERVER-AUTHORITATIVE TIMER ===
             const holdTotalSeconds = {{ $holdTotalSeconds ?? 300 }};
@@ -990,10 +990,33 @@ const seatIds = seatIdAttr.split(',');
                     });
                 });
 
-                let hasError = false;
+                let orphanSeats = []; // Gom các mã ghế trống đang bị để lẻ để báo rõ cho khách
 
                 // 2. Thuật toán kiểm tra ghế trống bị cô lập thông minh
                 for (let row in seatMap) {
+                    // NGOẠI LỆ (QUYẾT ĐỊNH CUỐI): Đếm số ghế trống của hàng TRƯỚC khi khách chọn
+                    // (= available + selected trên hàng). Nếu ≤ 2 VÀ khách chọn đúng 1 ghế ở hàng này
+                    // → bỏ qua kiểm tra "lẻ 1 ghế trống".
+                    // Lý do: hàng chỉ còn tối đa 2 ghế trống mà khách chỉ mua 1 ghế thì 1 ghế sót lại
+                    // là không thể tránh khỏi (không thể ghép cặp được).
+                    // Đếm theo kiểu "trước khi chọn" (<=> sau khi đặt chỉ còn ≤ 1 ghế trống) thay vì
+                    // "sau khi chọn ≤ 2" để CHẶN lỗ hổng: hàng còn 3 ghế trống liên tiếp (A8,A9,A10) mà
+                    // khách chọn ghế giữa A9 → nếu đếm "sau khi chọn" sẽ ra 2 (≤2) và bị bỏ qua, để lại
+                    // 2 ghế lẻ rời rạc. Đếm "trước khi chọn" = 3 (>2) nên vẫn báo lỗi đúng.
+                    let remainingEmptyBefore = 0;
+                    let selectedInRow = 0;
+                    for (let numStr in seatMap[row]) {
+                        if (seatMap[row][numStr] === 'available' || seatMap[row][numStr] === 'selected') {
+                            remainingEmptyBefore++;
+                        }
+                        if (seatMap[row][numStr] === 'selected') {
+                            selectedInRow++;
+                        }
+                    }
+                    if (remainingEmptyBefore <= 2 && selectedInRow === 1) {
+                        continue;
+                    }
+
                     for (let numStr in seatMap[row]) {
                         let num = parseInt(numStr);
 
@@ -1011,23 +1034,32 @@ const seatIds = seatIdAttr.split(',');
                             if (isLeftBlocked && isRightBlocked) {
                                 // CHỈ tính là lỗi nếu ít nhất 1 trong 2 bên chặn nó là ghế DO KHÁCH NÀY ĐANG CHỌN ('selected')
                                 if (leftStatus === 'selected' || rightStatus === 'selected') {
-                                    hasError = true;
-                                    break;
+                                    // Gom lại mã ghế bị bỏ trống để báo rõ cho khách
+                                    const orphanCode = row + String(num).padStart(2, '0');
+                                    if (!orphanSeats.includes(orphanCode)) {
+                                        orphanSeats.push(orphanCode);
+                                    }
                                 }
                             }
                         }
                     }
-                    if (hasError) break;
                 }
+
+                const hasError = orphanSeats.length > 0;
 
                 // 3. Xử lý xuất thông báo trực quan cho khách hàng
                 if (hasError) {
                     e.preventDefault(); // Chặn đứng hành động gửi form lên hệ thống thanh toán
 
                     const errorBox = document.getElementById('ajax-error-box');
+                    const seatLabel = orphanSeats.join(', ');
+                    const summary = orphanSeats.length > 1
+                        ? `Bạn đang bỏ trống các ghế lẻ: <b>${seatLabel}</b>.`
+                        : `Bạn đang bỏ trống 1 ghế lẻ: <b>${seatLabel}</b>.`;
+
                     if (errorBox) {
                         errorBox.innerHTML =
-                            '<i class="fa-solid fa-triangle-exclamation"></i> Vị trí chọn ghế không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống bên cạnh ghế bạn chọn hoặc ở đầu/cuối hàng.';
+                            `<i class="fa-solid fa-triangle-exclamation"></i> ${summary} Vui lòng chọn thêm ghế liền kề hoặc đổi vị trí để không tạo ghế trống đơn lẻ trong hàng.`;
                         errorBox.style.display = 'block'; // Hiện hộp thông báo màu đỏ lên
 
                         // Tự động cuộn màn hình mượt mà đến vùng báo lỗi để khách nhìn thấy ngay lập tức
@@ -1037,9 +1069,7 @@ const seatIds = seatIdAttr.split(',');
                         });
                     } else {
                         // Phòng hờ nếu lỗi giao diện không tìm thấy thẻ div thì xài tạm alert mặc định
-                        alert(
-                            "Vị trí chọn ghế không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống bên cạnh ghế bạn chọn."
-                            );
+                        alert(`${summary} Vui lòng chọn thêm ghế liền kề hoặc đổi vị trí.`);
                     }
                 }
             });
