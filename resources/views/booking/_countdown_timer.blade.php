@@ -38,10 +38,11 @@
         </div>
         @php
             $resolvedShowtimeId = $showtime_id ?? (session('booking_tam.showtime_id') ?? null);
+            $seatResetUrl = $resolvedShowtimeId
+                ? \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId]) . (str_contains(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId]), '?') ? '&' : '?') . 'reset=1'
+                : \App\Helpers\TabAuthHelper::route('showtimes');
         @endphp
-        <a href="{{ $resolvedShowtimeId
-            ? \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId])
-            : \App\Helpers\TabAuthHelper::route('showtimes') }}" class="expired-btn-back">
+        <a href="{{ $seatResetUrl }}" class="expired-btn-back">
             <i class="fa-solid fa-arrow-left"></i> Chọn ghế lại
         </a>
     </div>
@@ -358,10 +359,8 @@
     const overlay = document.getElementById('countdownExpiredOverlay');
     const redirectCountdownEl = document.getElementById('redirectCountdown');
 
-    // Lấy showtime_id từ URL hoặc session để build redirect URL
-    const seatPageUrl = "{{ $resolvedShowtimeId
-        ? \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId])
-        : \App\Helpers\TabAuthHelper::route('showtimes') }}";
+    // Lấy showtime_id từ URL hoặc session để build redirect URL (có ?reset=1)
+    const seatPageUrl = @json($seatResetUrl);
 
     /**
      * Tính thời gian còn lại dựa trên server timestamp + clock offset.

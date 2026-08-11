@@ -638,9 +638,11 @@ const btnPayment = document.getElementById('btnPayment');
                 });
             });
 
-            // 2. NẾU CÓ GHẾ THÌ CHẠY TIMER
-            if (selectedSeats.size > 0 && expiresAtMs && getSecondsLeft() > 0) {
+            // 2. BẮT ĐẦU CHẠY TIMER LUÔN KHI VÀO TRANG (KHÔNG CẦN CHỜ CHỌN GHẾ)
+            if (selectedSeats.size > 0) {
                 updateUI();
+            }
+            if (expiresAtMs && getSecondsLeft() > 0) {
                 startTimer();
             }
 
@@ -781,8 +783,7 @@ const seatIds = seatIdAttr.split(',');
                         }
 
                         if (isSelecting) {
-                            if (selectedSeats.size === 0) startTimer();
-
+                            // Timer đã chạy sẵn từ lúc load trang, không cần gọi startTimer() nữa
                             selectedSeats.set(seatCode, {
                                 id: seatIdAttr,
                                 code: seatCode,
