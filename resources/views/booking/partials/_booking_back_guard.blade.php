@@ -4,7 +4,7 @@
         const holdToken = sessionStorage.getItem('hold_token');
         const showtimeId = @json($showtime_id ?? $bookingTam['showtime_id'] ?? null);
         const tabToken = new URLSearchParams(window.location.search).get('tab_token') || sessionStorage.getItem('tab_token');
-        const expiresAt = @json($expiresAt ?? null);
+        const expiresAt = sessionStorage.getItem('hold_expires_at') || @json($expiresAt ?? null);
         const seatPageUrl = @json($seatPageUrl ?? null);
         const quickCancelUrl = @json(route('booking.quickCancel'));
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -25,8 +25,10 @@
                 
                 navigator.sendBeacon(quickCancelUrl, fd);
                 
-                // Ép quay về trang chọn ghế
-                window.location.replace(seatPageUrl);
+                // Ép quay về trang chọn ghế kèm tab_token
+                let finalUrl = new URL(seatPageUrl, window.location.origin);
+                finalUrl.searchParams.set('tab_token', tabToken);
+                window.location.replace(finalUrl.toString());
             } else {
                 // Fallback nếu thiếu data (có thể đã hết session)
                 window.location.replace('/');

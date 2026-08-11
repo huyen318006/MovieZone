@@ -109,9 +109,10 @@ class BookingController extends Controller
                 } else {
                     $heldBy = $showtimeSeat->held_by ?? Cache::get('seat_held_'.$showtime_id.'_'.$showtimeSeat->id);
                     $baseStatus = $showtimeSeat->status ?? 'AVAILABLE';
+                    $tabToken = request('tab_token') ?? request()->attributes->get('tab_token');
 
                     if ($baseStatus === 'HELD' || $heldBy) {
-                        $displayStatus = ($heldBy == Auth::id()) ? 'HELD_BY_ME' : 'HELD';
+                        $displayStatus = ($heldBy === $tabToken) ? 'HELD_BY_ME' : 'HELD';
                     } else {
                         $displayStatus = 'AVAILABLE';
                     }
@@ -157,6 +158,40 @@ class BookingController extends Controller
                     'is_aisle' => false,
                 ];
             }
+        }
+
+        // ====================== INIT HOLD SESSION ======================
+        $tabToken = request('tab_token') ?? request()->attributes->get('tab_token');
+        if ($tabToken) {
+            $holdSessionKey = "hold_session_{$tabToken}_{$showtime_id}";
+            $existingSession = Cache::get($holdSessionKey);
+            $holdMinutes = $this->holdMinutes();
+            
+            if ($existingSession) {
+                $sessionData = json_decode($existingSession, true);
+                if (\Carbon\Carbon::parse($sessionData['expiresAt'])->isPast()) {
+                    $sessionData = [
+                        'seats'     => [],
+                        'expiresAt' => now()->addMinutes($holdMinutes)->toIso8601String(),
+                        'startedAt' => now()->toIso8601String(),
+                    ];
+                    Cache::put($holdSessionKey, json_encode($sessionData), now()->addMinutes($holdMinutes));
+                }
+            } else {
+                $sessionData = [
+                    'seats'     => [],
+                    'expiresAt' => now()->addMinutes($holdMinutes)->toIso8601String(),
+                    'startedAt' => now()->toIso8601String(),
+                ];
+                Cache::put($holdSessionKey, json_encode($sessionData), now()->addMinutes($holdMinutes));
+            }
+            
+            $expiresAt = $sessionData['expiresAt'];
+            $holdToken = hash_hmac('sha256', "{$tabToken}:{$showtime_id}:{$expiresAt}", config('app.key'));
+            $holdTotalSeconds = $holdMinutes * 60;
+            $serverTime = now()->toIso8601String();
+            
+            view()->share(compact('expiresAt', 'holdToken', 'holdTotalSeconds', 'serverTime'));
         }
 
         return view('booking.seat', compact('showtime', 'seatMap'));
@@ -279,7 +314,7 @@ class BookingController extends Controller
                 if (! in_array((int) $seatId, $seats)) {
                     $seats[] = (int) $seatId;
                 }
-                $startedAt = Carbon::parse($sessionData['startedAt']);
+                $startedAt = Carbon::parse($sessionData['startedAt'] ?? now()->toIso8601String());
             } else {
                 $seats = [(int) $seatId];
             }
@@ -323,9 +358,10 @@ class BookingController extends Controller
                 $seats       = array_values(array_diff($sessionData['seats'], [(int) $seatId]));
 
                 if (empty($seats)) {
-                    // Không còn ghế nào → destroy hold session
-                    Cache::forget($holdSessionKey);
-                    $holdCleared = true;
+                    // Không destroy hold session để bộ đếm 10p vẫn chạy
+                    $sessionData['seats'] = [];
+                    $expiresAt = Carbon::parse($sessionData['expiresAt']);
+                    Cache::put($holdSessionKey, json_encode($sessionData), $expiresAt);
                 } else {
                     $sessionData['seats'] = $seats;
                     $expiresAt = Carbon::parse($sessionData['expiresAt']);
@@ -518,7 +554,7 @@ class BookingController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+            return redirect()->to(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $showtimeId]))
                 ->with('error', $e->getMessage());
         }
     }
@@ -542,7 +578,7 @@ class BookingController extends Controller
             session()->forget(['pending_booking_id', 'booking_tam', 'pending_order_code']);
             $showtimeId = $booking->showtime_id ?? ($bookingTam['showtime_id'] ?? null);
             if ($showtimeId) {
-                return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+                return redirect()->to(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $showtimeId]))
                     ->with('error', 'Phiên giữ ghế đã hết hạn. Vui lòng chọn lại.');
             }
             return redirect()->route('home')->with('error', 'Phiên giữ ghế đã hết hạn.');
@@ -575,7 +611,7 @@ class BookingController extends Controller
         $serverTime       = now()->toIso8601String();
         $holdTotalSeconds = $this->holdMinutes() * 60;
         $warningSeconds   = config('booking.warning_seconds', 60);
-        $seatPageUrl      = route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']]);
+        $seatPageUrl      = \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']]);
 
         return view('booking.combo', compact(
             'combos', 'bookingTam', 'showtime',
@@ -678,7 +714,7 @@ class BookingController extends Controller
             session()->forget(['pending_booking_id', 'booking_tam', 'pending_order_code']);
             $showtimeId = $booking->showtime_id ?? ($bookingTam['showtime_id'] ?? null);
             if ($showtimeId) {
-                return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+                return redirect()->to(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $showtimeId]))
                     ->with('error', 'Phiên giữ ghế đã hết hạn. Vui lòng chọn lại.');
             }
             return redirect()->route('home')->with('error', 'Phiên giữ ghế đã hết hạn.');
@@ -713,7 +749,7 @@ class BookingController extends Controller
         $serverTime       = now()->toIso8601String();
         $holdTotalSeconds = $this->holdMinutes() * 60;
         $warningSeconds   = config('booking.warning_seconds', 60);
-        $seatPageUrl      = route('booking.seat', ['showtime_id' => $showtime_id]);
+        $seatPageUrl      = \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $showtime_id]);
 
         return view('booking.confirm', compact(
             'showtime', 'showtime_id', 'seats', 'totalTicketPrice', 'combos',
@@ -743,13 +779,13 @@ class BookingController extends Controller
             return redirect()->route('home')->with('error', 'Phiên đặt vé không hợp lệ.');
         }
 
-        $booking = Booking::with('bookingSeats.seat')->find($bookingId);
+        $booking = Booking::with('bookingSeats')->find($bookingId);
 
         // Guard expiry
         if (! $booking || ! in_array($booking->status, ['PENDING', 'PENDING_PAYMENT'])
             || ($booking->expired_at && $booking->expired_at <= now())) {
             session()->forget(['pending_booking_id', 'booking_tam', 'pending_order_code']);
-            return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? null])
+            return redirect()->to(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? null]))
                 ->with('error', 'Phiên giữ ghế đã hết hạn. Vui lòng chọn lại.');
         }
 
@@ -816,9 +852,10 @@ class BookingController extends Controller
             $seatDetails = [];
             foreach ($booking->bookingSeats as $s) {
                 $seatType = 'standard';
-                $row = $s->seat->row_label ?? '';
-                $seatKind = $s->seat->seat_type ?? 'STANDARD';
-                if ($row === 'J' || $seatKind === 'COUPLE') {
+                $seatKind = strtoupper($s->seat_type ?? 'STANDARD');
+                $code = strtoupper($s->seat_code ?? '');
+                
+                if (str_contains($code, 'J') || str_contains($code, 'SW') || $seatKind === 'COUPLE' || $seatKind === 'SWEETBOX') {
                     $seatType = 'sweetbox';
                 } elseif ($seatKind === 'VIP') {
                     $seatType = 'vip';
@@ -884,7 +921,7 @@ class BookingController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? null])
+            return redirect()->to(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? null]))
                 ->with('error', 'Lỗi: '.$e->getMessage());
         }
     }
@@ -1036,7 +1073,7 @@ class BookingController extends Controller
 
         // Redirect về đúng trang chọn ghế của suất chiếu
         if ($showtimeId) {
-            return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+            return redirect()->to(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $showtimeId]))
                 ->with('success', 'Đã hủy đơn hàng. Bạn có thể chọn ghế mới.');
         }
 
@@ -1093,7 +1130,7 @@ class BookingController extends Controller
             $booking = Booking::where('user_id', $userId)
                 ->where('showtime_id', $showtimeId)
                 ->whereIn('status', ['PENDING', 'PENDING_PAYMENT'])
-                ->where('expired_at', $expiresAtRaw)
+                ->where('expired_at', \Carbon\Carbon::parse($expiresAtRaw))
                 ->first();
 
             if ($booking) {
