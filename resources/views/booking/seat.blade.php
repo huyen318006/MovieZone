@@ -637,6 +637,9 @@ const btnPayment = document.getElementById('btnPayment');
             // Giới hạn tối đa số ghế 1 khách được chọn (lấy từ backend MAX_SEATS_PER_BOOKING — 1 nguồn duy nhất)
             const MAX_SEATS = {{ $maxSeats }};
 
+            // === POPUP XÁC NHẬN ĐỦ TUỔI KHI CHUYỂN TRANG ===
+            let seatAgeConfirmed = false;
+
             // === SERVER-AUTHORITATIVE TIMER ===
             const holdTotalSeconds = {{ $holdTotalSeconds ?? 300 }};
             let holdExpiresAt = @json($holdExpiresAt ?? null);
@@ -1122,7 +1125,141 @@ const seatIds = seatIdAttr.split(',');
                         alert(`${summary} Vui lòng chọn thêm ghế liền kề hoặc đổi vị trí.`);
                     }
                 }
-            });
-        });
+
+                // === POPUP XÁC NHẬN ĐỦ TUỔI TRƯỚC KHI CHUYỂN TRANG ===
+                // Luôn hiện sau khi chọn ghế (không phụ thuộc rating phim)
+                if (! hasError && ! seatAgeConfirmed) {
+                    e.preventDefault();
+
+                    const overlay = document.getElementById('ageConfirmOverlay');
+                    if (overlay) {
+                        overlay.classList.add('show');
+                    }
+                }
+
+            }); // hết listener submit
+
+            // === XỬ LÝ MODAL XÁC NHẬN ĐỦ TUỔI (chạy 1 lần) ===
+            const ageOkBtn = document.getElementById('ageConfirmOk');
+            const ageCancelBtn = document.getElementById('ageConfirmCancel');
+            const ageOverlayEl = document.getElementById('ageConfirmOverlay');
+
+            if (ageOkBtn) {
+                ageOkBtn.addEventListener('click', function() {
+                    seatAgeConfirmed = true;
+                    if (ageOverlayEl) ageOverlayEl.classList.remove('show');
+                    bookingForm.submit(); // gửi trực tiếp, tránh chạy lại listener submit
+                });
+            }
+            if (ageCancelBtn) {
+                ageCancelBtn.addEventListener('click', function() {
+                    if (ageOverlayEl) ageOverlayEl.classList.remove('show');
+                });
+            }
+        }); // hết DOMContentLoaded
     </script>
+
+{{-- ===== MODAL XÁC NHẬN ĐỦ TUỔI (giống các rạp phim lớn) ===== --}}
+<div class="age-confirm-overlay" id="ageConfirmOverlay">
+    <div class="age-confirm-modal">
+        <div class="age-confirm-icon">
+            <i class="fa-solid fa-id-card"></i>
+        </div>
+        <h3>Xác nhận thông tin</h3>
+        <p>Tôi xác nhận đủ số tuổi mà phim yêu cầu và hiểu rằng MovieZone sẽ không hoàn lại tiền nếu không chứng thực được độ tuổi của khán giả.</p>
+        <div class="age-confirm-actions">
+            <button type="button" class="age-btn age-btn-cancel" id="ageConfirmCancel">Hủy</button>
+            <button type="button" class="age-btn age-btn-ok" id="ageConfirmOk">Xác nhận</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .age-confirm-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+        background: rgba(2, 6, 23, 0.75);
+        backdrop-filter: blur(4px);
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    .age-confirm-overlay.show {
+        display: flex;
+    }
+    .age-confirm-modal {
+        background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);
+        border: 1px solid rgba(59, 130, 246, 0.35);
+        border-radius: 18px;
+        max-width: 420px;
+        width: 100%;
+        padding: 34px 30px 28px;
+        text-align: center;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+        animation: ageSlideUp 0.3s ease;
+    }
+    @keyframes ageSlideUp {
+        from { transform: translateY(24px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    .age-confirm-icon {
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 16px;
+        border-radius: 50%;
+        background: rgba(59, 130, 246, 0.15);
+        border: 2px solid rgba(59, 130, 246, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 30px;
+        color: #60a5fa;
+    }
+    .age-confirm-modal h3 {
+        color: #f8fafc;
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0 0 10px;
+    }
+    .age-confirm-modal p {
+        color: #cbd5e1;
+        font-size: 14.5px;
+        line-height: 1.6;
+        margin: 0 0 24px;
+    }
+    .age-confirm-modal p b {
+        color: #3b82f6;
+    }
+    .age-confirm-actions {
+        display: flex;
+        gap: 12px;
+    }
+    .age-btn {
+        flex: 1;
+        padding: 12px 14px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .age-btn-cancel {
+        background: rgba(148, 163, 184, 0.15);
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+    .age-btn-cancel:hover {
+        background: rgba(148, 163, 184, 0.25);
+    }
+    .age-btn-ok {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: #fff;
+    }
+    .age-btn-ok:hover {
+        filter: brightness(1.1);
+    }
+</style>
 @endsection

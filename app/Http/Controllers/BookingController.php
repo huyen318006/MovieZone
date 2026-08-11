@@ -41,10 +41,18 @@ class BookingController extends Controller
     // ==========================================
     public function showSeats(Request $request, $showtime_id)
     {
-        $pendingOrderCode = session('pending_order_code');
-        if ($pendingOrderCode) {
-            $order = SepayOrder::where('order_code', $pendingOrderCode)->first();
-            if ($order && $order->booking && in_array($order->booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
+        // AJAX refresh (2.5s polling cập nhật ghế) → KHÔNG reset, KHÔNG chạm session/cache.
+        // Phải xác định TRƯỚC khối "hủy đơn pending" để request polling không vô tình
+        // hủy booking đang thanh toán (QR) và nhả ghế cho người khác chọn được.
+        $isAjaxRefresh = $request->ajax() || $request->has('refresh');
+
+        if (! $isAjaxRefresh) {
+            $pendingOrderCode = session('pending_order_code');
+            if ($pendingOrderCode) {
+                $order = SepayOrder::where('order_code', $pendingOrderCode)->first();
+            // CHỈ hủy order nếu booking thuộc ĐÚNG user/tab hiện tại — nếu là order của tab khác
+            // (dùng chung session cookie) thì không được hủy/nhả ghế của người kia.
+            if ($order && $order->booking && in_array($order->booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT']) && (int) $order->booking->user_id === (int) Auth::id()) {
                 $booking = $order->booking;
                 $booking->update([
                     'status' => 'CANCELLED',
@@ -87,10 +95,13 @@ class BookingController extends Controller
 
                 session()->forget('booking_tam');
                 session()->forget('pending_order_code');
-            } else {
+            } elseif (! $order || ! $order->booking) {
+                // Session rác (order/booking không tồn tại) → xóa đi
                 session()->forget('pending_order_code');
             }
+            // Đơn đang PENDING nhưng KHÔNG thuộc user/tab hiện tại → giữ nguyên, không hủy, không nhả ghế của tab kia.
         }
+        } // hết if (! $isAjaxRefresh) — polling AJAX sẽ KHÔNG hủy đơn pending
 
         $showtime = Showtime::with(['movie', 'room'])
             ->findOrFail($showtime_id);
@@ -106,9 +117,7 @@ class BookingController extends Controller
         $showtime->load('showtimeSeats.seat');
 
         // ====================== XỬ LÝ RESET / TIMER ======================
-        // AJAX refresh (2.5s polling cập nhật ghế) → KHÔNG reset, KHÔNG chạm session/cache
-        $isAjaxRefresh = $request->ajax() || $request->has('refresh');
-
+        // Lưu ý: $isAjaxRefresh đã được xác định ở đầu method (chặn hủy đơn pending khi polling)
         if (! $isAjaxRefresh) {
             // Flag ?reset=1 được gắn từ JS pageshow khi user bấm Back trên trình duyệt
             $shouldReset = $request->boolean('reset');
@@ -121,9 +130,14 @@ class BookingController extends Controller
                 $existingOrderCode = session('pending_order_code');
                 if ($existingOrderCode) {
                     $existingOrder = SepayOrder::where('order_code', $existingOrderCode)->first();
-                    if ($existingOrder) {
+                    // CHỈ hủy order nếu booking thuộc ĐÚNG user/tab hiện tại — nếu là order của tab khác
+                    // (dùng chung session cookie) thì không được hủy/nhả ghế của người đó.
+                    $isOwnedOrder = $existingOrder
+                        && $existingOrder->booking
+                        && (int) $existingOrder->booking->user_id === (int) Auth::id();
+                    if ($isOwnedOrder) {
                         $booking = $existingOrder->booking;
-                        if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
+                        if (in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
                             $booking->update([
                                 'status' => 'CANCELLED',
                                 'payment_status' => 'FAILED',
@@ -132,8 +146,11 @@ class BookingController extends Controller
                         if ($existingOrder->status === 'pending') {
                             $existingOrder->update(['status' => 'expired']);
                         }
+                        session()->forget('pending_order_code');
+                    } elseif (! $existingOrder || ! $existingOrder->booking) {
+                        // Session rác (order/booking không tồn tại) → xóa đi
+                        session()->forget('pending_order_code');
                     }
-                    session()->forget('pending_order_code');
                 }
 
                 // Giải phóng các ghế user đang giữ
