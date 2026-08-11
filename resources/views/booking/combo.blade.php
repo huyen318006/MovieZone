@@ -4,15 +4,10 @@
 
 @section('content')
 
-{{-- COUNTDOWN TIMER 5 PHÚT --}}
-@include('booking._countdown_timer', [
-    'holdExpiresAt' => $holdExpiresAt,
-    'serverTime' => $serverTime,
-    'holdTotalSeconds' => $holdTotalSeconds,
-    'resolvedShowtimeId' => $bookingTam['showtime_id'] ?? null
-])
+
 
 <div class="combo-page">
+    @include('booking.partials._countdown_timer')
 
     <div class="booking-step">
 
@@ -502,5 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 </script>
+
+@include('booking.partials._booking_back_guard')
 
 @endpush

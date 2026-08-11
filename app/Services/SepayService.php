@@ -241,13 +241,18 @@ class SepayService
                         if ($lockedOrder->booking_id && $lockedOrder->booking) {
                             $booking = $lockedOrder->booking;
 
-                            // Kiểm tra booking còn hợp lệ để chuyển PAID không
-                            if (in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
-                                $booking->update([
+                            // Kiểm tra booking còn hợp lệ để chuyển PAID không (atomic conditional update)
+                            $affected = \App\Models\Booking::where('id', $booking->id)
+                                ->whereIn('status', ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                                ->update([
                                     'status' => 'PAID',
                                     'payment_status' => 'PAID',
                                     'paid_at' => now(),
                                 ]);
+
+                            if ($affected > 0) {
+                                // Tải lại model
+                                $booking = $booking->fresh();
 
                                 // Tạo Payment record (check chưa tồn tại)
                                 if (! Payment::where('booking_id', $lockedOrder->booking_id)->where('status', 'SUCCESS')->exists()) {
@@ -273,13 +278,13 @@ class SepayService
                                         $lockedOrder->booking_id
                                     );
                                 }
-                            } elseif (in_array($booking->status, ['EXPIRED', 'CANCELLED'])) {
-                                // Booking đã expired/cancelled → thanh toán muộn
+                            } else {
+                                // Booking đã expired/cancelled/paid → thanh toán muộn/bị race
                                 // Không chiếm lại ghế, để DetectLatePayments xử lý hoàn tiền
                                 Log::warning('Payment received for expired/cancelled booking', [
                                     'order_code' => $orderCode,
                                     'booking_id' => $lockedOrder->booking_id,
-                                    'booking_status' => $booking->status,
+                                    'booking_status' => $booking->fresh()->status,
                                     'amount' => $amountIn,
                                 ]);
                             }

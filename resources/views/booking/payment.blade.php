@@ -354,4 +354,6 @@
     }
 </style>
 
+@include('booking.partials._booking_back_guard')
+
 @endsection

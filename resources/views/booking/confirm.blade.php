@@ -2,16 +2,11 @@
 
 @section('content')
 
-{{-- COUNTDOWN TIMER 5 PHÚT --}}
-@include('booking._countdown_timer', [
-    'holdExpiresAt' => $holdExpiresAt,
-    'serverTime' => $serverTime,
-    'holdTotalSeconds' => $holdTotalSeconds,
-    'resolvedShowtimeId' => $showtime_id ?? null
-])
+
 
 <section class="confirm-page">
     <div class="confirm-container">
+        @include('booking.partials._countdown_timer')
 
         <div class="confirm-header">
             <h2>XÁC NHẬN ĐẶT VÉ</h2>
@@ -820,5 +815,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+@include('booking.partials._booking_back_guard')
 
 @endsection

@@ -237,15 +237,6 @@ class SepayController extends Controller
         session()->forget('booking_tam');
         session()->forget('pending_order_code');
 
-        // Giải phóng cache giữ ghế (nếu còn)
-        if ($order->booking_id && Auth::check()) {
-            $showtimeId = $order->metadata['showtime_id'] ?? null;
-            if ($showtimeId) {
-                $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtimeId;
-                Cache::forget($masterTimerKey);
-            }
-        }
-
         return view('booking.bill', compact('order'));
     }
 

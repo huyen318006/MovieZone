@@ -12,6 +12,18 @@ return [
     |
     */
 
-    'hold_minutes' => (int) env('BOOKING_HOLD_MINUTES', 5),
+    'hold_minutes' => (int) env('BOOKING_HOLD_MINUTES', 10),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Countdown Warning Threshold
+    |--------------------------------------------------------------------------
+    |
+    | Số giây còn lại khi countdown chuyển sang chế độ cảnh báo (danger mode).
+    | UI sẽ đổi màu đỏ, nhấp nháy để thông báo sắp hết thời gian.
+    |
+    */
+
+    'warning_seconds' => 60,
 
 ];

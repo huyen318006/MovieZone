@@ -30,7 +30,7 @@ class BookingController extends Controller
      */
     private function holdMinutes(): int
     {
-        return (int) config('booking.hold_minutes', 5);
+        return (int) config('booking.hold_minutes', 10);
     }
 
     // ==========================================
@@ -159,19 +159,7 @@ class BookingController extends Controller
             }
         }
 
-        // TÍNH THỜI GIAN CÒN LẠI — truyền timestamp cho frontend
-        $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$showtime_id;
-        $holdExpiresAt = null;
-        $serverTime = now()->toIso8601String();
-        $holdTotalSeconds = $this->holdMinutes() * 60;
-        if (Cache::has($masterTimerKey)) {
-            $ts = Cache::get($masterTimerKey);
-            if ($ts > now()->timestamp) {
-                $holdExpiresAt = Carbon::createFromTimestamp($ts)->toIso8601String();
-            }
-        }
-
-        return view('booking.seat', compact('showtime', 'seatMap', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds'));
+        return view('booking.seat', compact('showtime', 'seatMap'));
     }
 
     /**
@@ -202,22 +190,25 @@ class BookingController extends Controller
     // AJAX API xử lý giữ ghế Realtime (UC-08 bước 5)
     public function holdSeat(Request $request)
     {
-        $showtimeId = $request->showtime_id;
-        $seatId = $request->seat_id;
-        $action = $request->action;
-        $cacheKey = 'seat_held_'.$showtimeId.'_'.$seatId;
+        $showtimeId  = $request->showtime_id;
+        $seatId      = $request->seat_id;
+        $action      = $request->action;
+        $tabToken    = $request->query('tab_token') ?? $request->attributes->get('tab_token');
+        $holdMinutes = $this->holdMinutes();
+        $seatCacheKey = "seat_held_{$showtimeId}_{$seatId}";
 
         if ($action === 'hold') {
+            // --- Validation: ghế bị khóa/hỏng ---
             $seat = ShowtimeSeat::with('seat')->find($seatId);
             if (! $seat || in_array($seat->seat->status ?? 'ACTIVE', ['BLOCKED', 'BROKEN'])) {
                 return response()->json([
-                    'success' => false,
+                    'success'    => false,
                     'error_type' => 'BLOCKED',
-                    'message' => 'Ghế này hiện không thể chọn.',
+                    'message'    => 'Ghế này hiện không thể chọn.',
                 ]);
             }
 
-            // Check ngoại lệ E1: Đã bán (chỉ xét booking chưa expired)
+            // --- Validation: đã bán (booking chưa expired) ---
             $isSold = DB::table('booking_seats')
                 ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
                 ->where('booking_seats.showtime_seat_id', $seatId)
@@ -230,87 +221,139 @@ class BookingController extends Controller
                 ->exists();
 
             if ($isSold) {
-                return response()->json(['success' => false, 'error_type' => 'SOLD', 'message' => 'E1: Ghế đã được bán.']);
-            }
-
-            // Check ngoại lệ E2: Đang bị người khác giữ
-            // Sử dụng Cache::add() — atomic: chỉ set nếu key chưa tồn tại
-            $heldBy = Cache::get($cacheKey);
-            if ($heldBy && $heldBy != Auth::id()) {
-                return response()->json(['success' => false, 'error_type' => 'HELD', 'message' => 'Rất tiếc, ghế này đã được người khác giữ. Vui lòng chọn ghế khác.']);
-            }
-
-            // Key lưu thời gian giữ ghế tổng của user cho suất chiếu này
-            $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$showtimeId;
-            $holdMinutes = $this->holdMinutes();
-
-            // Nếu chưa có timer tổng → tạo mới
-            // Cache::add() chỉ thành công nếu key chưa tồn tại (atomic)
-            $expireAt = now()->addMinutes($holdMinutes);
-            $added = Cache::add($masterTimerKey, $expireAt->timestamp, $expireAt);
-
-            if (! $added) {
-                // Timer đã tồn tại → lấy lại thời điểm hết hạn cũ
-                // KHÔNG tạo mới để tránh reset thời gian
-                $existingTs = Cache::get($masterTimerKey);
-                if ($existingTs) {
-                    $expireAt = Carbon::createFromTimestamp($existingTs);
-                }
-                // Nếu cache đã expire giữa lúc add và get → dùng expireAt mới tạo ở trên
-            }
-
-            // Kiểm tra nếu timer đã hết hạn
-            if ($expireAt->isPast()) {
                 return response()->json([
-                    'success' => false,
-                    'error_type' => 'EXPIRED',
-                    'message' => 'Hết thời gian giữ ghế. Vui lòng chọn lại.',
+                    'success'    => false,
+                    'error_type' => 'SOLD',
+                    'message'    => 'E1: Ghế đã được bán.',
                 ]);
             }
 
-            // Lưu trạng thái giữ ghế — dùng Cache::add() cho ghế chưa ai giữ
-            if (! $heldBy) {
-                $seatAdded = Cache::add($cacheKey, Auth::id(), $expireAt);
-                if (! $seatAdded) {
-                    // Ai đó đã giữ trong khoảnh khắc giữa get và add
-                    $actualHolder = Cache::get($cacheKey);
-                    if ($actualHolder && $actualHolder != Auth::id()) {
-                        return response()->json([
-                            'success' => false,
-                            'error_type' => 'HELD',
-                            'message' => 'Rất tiếc, ghế này vừa được người khác giữ.',
-                        ]);
-                    }
+            // --- HOLD SESSION: tạo hoặc reuse ---
+            $holdSessionKey  = "hold_session_{$tabToken}_{$showtimeId}";
+            $existingSession = Cache::get($holdSessionKey);
+            $isNew           = false;
+
+            if ($existingSession) {
+                $sessionData = json_decode($existingSession, true);
+                $expiresAt   = Carbon::parse($sessionData['expiresAt']);
+
+                if ($expiresAt->isPast()) {
+                    // Session cũ hết hạn → cleanup và từ chối
+                    Cache::forget($holdSessionKey);
+                    return response()->json([
+                        'success'    => false,
+                        'error_type' => 'SESSION_EXPIRED',
+                        'message'    => 'Phiên giữ ghế đã hết hạn. Vui lòng chọn lại.',
+                    ]);
                 }
             } else {
-                // User đã giữ ghế này → cập nhật TTL theo master timer
-                Cache::put($cacheKey, Auth::id(), $expireAt);
+                // Tạo hold session MỚI
+                $expiresAt = now()->addMinutes($holdMinutes);
+                $isNew     = true;
+            }
+
+            // --- ATOMIC SEAT LOCK: Cache::add only ---
+            $lockAcquired = Cache::add($seatCacheKey, $tabToken, $expiresAt);
+
+            if (! $lockAcquired) {
+                $currentHolder = Cache::get($seatCacheKey);
+
+                if ($currentHolder === $tabToken) {
+                    // Đã là của mình → chỉ cập nhật TTL (an toàn, cùng owner)
+                    Cache::put($seatCacheKey, $tabToken, $expiresAt);
+                } else {
+                    // Người khác đang giữ → TỪ CHỐI
+                    return response()->json([
+                        'success'    => false,
+                        'error_type' => 'HELD',
+                        'message'    => 'Rất tiếc, ghế này đã được người khác giữ. Vui lòng chọn ghế khác.',
+                    ]);
+                }
+            }
+
+            // --- UPDATE HOLD SESSION (server-managed seat list) ---
+            $startedAt = now();
+            if ($existingSession) {
+                $sessionData = json_decode($existingSession, true);
+                $seats       = $sessionData['seats'];
+                if (! in_array((int) $seatId, $seats)) {
+                    $seats[] = (int) $seatId;
+                }
+                $startedAt = Carbon::parse($sessionData['startedAt']);
+            } else {
+                $seats = [(int) $seatId];
+            }
+
+            $sessionValue = json_encode([
+                'seats'     => array_values($seats),
+                'startedAt' => $startedAt->toIso8601String(),
+                'expiresAt' => $expiresAt->toIso8601String(),
+            ]);
+            Cache::put($holdSessionKey, $sessionValue, $expiresAt);
+
+            // --- HMAC holdToken ---
+            $holdToken = hash_hmac('sha256',
+                "{$tabToken}:{$showtimeId}:{$expiresAt->toIso8601String()}",
+                config('app.key')
+            );
+
+            return response()->json([
+                'success'          => true,
+                'expiresAt'        => $expiresAt->toIso8601String(),
+                'serverTime'       => now()->toIso8601String(),
+                'holdTotalSeconds' => $holdMinutes * 60,
+                'isNewSession'     => $isNew,
+                'holdToken'        => $holdToken,
+            ]);
+
+        } elseif ($action === 'release') {
+            // --- RELEASE: chỉ xóa nếu chính mình đang giữ ---
+            $currentHolder = Cache::get($seatCacheKey);
+            if ($currentHolder === $tabToken) {
+                Cache::forget($seatCacheKey);
+            }
+
+            // --- SERVER-MANAGED: update hold session seat list ---
+            $holdSessionKey  = "hold_session_{$tabToken}_{$showtimeId}";
+            $existingSession = Cache::get($holdSessionKey);
+            $holdCleared     = false;
+
+            if ($existingSession) {
+                $sessionData = json_decode($existingSession, true);
+                $seats       = array_values(array_diff($sessionData['seats'], [(int) $seatId]));
+
+                if (empty($seats)) {
+                    // Không còn ghế nào → destroy hold session
+                    Cache::forget($holdSessionKey);
+                    $holdCleared = true;
+                } else {
+                    $sessionData['seats'] = $seats;
+                    $expiresAt = Carbon::parse($sessionData['expiresAt']);
+                    Cache::put($holdSessionKey, json_encode($sessionData), $expiresAt);
+                }
             }
 
             return response()->json([
-                'success' => true,
-                'serverTime' => now()->toIso8601String(),
-                'expiresAt' => $expireAt->toIso8601String(),
+                'success'     => true,
+                'holdCleared' => $holdCleared,
             ]);
-        } elseif ($action === 'release') {
-            // Luồng phụ A2: Bỏ chọn ghế
-            if (Cache::get($cacheKey) == Auth::id()) {
-                Cache::forget($cacheKey);
-            }
-
-            return response()->json(['success' => true]);
         }
     }
 
     public function submitSeats(Request $request)
     {
-$request->validate([
+        $request->validate([
             'showtime_id' => 'required',
             // BR01: Ít nhất 1 ghế, tối đa MAX_SEATS_PER_BOOKING (10 ghế)
             'seats' => 'required|array|min:1|max:'.self::MAX_SEATS_PER_BOOKING,
         ]);
 
-        $seats = ShowtimeSeat::with('seat')->whereIn('id', $request->seats)->get();
+        $tabToken   = $request->query('tab_token') ?? $request->attributes->get('tab_token');
+        $showtimeId = $request->showtime_id;
+        $seatIds    = $request->seats;
+        $userId     = Auth::id();
+
+        $seats = ShowtimeSeat::with('seat')->whereIn('id', $seatIds)->get();
         $invalidSeats = $seats->filter(function ($seat) {
             return in_array($seat->seat->status ?? 'ACTIVE', ['BLOCKED', 'BROKEN']);
         });
@@ -319,52 +362,165 @@ $request->validate([
             return back()->withErrors(['error' => 'Một số ghế đã bị khóa hoặc hỏng, vui lòng chọn lại.']);
         }
 
-        // 🔥 THÊM VALIDATE LẺ GHẾ TẠI ĐÂY
-        if ($this->hasSingleSeatGap($request->showtime_id, $request->seats)) {
+        // Validate lẻ ghế
+        if ($this->hasSingleSeatGap($showtimeId, $seatIds)) {
             return back()->withInput()->withErrors(['error' => 'Vị trí chọn không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống ở giữa hoặc ở đầu/cuối hàng.']);
         }
 
-        $totalSeatAmount = $seats->sum('price');
+        // ⭐ STEP 1: Load hold session
+        $holdSessionKey = "hold_session_{$tabToken}_{$showtimeId}";
+        $holdSession = Cache::get($holdSessionKey);
 
-        $userId = \App\Helpers\TabAuthHelper::currentUser()?->id ?? Auth::id();
-        $tierDiscountPercent = 0;
-        $tierName = 'BRONZE';
-        if ($userId) {
-            $userMembership = \App\Models\UserMembership::with('level')->where('user_id', $userId)->first();
-            $tierDiscountPercent = (float) ($userMembership?->level?->discount_percent ?? 0);
-            $tierName = strtoupper($userMembership?->level?->name ?? 'BRONZE');
+        if (! $holdSession) {
+            return back()->withErrors(['error' => 'Phiên giữ ghế không tồn tại. Vui lòng chọn ghế lại.']);
         }
-        $tierDiscountAmount = (float) round(($totalSeatAmount * $tierDiscountPercent) / 100);
 
-        session([
-            'booking_tam' => [
-                'showtime_id' => $request->showtime_id,
-                'seats' => $request->seats,
+        $sessionData = json_decode($holdSession, true);
+        $expiresAt   = Carbon::parse($sessionData['expiresAt']);
+        $startedAt   = Carbon::parse($sessionData['startedAt']);
 
-                // Ticket
-                'total_seat_amount' => $totalSeatAmount,
+        if ($expiresAt->isPast()) {
+            Cache::forget($holdSessionKey);
+            return back()->withErrors(['error' => 'Phiên giữ ghế đã hết hạn. Vui lòng chọn ghế lại.']);
+        }
 
-                // Tier Discount (% theo Hạng)
-                'tier_name' => $tierName,
-                'tier_percent' => $tierDiscountPercent,
-                'tier_discount_amount' => $tierDiscountAmount,
+        // ⭐ STEP 2: Verify ALL seat cache entries belong to this tabToken
+        foreach ($seatIds as $seatId) {
+            $seatCacheKey = "seat_held_{$showtimeId}_{$seatId}";
+            $holder = Cache::get($seatCacheKey);
 
-                // Combo
-                'combos' => [],
-                'total_combo_amount' => 0,
+            if ($holder !== $tabToken) {
+                return back()->withErrors(['error' => 'Một hoặc nhiều ghế đã hết hạn giữ hoặc bị người khác chiếm. Vui lòng chọn lại.']);
+            }
+        }
 
-                // Voucher
-                'voucher_id' => null,
-                'voucher_code' => null,
-                'discount_amount' => 0,
+        // ⭐ STEP 3: DB Transaction — lock SHOWTIME_SEATS rows (fixed inventory)
+        DB::beginTransaction();
+        try {
+            // Lock showtime_seats rows — these ALWAYS exist (synced when page loads)
+            $lockedSeats = ShowtimeSeat::with('seat')
+                ->whereIn('id', $seatIds)
+                ->where('showtime_id', $showtimeId)
+                ->lockForUpdate()
+                ->get();
 
-                // Total
-                'subtotal' => $totalSeatAmount,
-                'total' => max(0, $totalSeatAmount - $tierDiscountAmount),
-            ],
-        ]);
+            if ($lockedSeats->count() !== count($seatIds)) {
+                throw new \Exception('Một số ghế không tồn tại.');
+            }
 
-        return redirect(\App\Helpers\TabAuthHelper::route('booking.combo'));
+            // Kiểm tra conflict: có booking ACTIVE nào giữ ghế này?
+            $conflictExists = DB::table('booking_seats')
+                ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                ->where('bookings.showtime_id', $showtimeId)
+                ->whereIn('booking_seats.showtime_seat_id', $seatIds)
+                ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                ->where(function ($q) {
+                    $q->whereNull('bookings.expired_at')
+                      ->orWhere('bookings.expired_at', '>', now());
+                })
+                ->exists();
+
+            if ($conflictExists) {
+                throw new \Exception('Một hoặc nhiều ghế đã được người khác đặt. Vui lòng chọn lại.');
+            }
+
+            // Hủy booking PENDING cũ (nếu có) — cùng user, cùng showtime
+            $oldBooking = Booking::where('user_id', $userId)
+                ->where('showtime_id', $showtimeId)
+                ->whereIn('status', ['PENDING', 'PENDING_PAYMENT'])
+                ->first();
+            if ($oldBooking) {
+                $this->cancelAndRelease($oldBooking);
+            }
+
+            // Tính tier discount
+            $totalSeatAmount = $lockedSeats->sum('price');
+            $tierDiscountPercent = 0;
+            $tierName = 'BRONZE';
+            if ($userId) {
+                $userMembership = \App\Models\UserMembership::with('level')->where('user_id', $userId)->first();
+                $tierDiscountPercent = (float) ($userMembership?->level?->discount_percent ?? 0);
+                $tierName = strtoupper($userMembership?->level?->name ?? 'BRONZE');
+            }
+            $tierDiscountAmount = (float) round(($totalSeatAmount * $tierDiscountPercent) / 100);
+
+            // Tạo Booking — inherit hold session timestamps
+            $booking = Booking::create([
+                'booking_code'        => app(TicketService::class)->generateUniqueBookingCode(),
+                'user_id'             => $userId,
+                'showtime_id'         => $showtimeId,
+                'status'              => 'PENDING',
+                'payment_status'      => 'UNPAID',
+                'total_ticket_amount' => $totalSeatAmount,
+                'hold_started_at'     => $startedAt,    // ← FROM hold session
+                'expired_at'          => $expiresAt,     // ← FROM hold session (KHÔNG reset)
+            ]);
+
+            // Insert BookingSeat
+            foreach ($lockedSeats as $seat) {
+                $row = $seat->seat->row_label ?? '';
+                $seatType = $seat->seat->seat_type ?? 'STANDARD';
+                if ($row === 'J' || $seatType === 'COUPLE') {
+                    $seatType = 'COUPLE';
+                } elseif ($seatType === 'DEMO') {
+                    $seatType = 'DEMO';
+                }
+
+                DB::table('booking_seats')->insert([
+                    'booking_id'       => $booking->id,
+                    'showtime_seat_id' => $seat->id,
+                    'seat_code'        => $seat->seat->seat_code ?? 'N/A',
+                    'seat_type'        => $seatType,
+                    'price'            => $seat->price ?? 80000,
+                    'created_at'       => now(),
+                    'updated_at'       => now(),
+                ]);
+            }
+
+            // Sync cache seat_held_ TTL = expiresAt
+            foreach ($seatIds as $seatId) {
+                Cache::put("seat_held_{$showtimeId}_{$seatId}", $tabToken, $expiresAt);
+            }
+
+            DB::commit();
+
+            // Session update
+            session(['pending_booking_id' => $booking->id]);
+            session([
+                'booking_tam' => [
+                    'showtime_id' => $showtimeId,
+                    'seats' => $seatIds,
+
+                    // Ticket
+                    'total_seat_amount' => $totalSeatAmount,
+
+                    // Tier Discount (% theo Hạng)
+                    'tier_name' => $tierName,
+                    'tier_percent' => $tierDiscountPercent,
+                    'tier_discount_amount' => $tierDiscountAmount,
+
+                    // Combo
+                    'combos' => [],
+                    'total_combo_amount' => 0,
+
+                    // Voucher
+                    'voucher_id' => null,
+                    'voucher_code' => null,
+                    'discount_amount' => 0,
+
+                    // Total
+                    'subtotal' => $totalSeatAmount,
+                    'total' => max(0, $totalSeatAmount - $tierDiscountAmount),
+                ],
+            ]);
+
+            return redirect(\App\Helpers\TabAuthHelper::route('booking.combo'));
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+                ->with('error', $e->getMessage());
+        }
     }
 
     // ==========================================
@@ -374,30 +530,26 @@ $request->validate([
     {
         $bookingTam = session('booking_tam');
 
-        // TIMER: Tính thời gian còn lại từ master timer
-        $holdExpiresAt = null;
-        $serverTime = now()->toIso8601String();
-        $holdTotalSeconds = $this->holdMinutes() * 60;
+        // ⭐ EXPIRY GUARD: kiểm tra booking còn hạn không
+        $bookingId = session('pending_booking_id');
+        if (! $bookingId || ! $bookingTam) {
+            return redirect()->route('home')->with('error', 'Phiên đặt vé không tồn tại.');
+        }
+
+        $booking = Booking::find($bookingId);
+        if (! $booking || ! in_array($booking->status, ['PENDING', 'PENDING_PAYMENT'])
+            || ($booking->expired_at && $booking->expired_at <= now())) {
+            session()->forget(['pending_booking_id', 'booking_tam', 'pending_order_code']);
+            $showtimeId = $booking->showtime_id ?? ($bookingTam['showtime_id'] ?? null);
+            if ($showtimeId) {
+                return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+                    ->with('error', 'Phiên giữ ghế đã hết hạn. Vui lòng chọn lại.');
+            }
+            return redirect()->route('home')->with('error', 'Phiên giữ ghế đã hết hạn.');
+        }
+
         $showtime = null;
         if ($bookingTam && ! empty($bookingTam['showtime_id'])) {
-            $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$bookingTam['showtime_id'];
-            if (Cache::has($masterTimerKey)) {
-                $ts = Cache::get($masterTimerKey);
-                $secondsLeft = max(0, $ts - now()->timestamp);
-                if ($secondsLeft > 0) {
-                    $holdExpiresAt = Carbon::createFromTimestamp($ts)->toIso8601String();
-                }
-            }
-
-            // Nếu hết thời gian → redirect về trang ghế
-            if (! $holdExpiresAt) {
-                session()->forget('booking_tam');
-                $holdMinutes = $this->holdMinutes();
-
-                return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']])
-                    ->with('error', "Hết thời gian giữ ghế ({$holdMinutes} phút). Vui lòng chọn lại.");
-            }
-
             $showtime = Showtime::with(['movie', 'cinema', 'room'])
                 ->find($bookingTam['showtime_id']);
         }
@@ -418,7 +570,17 @@ $request->validate([
             session()->put('booking_tam', $bookingTam);
         }
 
-        return view('booking.combo', compact('combos', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds', 'bookingTam', 'showtime'));
+        // Countdown data for view
+        $expiresAt        = $booking->expired_at->toIso8601String();
+        $serverTime       = now()->toIso8601String();
+        $holdTotalSeconds = $this->holdMinutes() * 60;
+        $warningSeconds   = config('booking.warning_seconds', 60);
+        $seatPageUrl      = route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']]);
+
+        return view('booking.combo', compact(
+            'combos', 'bookingTam', 'showtime',
+            'expiresAt', 'serverTime', 'holdTotalSeconds', 'warningSeconds', 'seatPageUrl'
+        ));
     }
 
     public function saveCombo(Request $request)
@@ -504,25 +666,22 @@ $request->validate([
             return redirect()->route('home');
         }
 
-        // TIMER: Tính thời gian còn lại — truyền timestamp cho frontend
-        $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$bookingTam['showtime_id'];
-        $holdExpiresAt = null;
-        $serverTime = now()->toIso8601String();
-        $holdTotalSeconds = $this->holdMinutes() * 60;
-        if (Cache::has($masterTimerKey)) {
-            $ts = Cache::get($masterTimerKey);
-            $secondsLeft = max(0, $ts - now()->timestamp);
-            if ($secondsLeft > 0) {
-                $holdExpiresAt = Carbon::createFromTimestamp($ts)->toIso8601String();
-            }
+        // ⭐ EXPIRY GUARD
+        $bookingId = session('pending_booking_id');
+        if (! $bookingId) {
+            return redirect()->route('home')->with('error', 'Phiên đặt vé không tồn tại.');
         }
 
-        if (! $holdExpiresAt) {
-            session()->forget('booking_tam');
-            $holdMinutes = $this->holdMinutes();
-
-            return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']])
-                ->with('error', "Hết thời gian giữ ghế ({$holdMinutes} phút). Vui lòng chọn lại.");
+        $booking = Booking::find($bookingId);
+        if (! $booking || ! in_array($booking->status, ['PENDING', 'PENDING_PAYMENT'])
+            || ($booking->expired_at && $booking->expired_at <= now())) {
+            session()->forget(['pending_booking_id', 'booking_tam', 'pending_order_code']);
+            $showtimeId = $booking->showtime_id ?? ($bookingTam['showtime_id'] ?? null);
+            if ($showtimeId) {
+                return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+                    ->with('error', 'Phiên giữ ghế đã hết hạn. Vui lòng chọn lại.');
+            }
+            return redirect()->route('home')->with('error', 'Phiên giữ ghế đã hết hạn.');
         }
 
         $showtime = Showtime::with(['movie', 'room'])->findOrFail($bookingTam['showtime_id']);
@@ -537,33 +696,38 @@ $request->validate([
         $tierDiscountAmount = $bookingTam['tier_discount_amount'] ?? 0;
         $tierName = $bookingTam['tier_name'] ?? 'BRONZE';
         $tierPercent = $bookingTam['tier_percent'] ?? 0;
-        $discountAmount = $bookingTam['discount_amount'] ?? 0; // Voucher discount
+        $discountAmount = $bookingTam['discount_amount'] ?? 0;
 
-        // Coin discount (từ session nếu đã áp dụng)
         $coinUsed = $bookingTam['coin_used'] ?? 0;
         $coinDiscountAmount = $bookingTam['coin_discount_amount'] ?? 0;
 
-        // Tính tổng: subtotal - giảm hạng - voucher - xu
         $subtotal = $totalTicketPrice + $totalComboPrice;
         $afterDiscounts = max(0, $subtotal - $tierDiscountAmount - $discountAmount);
         $totalPrice = max(0, $afterDiscounts - $coinDiscountAmount);
 
-        // Tính thông tin xu cho UI
         $coinService = app(CoinRedemptionService::class);
         $coinInfo = $coinService->calculateMaxRedeemable(Auth::id(), $afterDiscounts);
+
+        // Countdown data
+        $expiresAt        = $booking->expired_at->toIso8601String();
+        $serverTime       = now()->toIso8601String();
+        $holdTotalSeconds = $this->holdMinutes() * 60;
+        $warningSeconds   = config('booking.warning_seconds', 60);
+        $seatPageUrl      = route('booking.seat', ['showtime_id' => $showtime_id]);
 
         return view('booking.confirm', compact(
             'showtime', 'showtime_id', 'seats', 'totalTicketPrice', 'combos',
             'totalComboPrice', 'tierDiscountAmount', 'tierName', 'tierPercent',
-            'discountAmount', 'totalPrice', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds',
-            'coinUsed', 'coinDiscountAmount', 'coinInfo'
+            'discountAmount', 'totalPrice',
+            'coinUsed', 'coinDiscountAmount', 'coinInfo',
+            'expiresAt', 'serverTime', 'holdTotalSeconds', 'warningSeconds', 'seatPageUrl'
         ));
     }
 
     public function checkout(Request $request)
     {
         $request->validate([
-            'customer_name' => 'required|string|max:255',
+            'customer_name'  => 'required|string|max:255',
             'customer_phone' => 'required|string|max:20',
             'customer_email' => 'required|email|max:255',
             'payment_method' => 'required|string',
@@ -574,58 +738,28 @@ $request->validate([
             return redirect()->route('home');
         }
 
-        // TIMER: Kiểm tra còn thời gian giữ ghế không
-        $masterTimerKey = 'hold_timer_'.Auth::id().'_'.$bookingTam['showtime_id'];
-        $masterTimerTs = Cache::get($masterTimerKey);
-        if (! $masterTimerTs || $masterTimerTs <= now()->timestamp) {
-            session()->forget('booking_tam');
-
-            return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id']])
-                ->with('error', 'Hết thời gian giữ ghế. Vui lòng chọn lại.');
+        $bookingId = session('pending_booking_id');
+        if (! $bookingId) {
+            return redirect()->route('home')->with('error', 'Phiên đặt vé không hợp lệ.');
         }
 
-        // Cấp thêm 5 phút dành riêng cho bước chuyển khoản thanh toán QR
-        $paymentExpireAt = now()->addMinutes($this->holdMinutes());
+        $booking = Booking::with('bookingSeats.seat')->find($bookingId);
 
-        // GUARD: Kiểm tra đã tạo booking cho session này chưa
+        // Guard expiry
+        if (! $booking || ! in_array($booking->status, ['PENDING', 'PENDING_PAYMENT'])
+            || ($booking->expired_at && $booking->expired_at <= now())) {
+            session()->forget(['pending_booking_id', 'booking_tam', 'pending_order_code']);
+            return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? null])
+                ->with('error', 'Phiên giữ ghế đã hết hạn. Vui lòng chọn lại.');
+        }
+
+        // Nếu đã có order cũ (do user back lại thanh toán bằng QR, v.v.), cancel order cũ (không cancel booking)
         $existingOrderCode = session('pending_order_code');
         if ($existingOrderCode) {
             $existingOrder = SepayOrder::where('order_code', $existingOrderCode)->first();
             if ($existingOrder) {
-                if ($existingOrder->status === 'paid' || ($existingOrder->booking && $existingOrder->booking->status === 'PAID')) {
-                    // Nếu đã thanh toán, chuyển thẳng sang trang bill
+                if ($existingOrder->status === 'paid' || $booking->status === 'PAID') {
                     return redirect()->route('booking.bill', ['orderCode' => $existingOrderCode]);
-                }
-
-                // Nếu chưa thanh toán (đang pending), hủy đơn cũ để tạo đơn mới với tùy chọn thanh toán mới
-$booking = $existingOrder->booking;
-                if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
-                    $booking->update([
-                        'status' => 'CANCELLED',
-                        'payment_status' => 'FAILED',
-                    ]);
-
-                    // Lưu lý do hủy vào bảng booking_cancellations (hủy đơn cũ để tạo đơn mới)
-                    BookingCancellation::updateOrCreate(
-                        ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
-                        [
-                            'type'        => 'CANCELLATION',
-                            'canceled_by' => Auth::id() ?? $booking->user_id,
-                            'reason'      => 'Khách hàng hủy đơn cũ khi tạo lại đơn mới với tùy chọn thanh toán khác.',
-                        ]
-                    );
-
-                    // Hoàn xu nếu đã trừ cho đơn cũ
-                    $redeemTx = \App\Models\PointTransaction::where('booking_id', $booking->id)
-                        ->where('type', 'REDEEM')
-                        ->first();
-                    if ($redeemTx && $booking->user_id) {
-                        app(\App\Services\CoinRedemptionService::class)->refundCoins(
-                            $booking->user_id,
-                            abs($redeemTx->points),
-                            $booking->id
-                        );
-                    }
                 }
                 if ($existingOrder->status === 'pending') {
                     $existingOrder->update(['status' => 'expired']);
@@ -634,136 +768,53 @@ $booking = $existingOrder->booking;
             }
         }
 
-
-        $showtimeId = $bookingTam['showtime_id'];
-        $seatIds = $bookingTam['seats'];
-
         DB::beginTransaction();
         try {
-            // E3: Suất chiếu không còn khả dụng
+            $showtimeId = $booking->showtime_id;
             $showtime = Showtime::findOrFail($showtimeId);
-            if (now()->greaterThan($showtime->start_time)) {
-                throw new \Exception('Suất chiếu không còn khả dụng.');
-            }
 
-            // E1, E4: Kiểm tra lại toàn bộ ghế (cache)
-            foreach ($seatIds as $seatId) {
-                $cacheKey = 'seat_held_'.$showtimeId.'_'.$seatId;
-                $heldBy = Cache::get($cacheKey);
-
-                if (! $heldBy || $heldBy != Auth::id()) {
-                    $holdMinutes = $this->holdMinutes();
-                    throw new \Exception("Ghế không còn khả dụng do hết thời gian giữ ({$holdMinutes} phút) hoặc đã bị mua.");
-                }
-            }
-
-            // CHỐNG DOUBLE BOOKING: Kiểm tra DB — có booking ACTIVE nào khác đang giữ cùng ghế không?
-            $conflictExists = DB::table('booking_seats')
-                ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
-                ->where('bookings.showtime_id', $showtimeId)
-                ->whereIn('booking_seats.showtime_seat_id', $seatIds)
-                ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
-                ->where(function ($q) {
-                    $q->whereNull('bookings.expired_at')
-                      ->orWhere('bookings.expired_at', '>', now());
-                })
-                ->lockForUpdate()
-                ->exists();
-
-            if ($conflictExists) {
-                throw new \Exception('Một hoặc nhiều ghế đã được người khác đặt. Vui lòng chọn lại.');
-            }
-
-            // Tính toán tổng tiền vé + combo + voucher + giảm hạng
-            $seats = ShowtimeSeat::whereIn('id', $seatIds)->get();
-
-            $totalTicketAmount = $seats->sum('price');
-            $totalComboAmount = $bookingTam['total_combo_amount'] ?? 0;
+            // Các khoản tiền
+            $totalTicketAmount  = $booking->total_ticket_amount;
+            $totalComboAmount   = $bookingTam['total_combo_amount'] ?? 0;
             $tierDiscountAmount = $bookingTam['tier_discount_amount'] ?? 0;
-            $voucherDiscount = $bookingTam['discount_amount'] ?? 0;
+            $voucherDiscount    = $bookingTam['discount_amount'] ?? 0;
+            $coinUsed           = $bookingTam['coin_used'] ?? 0;
+            $coinDiscountVND    = $bookingTam['coin_discount_amount'] ?? 0;
 
-            // Coin discount (intent từ session)
-            $coinUsed = $bookingTam['coin_used'] ?? 0;
-            $coinDiscountVND = $bookingTam['coin_discount_amount'] ?? 0;
-
-            // Tổng giảm giá = voucher + xu
             $totalDiscount = $voucherDiscount + $coinDiscountVND;
             $finalAmount = $totalTicketAmount + $totalComboAmount - $totalDiscount;
-
             if ($finalAmount < 0) {
                 $finalAmount = 0;
             }
 
-            // BR03: Mã định danh duy nhất (CSPRNG + safe alphabet + kiểm tra trùng)
-            $bookingCode = app(TicketService::class)->generateUniqueBookingCode();
-
-            $status = 'PENDING';
-
-            // Lưu thông tin khách hàng từ form xác nhận
-            $customerName = $request->input('customer_name');
-            $customerPhone = $request->input('customer_phone');
-            $customerEmail = $request->input('customer_email');
-
-            // Luồng chính: Tạo booking mới
-            // expired_at dùng thời điểm hết hạn gốc từ master timer (KHÔNG reset thêm thời gian)
-            $booking = Booking::create([
-                'booking_code' => $bookingCode,
-                'user_id' => Auth::id(),
-                'showtime_id' => $showtimeId,
-                'customer_name' => $customerName,
-                'customer_email' => $customerEmail,
-                'customer_phone' => $customerPhone,
-                'total_ticket_amount' => $totalTicketAmount,
-                'total_combo_amount' => $totalComboAmount,
-                'discount_amount' => $totalDiscount,
-'final_amount' => $finalAmount,
-'status' => $status,
-                'payment_status' => 'UNPAID',
-                'expired_at' => $paymentExpireAt,
+            // Update booking (vì đã tạo ở submitSeats)
+            $booking->update([
+                'customer_name'       => $request->input('customer_name'),
+                'customer_email'      => $request->input('customer_email'),
+                'customer_phone'      => $request->input('customer_phone'),
+                'total_combo_amount'  => $totalComboAmount,
+                'discount_amount'     => $totalDiscount,
+                'final_amount'        => $finalAmount,
+                'status'              => 'PENDING_PAYMENT',
             ]);
 
-            // Lưu danh sách ghế vào bảng trung gian
-            foreach ($seats as $seat) {
-                $row = $seat->seat->row_label ?? '';
-                $seatType = $seat->seat->seat_type ?? 'STANDARD';
-                if ($row === 'J' || $seatType === 'COUPLE') {
-                    $seatType = 'COUPLE';
-                } elseif ($seatType === 'DEMO') {
-                    $seatType = 'DEMO';
-                }
+            // Clear old combos if any (trường hợp back lại đổi combo)
+            BookingCombo::where('booking_id', $booking->id)->delete();
 
-                DB::table('booking_seats')->insert([
-                    'booking_id' => $booking->id,
-                    'showtime_seat_id' => $seat->id,
-                    'seat_code' => $seat->seat->seat_code ?? ('N/A'),
-                    'seat_type' => $seatType,
-                    'price' => $seat->price ?? 80000,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-
-                // Gia hạn cache giữ ghế theo thời gian thanh toán 5 phút mới
-                $cacheKey = 'seat_held_' . $showtimeId . '_' . $seat->id;
-                Cache::put($cacheKey, Auth::id(), $paymentExpireAt);
-            }
-
-            // Gia hạn master timer theo thời gian thanh toán mới
-            Cache::put($masterTimerKey, $paymentExpireAt->timestamp, $paymentExpireAt);
-
+            // Insert Combos
             foreach (($bookingTam['combos'] ?? []) as $comboItem) {
                 BookingCombo::create([
-                    'booking_id' => $booking->id,
-                    'combo_id' => $comboItem['combo_id'],
-                    'quantity' => $comboItem['quantity'],
-                    'unit_price' => $comboItem['unit_price'],
+                    'booking_id'  => $booking->id,
+                    'combo_id'    => $comboItem['combo_id'],
+                    'quantity'    => $comboItem['quantity'],
+                    'unit_price'  => $comboItem['unit_price'],
                     'total_price' => $comboItem['total_price'],
                 ]);
             }
 
-            // Tạo SepayOrder để trang QR Payment hoạt động
+            // Chuẩn bị metadata cho SepayOrder
             $seatDetails = [];
-            foreach ($seats as $s) {
-                $seatCode = $s->seat->seat_code ?? 'N/A';
+            foreach ($booking->bookingSeats as $s) {
                 $seatType = 'standard';
                 $row = $s->seat->row_label ?? '';
                 $seatKind = $s->seat->seat_type ?? 'STANDARD';
@@ -776,8 +827,8 @@ $booking = $existingOrder->booking;
                 }
 
                 $seatDetails[] = [
-                    'code' => $seatCode,
-                    'type' => $seatType,
+                    'code'  => $s->seat_code ?? 'N/A',
+                    'type'  => $seatType,
                     'price' => (int) $s->price,
                 ];
             }
@@ -785,59 +836,55 @@ $booking = $existingOrder->booking;
             $comboDetails = [];
             foreach (($bookingTam['combos'] ?? []) as $comboItem) {
                 $comboDetails[] = [
-                    'name' => $comboItem['name'],
-                    'quantity' => $comboItem['quantity'],
-                    'unit_price' => $comboItem['unit_price'],
+                    'name'        => $comboItem['name'],
+                    'quantity'    => $comboItem['quantity'],
+                    'unit_price'  => $comboItem['unit_price'],
                     'total_price' => $comboItem['total_price'],
                 ];
             }
 
+            // Tạo SepayOrder
             $sepayOrder = SepayOrder::create([
-                'order_code' => $bookingCode,
-                'booking_id' => $booking->id,
-                'package_id' => 'booking',
+                'order_code'   => $booking->booking_code,
+                'booking_id'   => $booking->id,
+                'package_id'   => 'booking',
                 'package_name' => 'Vé xem phim',
-                'amount' => $finalAmount,
-                'status' => 'pending',
-                'metadata' => [
-                    'movie_title' => $showtime->movie->title ?? '',
-                    'room' => $showtime->room->name ?? '',
-                    'showtime' => Carbon::parse($showtime->start_time)->format('H:i').' - '.Carbon::parse($showtime->end_time)->format('H:i'),
-                    'show_date' => Carbon::parse($showtime->start_time)->format('d/m/Y'),
-                    'format' => '2D',
-                    'seats' => $seatDetails,
-                    'seat_count' => count($seatDetails),
-                    'combos' => $comboDetails,
-                    'showtime_id' => $showtimeId,
-                    'customer_email' => $customerEmail,
-                    'customer_name' => $customerName,
-                    'customer_phone' => $customerPhone,
-                    'coin_used' => $coinUsed,
+                'amount'       => $finalAmount,
+                'status'       => 'pending',
+                'metadata'     => [
+                    'movie_title'          => $showtime->movie->title ?? '',
+                    'room'                 => $showtime->room->name ?? '',
+                    'showtime'             => Carbon::parse($showtime->start_time)->format('H:i').' - '.Carbon::parse($showtime->end_time)->format('H:i'),
+                    'show_date'            => Carbon::parse($showtime->start_time)->format('d/m/Y'),
+                    'format'               => '2D',
+                    'seats'                => $seatDetails,
+                    'seat_count'           => count($seatDetails),
+                    'combos'               => $comboDetails,
+                    'showtime_id'          => $showtimeId,
+                    'customer_email'       => $booking->customer_email,
+                    'customer_name'        => $booking->customer_name,
+                    'customer_phone'       => $booking->customer_phone,
+                    'coin_used'            => $coinUsed,
                     'coin_discount_amount' => $coinDiscountVND,
-                    'voucher_code' => $bookingTam['voucher_code'] ?? null,
-                    'discount_amount' => $voucherDiscount,
+                    'voucher_code'         => $bookingTam['voucher_code'] ?? null,
+                    'discount_amount'      => $voucherDiscount,
                 ],
             ]);
 
             DB::commit();
 
-            // Lưu order code vào session để guard chống tạo booking trùng + dùng khi quay lại
-            session()->put('pending_order_code', $bookingCode);
-            // GIỮ NGUYÊN booking_tam — chỉ xóa khi thanh toán thành công hoặc hủy đơn
+            session()->put('pending_order_code', $booking->booking_code);
 
-            // Nếu tổng thanh toán = 0 (xu cover 100%) → tự động xác nhận PAID
             if ($finalAmount <= 0) {
-                session()->forget('booking_tam');
-                session()->forget('pending_order_code');
+                session()->forget(['booking_tam', 'pending_order_code', 'pending_booking_id']);
                 return $this->handleZeroAmountBooking($booking, $coinUsed);
             }
 
-            return redirect()->route('booking.payment', ['orderCode' => $bookingCode]);
+            return redirect()->route('booking.payment', ['orderCode' => $booking->booking_code]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-
-            return redirect()->route('booking.seat', ['showtime_id' => $showtimeId])
+            return redirect()->route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? null])
                 ->with('error', 'Lỗi: '.$e->getMessage());
         }
     }
@@ -973,45 +1020,10 @@ $booking = $existingOrder->booking;
 
         $showtimeId = $order->getBookingInfo('showtime_id');
 
-// Hủy booking nếu còn ở trạng thái chờ thanh toán
+        // Hủy booking bằng helper (atomic + idempotent)
         $booking = $order->booking;
-        if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT'])) {
-            $booking->update([
-                'status' => 'CANCELLED',
-                'payment_status' => $booking->payment_status === 'PAID' ? 'REFUNDED' : 'FAILED',
-            ]);
-
-            // Lưu lý do hủy vào bảng booking_cancellations (khách tự hủy)
-            BookingCancellation::updateOrCreate(
-                ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
-                [
-                    'type'       => 'CANCELLATION',
-                    'canceled_by' => Auth::id() ?? $booking->user_id,
-                    'reason'     => 'Khách hàng tự hủy đơn hàng từ trang thanh toán / quay lại chọn ghế.',
-                ]
-            );
-
-            // Hoàn xu nếu đã trừ
-            $redeemTx = PointTransaction::where('booking_id', $booking->id)
-                ->where('type', 'REDEEM')
-                ->first();
-            if ($redeemTx && $booking->user_id) {
-                app(CoinRedemptionService::class)->refundCoins(
-                    $booking->user_id,
-                    abs($redeemTx->points),
-                    $booking->id
-                );
-            }
-
-            // Giải phóng ghế trong cache (nếu còn held)
-            $bookingSeats = DB::table('booking_seats')
-                ->where('booking_id', $booking->id)
-                ->pluck('showtime_seat_id');
-
-            foreach ($bookingSeats as $showtimeSeatId) {
-                $cacheKey = 'seat_held_' . $booking->showtime_id . '_' . $showtimeSeatId;
-                Cache::forget($cacheKey);
-            }
+        if ($booking) {
+            $this->cancelAndRelease($booking);
         }
 
         // Hủy sepay order
@@ -1020,14 +1032,7 @@ $booking = $existingOrder->booking;
         }
 
         // Xóa session booking tạm
-        session()->forget('booking_tam');
-        session()->forget('pending_order_code');
-
-        // Giải phóng master timer
-        if (Auth::check() && $showtimeId) {
-            $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtimeId;
-            Cache::forget($masterTimerKey);
-        }
+        session()->forget(['booking_tam', 'pending_order_code', 'pending_booking_id']);
 
         // Redirect về đúng trang chọn ghế của suất chiếu
         if ($showtimeId) {
@@ -1037,6 +1042,118 @@ $booking = $existingOrder->booking;
 
         return redirect()->route('home')
             ->with('success', 'Đã hủy đơn hàng thành công.');
+    }
+
+    // ==========================================
+    // QUICK CANCEL (sendBeacon từ browser back)
+    // ==========================================
+
+    /**
+     * Cancel booking via sendBeacon khi user bấm browser Back.
+     * Xác thực bằng HMAC holdToken — không phụ thuộc session.
+     */
+    public function quickCancel(Request $request)
+    {
+        $holdToken   = $request->input('hold_token');
+        $showtimeId  = $request->input('showtime_id');
+        $tabToken    = $request->input('tab_token');
+        $expiresAtRaw = $request->input('expires_at');
+
+        // ⭐ Verify HMAC — đảm bảo request hợp lệ
+        $expectedToken = hash_hmac('sha256',
+            "{$tabToken}:{$showtimeId}:{$expiresAtRaw}",
+            config('app.key')
+        );
+
+        if (! hash_equals($expectedToken, $holdToken ?? '')) {
+            return response('', 403);
+        }
+
+        // Cancel hold session + per-seat cache locks
+        $holdSessionKey = "hold_session_{$tabToken}_{$showtimeId}";
+        $holdSession = Cache::get($holdSessionKey);
+
+        if ($holdSession) {
+            $sessionData = json_decode($holdSession, true);
+
+            foreach ($sessionData['seats'] as $seatId) {
+                $seatCacheKey = "seat_held_{$showtimeId}_{$seatId}";
+                $currentHolder = Cache::get($seatCacheKey);
+                if ($currentHolder === $tabToken) {
+                    Cache::forget($seatCacheKey);
+                }
+            }
+
+            Cache::forget($holdSessionKey);
+        }
+
+        // Cancel booking nếu đã tồn tại (đã qua submitSeats)
+        $userId = \App\Models\TabToken::where('token', $tabToken)->value('user_id');
+        if ($userId) {
+            $booking = Booking::where('user_id', $userId)
+                ->where('showtime_id', $showtimeId)
+                ->whereIn('status', ['PENDING', 'PENDING_PAYMENT'])
+                ->where('expired_at', $expiresAtRaw)
+                ->first();
+
+            if ($booking) {
+                $this->cancelAndRelease($booking);
+
+                // Cancel SepayOrder nếu có
+                SepayOrder::where('booking_id', $booking->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'expired']);
+            }
+        }
+
+        return response('', 204);
+    }
+
+    // ==========================================
+    // CANCEL AND RELEASE HELPER (private)
+    // ==========================================
+
+    /**
+     * Atomic + idempotent cancel booking + release seats.
+     * Dùng conditional update — CANCELLED/PAID/EXPIRED → no-op.
+     */
+    private function cancelAndRelease(Booking $booking): void
+    {
+        // Atomic conditional update — KHÔNG cancel PAID/EXPIRED
+        $affected = Booking::where('id', $booking->id)
+            ->whereIn('status', ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+            ->update([
+                'status'         => 'CANCELLED',
+                'payment_status' => $booking->payment_status === 'PAID' ? 'REFUNDED' : 'FAILED',
+            ]);
+
+        if ($affected === 0) return; // Idempotent: đã bị thay đổi
+
+        // Cancellation record
+        BookingCancellation::updateOrCreate(
+            ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
+            [
+                'type'        => 'CANCELLATION',
+                'canceled_by' => Auth::id() ?? $booking->user_id,
+                'reason'      => 'Abandon booking flow (browser back / cancel / timeout).',
+            ]
+        );
+
+        // Hoàn coin
+        $redeemTx = PointTransaction::where('booking_id', $booking->id)
+            ->where('type', 'REDEEM')->first();
+        if ($redeemTx && $booking->user_id) {
+            app(CoinRedemptionService::class)->refundCoins(
+                $booking->user_id, abs($redeemTx->points), $booking->id
+            );
+        }
+
+        // Release seats từ cache
+        $seatIds = DB::table('booking_seats')
+            ->where('booking_id', $booking->id)->pluck('showtime_seat_id');
+        foreach ($seatIds as $seatId) {
+            Cache::forget("seat_held_{$booking->showtime_id}_{$seatId}");
+        }
     }
 
     // ==========================================
