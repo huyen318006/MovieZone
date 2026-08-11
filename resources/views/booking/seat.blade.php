@@ -574,6 +574,56 @@
         </div>
     </div>
 
+    {{-- Phát hiện khi user rời trang chọn ghế rồi quay lại → redirect với ?reset=1 để server reset timer --}}
+    <script>
+    (function() {
+        // Bỏ qua AJAX refresh (polling 2.5s)
+        if (new URLSearchParams(window.location.search).has('refresh')) return;
+
+        var showtimeId = '{{ $showtime->id }}';
+        var timerKey = 'seat_timer_active_' + showtimeId;
+        var currentUrl = new URL(window.location.href);
+        var hasReset = currentUrl.searchParams.get('reset') === '1';
+
+        // Nếu đang xử lý ?reset=1 → đánh dấu lại cho lần sau, xóa ?reset khỏi URL
+        if (hasReset) {
+            sessionStorage.setItem(timerKey, '1');
+            currentUrl.searchParams.delete('reset');
+            history.replaceState(null, '', currentUrl.toString());
+            return;
+        }
+
+        // Kiểm tra kiểu navigation: F5/reload → giữ nguyên timer, navigate/back_forward → reset
+        var isReload = false;
+        try {
+            var navEntries = performance.getEntriesByType('navigation');
+            if (navEntries.length > 0) {
+                isReload = navEntries[0].type === 'reload';
+            } else if (typeof performance.navigation !== 'undefined') {
+                isReload = performance.navigation.type === 1;
+            }
+        } catch(e) {}
+
+        // Nếu KHÔNG phải F5 VÀ đã từng vào trang này trước đó → user rời đi rồi quay lại → reset timer
+        if (!isReload && sessionStorage.getItem(timerKey)) {
+            currentUrl.searchParams.set('reset', '1');
+            window.location.replace(currentUrl.toString());
+            return;
+        }
+
+        // Lần đầu vào trang trong tab này → đánh dấu
+        sessionStorage.setItem(timerKey, '1');
+
+        // Xử lý bfcache: khi trình duyệt restore trang từ bộ nhớ (Back/Forward cache)
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                currentUrl.searchParams.set('reset', '1');
+                window.location.replace(currentUrl.toString());
+            }
+        });
+    })();
+    </script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const selectedSeats = new Map();
