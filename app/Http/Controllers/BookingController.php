@@ -23,7 +23,7 @@ use App\Services\TicketService;
 class BookingController extends Controller
 {
     // Giới hạn tối đa số ghế 1 khách hàng được chọn trong 1 lần đặt vé
-    public const MAX_SEATS_PER_BOOKING = 10;
+    public const MAX_SEATS_PER_BOOKING = 8;
 
     /**
      * Lấy thời gian giữ ghế (phút) từ config.
@@ -278,7 +278,9 @@ class BookingController extends Controller
             }
         }
 
-        return response()->view('booking.seat', compact('showtime', 'seatMap', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds'))
+        $maxSeats = self::MAX_SEATS_PER_BOOKING; // Giới hạn ghế tối đa 1 lần đặt (nguồn duy nhất, dùng cho frontend)
+
+        return response()->view('booking.seat', compact('showtime', 'seatMap', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds', 'maxSeats'))
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
     }
@@ -415,11 +417,23 @@ class BookingController extends Controller
     {
 $request->validate([
             'showtime_id' => 'required',
-            // BR01: Ít nhất 1 ghế, tối đa MAX_SEATS_PER_BOOKING (10 ghế)
-            'seats' => 'required|array|min:1|max:'.self::MAX_SEATS_PER_BOOKING,
+            // BR01: Ít nhất 1 ghế, tối đa MAX_SEATS_PER_BOOKING (8 ghế); distinct: không gửi trùng ghế
+            'seats' => 'required|array|min:1|max:'.self::MAX_SEATS_PER_BOOKING.'|distinct',
         ]);
 
-        $seats = ShowtimeSeat::with('seat')->whereIn('id', $request->seats)->get();
+        $showtimeId = $request->showtime_id;
+
+        // Khử trùng id phòng trường hợp gửi 2 lần cùng 1 ghế (chống gian lận số lượng)
+        $seatIds = array_values(array_unique(array_map('strval', $request->seats)));
+        if (count($seatIds) !== count($request->seats)) {
+            return back()->withErrors(['error' => 'Danh sách ghế bị trùng, vui lòng chọn lại.']);
+        }
+
+        $seats = ShowtimeSeat::with('seat')->whereIn('id', $seatIds)->get();
+        if ($seats->count() !== count($seatIds)) {
+            return back()->withErrors(['error' => 'Danh sách ghế không hợp lệ, vui lòng chọn lại.']);
+        }
+
         $invalidSeats = $seats->filter(function ($seat) {
             return in_array($seat->seat->status ?? 'ACTIVE', ['BLOCKED', 'BROKEN']);
         });
@@ -428,9 +442,42 @@ $request->validate([
             return back()->withErrors(['error' => 'Một số ghế đã bị khóa hoặc hỏng, vui lòng chọn lại.']);
         }
 
+        // BR: Suất chiếu phải còn hợp lệ (chưa bắt đầu) — re-validate tại bước submit
+        $showtime = Showtime::find($showtimeId);
+        if (! $showtime || now()->greaterThan($showtime->start_time)) {
+            return back()->withErrors(['error' => 'Suất chiếu không còn khả dụng.']);
+        }
+
+        // BR: Chống double-booking — mỗi ghế phải còn trống (chưa bán) và không bị người khác giữ
+        foreach ($seats as $seat) {
+            $alreadyTaken = DB::table('booking_seats')
+                ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+                ->where('booking_seats.showtime_seat_id', $seat->id)
+                ->where('bookings.showtime_id', $showtimeId)
+                ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                ->where(function ($q) {
+                    $q->whereNull('bookings.expired_at')
+                      ->orWhere('bookings.expired_at', '>', now());
+                })
+                ->exists();
+
+            if ($alreadyTaken) {
+                return back()->withErrors(['error' => 'Một số ghế đã được bán, vui lòng chọn lại.']);
+            }
+
+            $heldBy = Cache::get('seat_held_'.$showtimeId.'_'.$seat->id);
+            if ($heldBy && $heldBy != Auth::id()) {
+                return back()->withErrors(['error' => 'Một số ghế vừa bị người khác giữ, vui lòng chọn lại.']);
+            }
+        }
+
         // 🔥 THÊM VALIDATE LẺ GHẾ TẠI ĐÂY
-        if ($this->hasSingleSeatGap($request->showtime_id, $request->seats)) {
-            return back()->withInput()->withErrors(['error' => 'Vị trí chọn không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống ở giữa hoặc ở đầu/cuối hàng.']);
+        $gapSeats = $this->hasSingleSeatGap($showtimeId, $seatIds);
+        if (! empty($gapSeats)) {
+            $gapSeatLabel = implode(', ', $gapSeats);
+            return back()->withInput()->withErrors([
+                'error' => "Vị trí chọn ghế không hợp lệ! Bạn đang bỏ trống ghế lẻ: {$gapSeatLabel}. Vui lòng chọn thêm ghế liền kề hoặc đổi vị trí để không tạo ghế trống đơn lẻ trong hàng.",
+            ]);
         }
 
         $totalSeatAmount = $seats->sum('price');
@@ -447,8 +494,8 @@ $request->validate([
 
         session([
             'booking_tam' => [
-                'showtime_id' => $request->showtime_id,
-                'seats' => $request->seats,
+                'showtime_id' => $showtimeId,
+                'seats' => $seatIds,
 
                 // Ticket
                 'total_seat_amount' => $totalSeatAmount,
@@ -1087,12 +1134,39 @@ $booking = $existingOrder->booking;
             $matrix[$row][$num] = $status;
         }
 
-// 4. Quét từng hàng ghế để tìm lỗi "lẻ 1 ghế trống"
+$orphanCodes = []; // Gom mã ghế trống đang bị bỏ lẻ (do chính khách tạo ra) để báo rõ
+
+        // 4. Quét từng hàng ghế để tìm lỗi "lẻ 1 ghế trống"
         foreach ($matrix as $row => $rowSeats) {
             ksort($rowSeats); // Sắp xếp lại số ghế theo thứ tự tăng dần (1, 2, 3...)
 
             $seatNumbers = array_keys($rowSeats);
             $totalInRow = count($seatNumbers);
+
+            // NGOẠI LỆ (QUYẾT ĐỊNH CUỐI): Đếm số ghế trống của hàng TRƯỚC khi khách chọn
+            // (= AVAILABLE + SELECTED trên hàng). Nếu ≤ 2 VÀ khách chọn đúng 1 ghế ở hàng này
+            // → bỏ qua kiểm tra "lẻ 1 ghế trống".
+            // Lý do: hàng chỉ còn tối đa 2 ghế trống mà khách chỉ mua 1 ghế thì 1 ghế sót lại
+            // là không thể tránh khỏi (không thể ghép cặp được).
+            // Đếm theo kiểu "trước khi chọn" (<=> sau khi đặt chỉ còn ≤ 1 ghế trống) thay vì
+            // "sau khi chọn ≤ 2" để CHẶN lỗ hổng: hàng còn 3 ghế trống liên tiếp (A8,A9,A10) mà
+            // khách chọn ghế giữa A9 → nếu đếm "sau khi chọn" sẽ ra 2 (≤2) và bị bỏ qua, để lại
+            // 2 ghế lẻ rời rạc. Đếm "trước khi chọn" = 3 (>2) nên vẫn báo lỗi đúng.
+            $remainingEmptyBefore = 0;
+            $selectedInRow = 0;
+            foreach ($rowSeats as $status) {
+                if ($status === 'AVAILABLE' || $status === 'SELECTED') {
+                    // AVAILABLE: ghế vẫn trống sau khi chọn; SELECTED: ghế khách đang chọn (từng trống)
+                    $remainingEmptyBefore++;
+                }
+                if ($status === 'SELECTED') {
+                    $selectedInRow++;
+                }
+            }
+
+            if ($remainingEmptyBefore <= 2 && $selectedInRow === 1) {
+                continue;
+            }
 
             for ($i = 0; $i < $totalInRow; $i++) {
                 $currentNum = $seatNumbers[$i];
@@ -1140,14 +1214,15 @@ $booking = $existingOrder->booking;
                             && ($seatNumbers[$i + 1] === $currentNum + 1);
 
                         if ($leftIsSelected || $rightIsSelected) {
-                            return true; // Lỗ hổng do chính khách tạo ra
+                            // Lỗ hổng do chính khách tạo ra → gom lại mã ghế bị bỏ trống
+                            $orphanCodes[] = $row.str_pad((string) $currentNum, 2, '0', STR_PAD_LEFT);
                         }
                     }
                 }
             }
         }
 
-        return false; // Toàn bộ hàng ghế đều hợp lệ
+        return $orphanCodes; // Danh sách mã ghế bị bỏ lẻ (rỗng = hợp lệ)
     }
 
     // ==========================================
