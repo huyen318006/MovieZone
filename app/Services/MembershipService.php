@@ -176,7 +176,9 @@ class MembershipService
             return null;
         }
 
-        $amount = (float) ($booking->final_amount ?? $booking->total_price ?? 0);
+        // Tính coin thưởng dựa trên tổng giá trị gốc (vé + combo, TRƯỚC giảm giá)
+        // để user luôn được thưởng coin kể cả khi thanh toán 0đ (xu cover 100%)
+        $amount = (float) (($booking->total_ticket_amount ?? 0) + ($booking->total_combo_amount ?? 0));
         if ($amount <= 0) {
             return null;
         }
@@ -202,7 +204,7 @@ class MembershipService
             return null;
         }
 
-        return DB::transaction(function () use ($booking, $earnedCoin, $amount) {
+        return DB::transaction(function () use ($booking, $earnedCoin, $amount, $levelName, $ratePercent) {
             // 1. Cộng Coin vào ví
             $coin = Coin::firstOrCreate(['user_id' => $booking->user_id], ['balance' => 0]);
             $coin->increment('balance', $earnedCoin);
@@ -223,6 +225,17 @@ class MembershipService
             }
 
             $this->recalculateLevel($booking->user_id, 'Thăng hạng/Gia hạn tự động khi mua vé thành công');
+
+            // 4. Lưu thông tin coin thưởng vào SepayOrder metadata để hiển thị trên hóa đơn/email
+            $sepayOrder = \App\Models\SepayOrder::where('booking_id', $booking->id)->first();
+            if ($sepayOrder) {
+                $meta = $sepayOrder->metadata ?? [];
+                $meta['coin_earned'] = $earnedCoin;
+                $meta['coin_earn_rate'] = $ratePercent;
+                $meta['membership_level'] = $levelName;
+                $meta['coin_new_balance'] = $coin->fresh()->balance;
+                $sepayOrder->update(['metadata' => $meta]);
+            }
 
             return $transaction;
         });

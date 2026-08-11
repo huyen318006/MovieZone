@@ -54,13 +54,6 @@
                                 <tr>
                                     <td width="50%" style="padding: 8px 0;">
                                         <span
-                                            style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Rạp
-                                            chiếu</span><br>
-                                        <span
-                                            style="color: #e2e8f0; font-size: 14px; font-weight: 500;">{{ $invoice->cinema }}</span>
-                                    </td>
-                                    <td width="50%" style="padding: 8px 0;">
-                                        <span
                                             style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Phòng
                                             chiếu</span><br>
                                         <span

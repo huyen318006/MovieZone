@@ -339,6 +339,21 @@
 @push('scripts')
 
 <script>
+    // Phát hiện người dùng nhấn Back trên trình duyệt để quay về trang trước đó
+    window.addEventListener("pageshow", function (event) {
+        var historyTraversal = event.persisted || 
+                               (typeof window.performance != "undefined" && 
+                                window.performance.navigation.type === 2);
+        if (historyTraversal) {
+            // Đã back lại, chuyển về trang chọn ghế với ?reset=1 để controller reset toàn bộ luồng
+            var resetUrl = "{{ \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? ($showtime->id ?? 0)]) }}";
+            resetUrl += (resetUrl.includes('?') ? '&' : '?') + 'reset=1';
+            window.location.replace(resetUrl);
+        }
+    });
+</script>
+
+<script>
 const seatAmount = {{ session('booking_tam.total_seat_amount',0) }};
 const seatCount = {{ count(session('booking_tam.seats', [])) }};
 const tierDiscountAmount = {{ session('booking_tam.tier_discount_amount',0) }};

@@ -330,10 +330,6 @@
                     <div class="info-value">{{ $showtime->movie->title ?? 'N/A' }}</div>
                 </div>
                 <div class="info-row">
-                    <div class="info-label">Rạp chiếu</div>
-                    <div class="info-value">{{ $showtime->cinema->name ?? 'N/A' }}</div>
-                </div>
-                <div class="info-row">
                     <div class="info-label">Phòng chiếu</div>
                     <div class="info-value">{{ $showtime->room->name ?? 'N/A' }}</div>
                 </div>
