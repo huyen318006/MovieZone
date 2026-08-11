@@ -36,7 +36,6 @@
                         </button>
                     </form>
                 </div>
-            </div>
 
             <div class="seat-map-container">
                 @include('booking.partials._countdown_timer_inline')
