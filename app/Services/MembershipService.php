@@ -176,7 +176,9 @@ class MembershipService
             return null;
         }
 
-        $amount = (float) ($booking->final_amount ?? $booking->total_price ?? 0);
+        // Tính coin thưởng dựa trên tổng giá trị gốc (vé + combo, TRƯỚC giảm giá)
+        // để user luôn được thưởng coin kể cả khi thanh toán 0đ (xu cover 100%)
+        $amount = (float) (($booking->total_ticket_amount ?? 0) + ($booking->total_combo_amount ?? 0));
         if ($amount <= 0) {
             return null;
         }
