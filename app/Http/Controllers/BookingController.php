@@ -880,8 +880,8 @@ $booking = $existingOrder->booking;
             $coinUsed = $bookingTam['coin_used'] ?? 0;
             $coinDiscountVND = $bookingTam['coin_discount_amount'] ?? 0;
 
-            // Tổng giảm giá = voucher + xu
-            $totalDiscount = $voucherDiscount + $coinDiscountVND;
+            // Tổng giảm giá = giảm hạng thành viên + voucher + xu
+            $totalDiscount = $tierDiscountAmount + $voucherDiscount + $coinDiscountVND;
             $finalAmount = $totalTicketAmount + $totalComboAmount - $totalDiscount;
 
             if ($finalAmount < 0) {
