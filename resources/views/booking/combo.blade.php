@@ -338,20 +338,10 @@
 
 @push('scripts')
 
-<script>
-    // Phát hiện người dùng nhấn Back trên trình duyệt để quay về trang trước đó
-    window.addEventListener("pageshow", function (event) {
-        var historyTraversal = event.persisted || 
-                               (typeof window.performance != "undefined" && 
-                                window.performance.navigation.type === 2);
-        if (historyTraversal) {
-            // Đã back lại, chuyển về trang chọn ghế với ?reset=1 để controller reset toàn bộ luồng
-            var resetUrl = "{{ \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $bookingTam['showtime_id'] ?? ($showtime->id ?? 0)]) }}";
-            resetUrl += (resetUrl.includes('?') ? '&' : '?') + 'reset=1';
-            window.location.replace(resetUrl);
-        }
-    });
-</script>
+{{-- KHÔNG tự động redirect về trang chọn ghế khi quay lại bằng Back.
+     Khi user bấm Back từ trang xác nhận (chưa tạo booking) → giữ nguyên trang combo.
+     Trường hợp đã tạo booking (tới bước QR thanh toán) rồi back ra sẽ được confirm page
+     xử lý reset (hủy booking + nhả ghế) ở phía server. --}}
 
 <script>
 const seatAmount = {{ session('booking_tam.total_seat_amount',0) }};

@@ -46,6 +46,22 @@ class BookingController extends Controller
         // hủy booking đang thanh toán (QR) và nhả ghế cho người khác chọn được.
         $isAjaxRefresh = $request->ajax() || $request->has('refresh');
 
+        // User đã tạo booking (đã tới bước tạo mã QR thanh toán) hay chưa?
+        // Chỉ khi đã có booking pending thì việc quay lại trang ghế mới nên hủy booking + nhả ghế.
+        // Quay lại từ trang combo/confirm (chưa tạo booking) → GIỮ NGUYÊN ghế đã chọn.
+        $hasPendingBooking = false;
+        $pendingCode = session('pending_order_code');
+        if ($pendingCode) {
+            $pendingOrder = SepayOrder::where('order_code', $pendingCode)->first();
+            if (
+                $pendingOrder && $pendingOrder->booking
+                && in_array($pendingOrder->booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                && (int) $pendingOrder->booking->user_id === (int) Auth::id()
+            ) {
+                $hasPendingBooking = true;
+            }
+        }
+
         if (! $isAjaxRefresh) {
             $pendingOrderCode = session('pending_order_code');
             if ($pendingOrderCode) {
@@ -122,7 +138,10 @@ class BookingController extends Controller
             // Flag ?reset=1 được gắn từ JS pageshow khi user bấm Back trên trình duyệt
             $shouldReset = $request->boolean('reset');
 
-            if ($shouldReset) {
+            // CHỈ thực sự reset (hủy booking + nhả ghế + xóa session) khi user ĐÃ tạo booking
+            // (đã tới bước tạo mã QR thanh toán). Quay lại từ combo/confirm (chưa tạo booking)
+            // → GIỮ NGUYÊN ghế đã chọn và phiên đặt vé, không nhả ghế.
+            if ($shouldReset && $hasPendingBooking) {
                 // === RESET TOÀN BỘ QUÁ TRÌNH ===
                 session()->forget('booking_tam');
 
@@ -297,7 +316,7 @@ class BookingController extends Controller
 
         $maxSeats = self::MAX_SEATS_PER_BOOKING; // Giới hạn ghế tối đa 1 lần đặt (nguồn duy nhất, dùng cho frontend)
 
-        return response()->view('booking.seat', compact('showtime', 'seatMap', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds', 'maxSeats'))
+        return response()->view('booking.seat', compact('showtime', 'seatMap', 'holdExpiresAt', 'serverTime', 'holdTotalSeconds', 'maxSeats', 'hasPendingBooking'))
             ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
             ->header('Pragma', 'no-cache');
     }
