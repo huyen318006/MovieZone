@@ -575,6 +575,8 @@
     </div>
 
     {{-- Phát hiện khi user rời trang chọn ghế rồi quay lại → redirect với ?reset=1 để server reset timer --}}
+    {{-- QUY TẮC MỚI: chỉ reset (nhả ghế) khi user đã tới bước tạo mã QR thanh toán (đã có booking pending).
+         Quay lại từ trang combo/confirm (chưa tạo booking) → GIỮ NGUYÊN ghế đã chọn. --}}
     <script>
     (function() {
         // Bỏ qua AJAX refresh (polling 2.5s)
@@ -584,6 +586,8 @@
         var timerKey = 'seat_timer_active_' + showtimeId;
         var currentUrl = new URL(window.location.href);
         var hasReset = currentUrl.searchParams.get('reset') === '1';
+        // Server truyền: user đã tạo booking (tới bước QR thanh toán) hay chưa?
+        var hasPendingBooking = @json($hasPendingBooking ?? false);
 
         // Nếu đang xử lý ?reset=1 → đánh dấu lại cho lần sau, xóa ?reset khỏi URL
         if (hasReset) {
@@ -593,6 +597,13 @@
             return;
         }
 
+        // Chưa tạo booking → quay lại từ combo/confirm: GIỮ NGUYÊN ghế, KHÔNG reset/nhả ghế.
+        if (!hasPendingBooking) {
+            sessionStorage.setItem(timerKey, '1');
+            return;
+        }
+
+        // Đã tạo booking → quay lại từ trang QR thanh toán: cho phép reset toàn bộ luồng (server nhả ghế).
         // Kiểm tra kiểu navigation: F5/reload → giữ nguyên timer, navigate/back_forward → reset
         var isReload = false;
         try {
