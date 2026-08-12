@@ -20,6 +20,8 @@ use Illuminate\Support\Facades\Log;
 
 class StaffBookingService
 {
+    public const MAX_SEATS_PER_BOOKING = 8;
+
     public function __construct() {}
 
     // Lấy danh sách phim có suất chiếu sắp tới, kèm danh sách suất chiếu
@@ -277,6 +279,10 @@ class StaffBookingService
             throw new \Exception('Vui lòng chọn ít nhất 1 ghế.');
         }
 
+        if (count($seatIds) > self::MAX_SEATS_PER_BOOKING) {
+            throw new \Exception('Không thể chọn quá ' . self::MAX_SEATS_PER_BOOKING . ' ghế trong một lần đặt vé.');
+        }
+
         $seats = ShowtimeSeat::with('seat')->whereIn('id', $seatIds)->get();
         if ($seats->count() !== count($seatIds)) {
             throw new \Exception('Một số ghế không tồn tại.');
@@ -298,6 +304,10 @@ class StaffBookingService
                 ->where('booking_seats.showtime_seat_id', $seat->id)
                 ->where('bookings.showtime_id', $showtimeId)
                 ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+                ->where(function ($q) {
+                    $q->whereNull('bookings.expired_at')
+                      ->orWhere('bookings.expired_at', '>', now());
+                })
                 ->exists();
 
             if ($isSold) {
@@ -305,8 +315,10 @@ class StaffBookingService
             }
         }
 
-        if ($this->hasSingleSeatGap($showtimeId, $seatIds)) {
-            throw new \Exception('Vị trí chọn không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống ở giữa hoặc ở đầu/cuối hàng.');
+        $gapSeats = $this->hasSingleSeatGap($showtimeId, $seatIds);
+        if (! empty($gapSeats)) {
+            $gapSeatLabel = implode(', ', $gapSeats);
+            throw new \Exception("Vị trí chọn ghế không hợp lệ! Bạn đang bỏ trống ghế lẻ: {$gapSeatLabel}. Vui lòng chọn thêm ghế liền kề hoặc đổi vị trí để không tạo ghế trống đơn lẻ trong hàng.");
         }
 
         return [
@@ -315,7 +327,7 @@ class StaffBookingService
         ];
     }
 
-    private function hasSingleSeatGap(int $showtimeId, array $selectedSeatIds): bool
+    private function hasSingleSeatGap(int $showtimeId, array $selectedSeatIds): array
     {
         $allShowtimeSeats = ShowtimeSeat::with('seat')
             ->where('showtime_id', $showtimeId)
@@ -325,6 +337,10 @@ class StaffBookingService
             ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
             ->where('bookings.showtime_id', $showtimeId)
             ->whereIn('bookings.status', ['PAID', 'PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
+            ->where(function ($q) {
+                $q->whereNull('bookings.expired_at')
+                  ->orWhere('bookings.expired_at', '>', now());
+            })
             ->pluck('booking_seats.showtime_seat_id')
             ->all();
 
@@ -357,10 +373,28 @@ class StaffBookingService
             $matrix[$row][$num] = $status;
         }
 
+        $orphanCodes = []; // Gom mã ghế trống đang bị bỏ lẻ
+
         foreach ($matrix as $row => $rowSeats) {
             ksort($rowSeats);
             $seatNumbers = array_keys($rowSeats);
             $totalInRow = count($seatNumbers);
+
+            // Đếm số ghế trống của hàng TRƯỚC khi khách chọn
+            $remainingEmptyBefore = 0;
+            $selectedInRow = 0;
+            foreach ($rowSeats as $status) {
+                if ($status === 'AVAILABLE' || $status === 'SELECTED') {
+                    $remainingEmptyBefore++;
+                }
+                if ($status === 'SELECTED') {
+                    $selectedInRow++;
+                }
+            }
+
+            if ($remainingEmptyBefore <= 2 && $selectedInRow === 1) {
+                continue;
+            }
 
             for ($i = 0; $i < $totalInRow; $i++) {
                 $currentNum = $seatNumbers[$i];
@@ -390,13 +424,20 @@ class StaffBookingService
                     }
 
                     if ($leftBlocked && $rightBlocked) {
-                        return true;
+                        $leftIsSelected = ($i > 0) && ($rowSeats[$seatNumbers[$i - 1]] === 'SELECTED')
+                            && ($seatNumbers[$i - 1] === $currentNum - 1);
+                        $rightIsSelected = ($i < $totalInRow - 1) && ($rowSeats[$seatNumbers[$i + 1]] === 'SELECTED')
+                            && ($seatNumbers[$i + 1] === $currentNum + 1);
+
+                        if ($leftIsSelected || $rightIsSelected) {
+                            $orphanCodes[] = $row.str_pad((string) $currentNum, 2, '0', STR_PAD_LEFT);
+                        }
                     }
                 }
             }
         }
 
-        return false;
+        return $orphanCodes;
     }
 
     /**

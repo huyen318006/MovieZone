@@ -854,78 +854,124 @@ if (selectedSeats.size > 0) {
         });
 
         // =================================================================
-        // KIỂM TRA LỖI LẺ 1 GHẾ TRỐNG KHI BẤM TIẾP TỤC (giống Customer)
+        // ĐOẠN MÃ MỚI: KIỂM TRA LỖI LẺ 1 GHẾ TRỐNG KHI BẤM TIẾP TỤC
         // =================================================================
-        function checkSingleSeatGap() {
-            const allSeats = document.querySelectorAll('.seat');
-            let seatMap = {};
+        if (bookingForm) {
+            bookingForm.addEventListener('submit', function(e) {
+                const allSeats = document.querySelectorAll('.seat');
+                let seatMap = {};
 
-            allSeats.forEach(seat => {
-                const seatCode = seat.getAttribute('data-seat');
-                if (!seatCode) return;
+                // 1. Quét toàn bộ cấu hình ghế hiển thị trên màn hình hiện tại
+                allSeats.forEach(seat => {
+                    const seatCode = seat.getAttribute('data-seat');
+                    if (!seatCode) return;
 
-                let status = 'available';
-                if (seat.classList.contains('HELD_BY_ME')) {
-                    status = 'selected';
-                } else if (
-                    seat.classList.contains('SOLD') ||
-                    seat.classList.contains('HELD') ||
-                    seat.classList.contains('BLOCKED') ||
-                    seat.classList.contains('LOCKED') ||
-                    seat.disabled
-                ) {
-                    status = 'unavailable';
-                }
+                    // Phân loại trạng thái ghế chuẩn theo Class hiện tại trên giao diện
+                    let status = 'available';
+                    if (seat.classList.contains('HELD_BY_ME')) {
+                        status = 'selected'; // Ghế staff đang chọn
+                    } else if (
+                        seat.classList.contains('SOLD') ||
+                        seat.classList.contains('HELD') ||
+                        seat.classList.contains('BLOCKED') ||
+                        seat.classList.contains('LOCKED') ||
+                        seat.disabled
+                    ) {
+                        status = 'unavailable'; // Ghế không thể mua
+                    }
 
-                const codes = seatCode.split(',');
-                codes.forEach(code => {
-                    const rowMatch = code.match(/[a-zA-Z]+/);
-                    const numMatch = code.match(/\d+/);
-                    if (!rowMatch || !numMatch) return;
+                    // Hỗ trợ xử lý data-seat chứa nhiều ghế (COUPLE gộp, ví dụ "J1,J2")
+                    const codes = seatCode.split(',');
+                    codes.forEach(code => {
+                        const rowMatch = code.match(/[a-zA-Z]+/);
+                        const numMatch = code.match(/\d+/);
+                        if (!rowMatch || !numMatch) return;
 
-                    const row = rowMatch[0].toUpperCase();
-                    const num = parseInt(numMatch[0]);
+                        const row = rowMatch[0].toUpperCase();
+                        const num = parseInt(numMatch[0]);
 
-                    if (!seatMap[row]) seatMap[row] = {};
-                    seatMap[row][num] = status;
+                        if (!seatMap[row]) {
+                            seatMap[row] = {};
+                        }
+                        seatMap[row][num] = status;
+                    });
                 });
-            });
 
-            for (let row in seatMap) {
-                for (let numStr in seatMap[row]) {
-                    let num = parseInt(numStr);
-                    if (seatMap[row][num] === 'available') {
-                        let leftStatus = seatMap[row][num - 1] || 'wall';
-                        let rightStatus = seatMap[row][num + 1] || 'wall';
+                let orphanSeats = []; // Gom các mã ghế trống đang bị để lẻ để báo rõ
 
-                        let isLeftBlocked = (leftStatus !== 'available');
-                        let isRightBlocked = (rightStatus !== 'available');
+                // 2. Thuật toán kiểm tra ghế trống bị cô lập thông minh
+                for (let row in seatMap) {
+                    let remainingEmptyBefore = 0;
+                    let selectedInRow = 0;
+                    for (let numStr in seatMap[row]) {
+                        if (seatMap[row][numStr] === 'available' || seatMap[row][numStr] === 'selected') {
+                            remainingEmptyBefore++;
+                        }
+                        if (seatMap[row][numStr] === 'selected') {
+                            selectedInRow++;
+                        }
+                    }
+                    if (remainingEmptyBefore <= 2 && selectedInRow === 1) {
+                        continue;
+                    }
 
-                        if (isLeftBlocked && isRightBlocked) {
-                            if (leftStatus === 'selected' || rightStatus === 'selected') {
-                                return true;
+                    for (let numStr in seatMap[row]) {
+                        let num = parseInt(numStr);
+
+                        // CHỈ xét những ghế đang thực sự TRỐNG (available)
+                        if (seatMap[row][num] === 'available') {
+                            // Lấy trạng thái 2 bên cạnh (Nếu không có ghế bên cạnh -> coi như là Tường/Lối đi)
+                            let leftStatus = seatMap[row][num - 1] || 'wall';
+                            let rightStatus = seatMap[row][num + 1] || 'wall';
+
+                            // Ghế trống này bị chặn 2 bên nếu hàng xóm không phải là ghế trống ('available')
+                            let isLeftBlocked = (leftStatus !== 'available');
+                            let isRightBlocked = (rightStatus !== 'available');
+
+                            // Nếu bị kẹp cứng cả 2 bên (Trở thành ghế lẻ duy nhất)
+                            if (isLeftBlocked && isRightBlocked) {
+                                // CHỈ tính là lỗi nếu ít nhất 1 trong 2 bên chặn nó là ghế DO KHÁCH NÀY ĐANG CHỌN ('selected')
+                                if (leftStatus === 'selected' || rightStatus === 'selected') {
+                                    // Gom lại mã ghế bị bỏ trống để báo rõ
+                                    const orphanCode = row + String(num).padStart(2, '0');
+                                    if (!orphanSeats.includes(orphanCode)) {
+                                        orphanSeats.push(orphanCode);
+                                    }
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            return false;
-        }
+                const hasError = orphanSeats.length > 0;
 
-        if (bookingForm) {
-            bookingForm.addEventListener('submit', (e) => {
-                if (checkSingleSeatGap()) {
-                    e.preventDefault();
+                // 3. Xử lý xuất thông báo trực quan
+                if (hasError) {
+                    e.preventDefault(); // Chặn đứng hành động gửi form
+
                     const errorBox = document.getElementById('ajax-error-box');
-                    errorBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Vị trí chọn ghế không hợp lệ! Vui lòng không để trống duy nhất 1 ghế trống bên cạnh ghế bạn chọn hoặc ở đầu/cuối hàng.';
-                    errorBox.style.display = 'block';
-                    errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    return;
+                    const seatLabel = orphanSeats.join(', ');
+                    const summary = orphanSeats.length > 1
+                        ? `Bạn đang bỏ trống các ghế lẻ: <b>${seatLabel}</b>.`
+                        : `Bạn đang bỏ trống 1 ghế lẻ: <b>${seatLabel}</b>.`;
+
+                    if (errorBox) {
+                        errorBox.innerHTML =
+                            `<i class="fa-solid fa-triangle-exclamation"></i> Vị trí chọn ghế không hợp lệ! ${summary} Vui lòng chọn thêm ghế liền kề hoặc đổi vị trí để không tạo ghế trống đơn lẻ trong hàng.`;
+                        errorBox.style.display = 'block'; // Hiện hộp thông báo màu đỏ lên
+
+                        errorBox.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    } else {
+                        alert(`Vị trí chọn ghế không hợp lệ! ${summary} Vui lòng chọn thêm ghế liền kề hoặc đổi vị trí.`);
+                    }
+                } else {
+                    skipReleaseOnNavigate = true;
+                    selectedSeats.clear();
+                    clearSelectedSeatsStorage();
                 }
-                skipReleaseOnNavigate = true;
-                selectedSeats.clear();
-                clearSelectedSeatsStorage();
             });
         }
 
