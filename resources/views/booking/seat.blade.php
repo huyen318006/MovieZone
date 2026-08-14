@@ -798,6 +798,8 @@ const seatIds = seatIdAttr.split(',');
                     let lastMessage = '';
                     let lastServerTime = null;
                     let lastExpiresAt = null;
+                    // M2-FIX: Track ghế đã hold thành công để rollback nếu ghế sau fail (COUPLE)
+                    let successfullyHeldIds = [];
 
                     for (const sId of seatIds) {
                         const response = await fetch(holdSeatUrl.toString(), {
@@ -829,7 +831,35 @@ const seatIds = seatIdAttr.split(',');
                                     document.getElementById('seatExpiredOverlay').classList.add('show');
                                 }
                             }
+
+                            // M2-FIX: Rollback tất cả ghế đã hold trong batch này
+                            if (isSelecting && successfullyHeldIds.length > 0) {
+                                for (const heldId of successfullyHeldIds) {
+                                    try {
+                                        await fetch(holdSeatUrl.toString(), {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                                            },
+                                            body: JSON.stringify({
+                                                showtime_id: "{{ $showtime->id }}",
+                                                seat_id: heldId,
+                                                action: 'release'
+                                            })
+                                        });
+                                    } catch (rollbackErr) {
+                                        console.error('Rollback failed for seat', heldId, rollbackErr);
+                                    }
+                                }
+                            }
+
                             break;
+                        }
+
+                        // Track ghế vừa hold thành công
+                        if (isSelecting) {
+                            successfullyHeldIds.push(sId);
                         }
 
                         // Cập nhật serverTime và expiresAt từ response

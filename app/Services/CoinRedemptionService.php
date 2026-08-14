@@ -60,8 +60,10 @@ class CoinRedemptionService
     public function applyCoinDiscount(int $userId, int $coinAmount, array $bookingData): array
     {
         $subtotal = ($bookingData['total_seat_amount'] ?? 0) + ($bookingData['total_combo_amount'] ?? 0);
+        $tierDiscount = $bookingData['tier_discount_amount'] ?? 0;
         $voucherDiscount = $bookingData['discount_amount'] ?? 0;
-        $amountAfterVoucher = max(0, $subtotal - $voucherDiscount);
+        // H1-FIX: Phải trừ cả tier_discount_amount
+        $amountAfterVoucher = max(0, $subtotal - $tierDiscount - $voucherDiscount);
 
         $maxInfo = $this->calculateMaxRedeemable($userId, $amountAfterVoucher);
 
@@ -103,11 +105,13 @@ class CoinRedemptionService
     public function removeCoinDiscount(array $bookingData): array
     {
         $subtotal = ($bookingData['total_seat_amount'] ?? 0) + ($bookingData['total_combo_amount'] ?? 0);
+        $tierDiscount = $bookingData['tier_discount_amount'] ?? 0;
         $voucherDiscount = $bookingData['discount_amount'] ?? 0;
 
         $bookingData['coin_used'] = 0;
         $bookingData['coin_discount_amount'] = 0;
-        $bookingData['total'] = max(0, $subtotal - $voucherDiscount);
+        // H1-FIX: Phải trừ cả tier_discount_amount khi tính lại total
+        $bookingData['total'] = max(0, $subtotal - $tierDiscount - $voucherDiscount);
 
         return $bookingData;
     }

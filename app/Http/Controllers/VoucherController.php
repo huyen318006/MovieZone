@@ -98,7 +98,12 @@ class VoucherController extends Controller
         $booking['voucher_id'] = null;
         $booking['voucher_code'] = null;
         $booking['discount_amount'] = 0;
-        $booking['total'] = $booking['subtotal'];
+        // C3-FIX: Tính lại total đúng — phải trừ giảm hạng + xu (nếu có)
+        $booking['total'] = max(0,
+            ($booking['subtotal'] ?? 0)
+            - ($booking['tier_discount_amount'] ?? 0)
+            - ($booking['coin_discount_amount'] ?? 0)
+        );
 
         session([
             'booking_tam' => $booking
