@@ -78,33 +78,40 @@ class Room extends Model
     }
 
     /**
-     * Đếm số ghế đang bị giữ (HELD) trong các suất chiếu chưa kết thúc.
+     * Đếm số ghế đang bị giữ (booking PENDING chưa thanh toán) trong các suất chiếu chưa kết thúc.
+     * H2-FIX: Hệ thống dùng Cache để giữ ghế, showtime_seats.status không được cập nhật.
+     * Nên đếm từ booking_seats với booking đang PENDING.
      */
     public function heldSeatsCount(): int
     {
-        return ShowtimeSeat::whereIn('showtime_id', $this->activeShowtimes()->pluck('id'))
-            ->where('status', 'HELD')
-            ->where('held_until', '>', now())
+        return \DB::table('booking_seats')
+            ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+            ->whereIn('bookings.showtime_id', $this->activeShowtimes()->pluck('id'))
+            ->whereIn('bookings.status', ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])
             ->count();
     }
 
     /**
-     * Đếm số ghế đã bán (SOLD) trong các suất chiếu chưa kết thúc.
+     * Đếm số ghế đã bán (booking PAID) trong các suất chiếu chưa kết thúc.
+     * H3-FIX: Tương tự H2, đếm từ booking_seats thay vì showtime_seats.status.
      */
     public function soldSeatsCount(): int
     {
-        return ShowtimeSeat::whereIn('showtime_id', $this->activeShowtimes()->pluck('id'))
-            ->where('status', 'SOLD')
+        return \DB::table('booking_seats')
+            ->join('bookings', 'bookings.id', '=', 'booking_seats.booking_id')
+            ->whereIn('bookings.showtime_id', $this->activeShowtimes()->pluck('id'))
+            ->where('bookings.status', 'PAID')
             ->count();
     }
 
     /**
      * Đếm số booking chưa hoàn tất liên quan đến phòng này.
+     * H4-FIX: Thay 'CONFIRMED' (không tồn tại) bằng các status thực tế của hệ thống.
      */
     public function activeBookingsCount(): int
     {
         return Booking::whereIn('showtime_id', $this->activeShowtimes()->pluck('id'))
-            ->whereIn('status', ['PENDING', 'CONFIRMED'])
+            ->whereIn('status', ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT', 'PAID'])
             ->count();
     }
 

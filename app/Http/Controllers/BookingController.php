@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Services\TicketService;
+use App\Models\VoucherUsage;
 
 class BookingController extends Controller
 {
@@ -777,7 +778,10 @@ $request->validate([
         if (Auth::check() && $showtimeId) {
             foreach ($seatIds as $seatId) {
                 $cacheKey = 'seat_held_' . $showtimeId . '_' . $seatId;
-                Cache::forget($cacheKey);
+                // M3-FIX: Chỉ xóa cache nếu ghế thuộc user hiện tại (tránh release ghế người khác)
+                if (Cache::get($cacheKey) == Auth::id()) {
+                    Cache::forget($cacheKey);
+                }
             }
 
             $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtimeId;
@@ -1097,6 +1101,16 @@ $booking = $existingOrder->booking;
                 ],
             ]);
 
+            // C1-FIX: Ghi nhận VoucherUsage để voucher không bị dùng lại vô hạn
+            if (!empty($bookingTam['voucher_id'])) {
+                VoucherUsage::create([
+                    'voucher_id' => $bookingTam['voucher_id'],
+                    'user_id'    => Auth::id(),
+                    'booking_id' => $booking->id,
+                    'used_at'    => now(),
+                ]);
+            }
+
             DB::commit();
 
             // Lưu order code vào session để guard chống tạo booking trùng + dùng khi quay lại
@@ -1281,7 +1295,7 @@ $orphanCodes = []; // Gom mã ghế trống đang bị bỏ lẻ (do chính khá
 
 // Hủy booking nếu còn ở trạng thái chờ thanh toán
         $booking = $order->booking;
-        if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT'])) {
+        if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
             $booking->update([
                 'status' => 'CANCELLED',
                 'payment_status' => $booking->payment_status === 'PAID' ? 'REFUNDED' : 'FAILED',

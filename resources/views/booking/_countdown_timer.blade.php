@@ -37,7 +37,8 @@
             <span>Đang chuyển về chọn ghế... (<span id="redirectCountdown">3</span>s)</span>
         </div>
         @php
-            $resolvedShowtimeId = $showtime_id ?? (session('booking_tam.showtime_id') ?? null);
+            // M1-FIX: Hỗ trợ cả $resolvedShowtimeId (từ confirm.blade) và $showtime_id (từ seat.blade)
+            $resolvedShowtimeId = $resolvedShowtimeId ?? $showtime_id ?? (session('booking_tam.showtime_id') ?? null);
             $seatResetUrl = $resolvedShowtimeId
                 ? \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId]) . (str_contains(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId]), '?') ? '&' : '?') . 'reset=1'
                 : \App\Helpers\TabAuthHelper::route('showtimes');
