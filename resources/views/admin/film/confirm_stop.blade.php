@@ -37,6 +37,15 @@
                     @csrf
                     <input type="hidden" name="toggle_action" value="stop">
                     
+                    <div class="mb-4">
+                        <label for="cancel_reason" class="form-label fw-bold">Lý do ngừng chiếu <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3" maxlength="255" required placeholder="Nhập lý do ngừng chiếu bộ phim này..."></textarea>
+                        <div class="form-text">Tối đa 255 ký tự.</div>
+                        @error('cancel_reason')
+                            <div class="text-danger mt-1 small">{{ $message }}</div>
+                        @enderror
+                    </div>
+
                     <div class="d-flex gap-2 justify-content-end">
                         <a href="{{ \App\Helpers\TabAuthHelper::route('admin.film') }}" class="btn btn-outline-secondary">
                             <i class="bi bi-arrow-left"></i> Quay lại

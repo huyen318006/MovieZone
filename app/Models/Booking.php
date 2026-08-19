@@ -22,7 +22,9 @@ class Booking extends Model
         'status',
         'payment_status',
         'expired_at',
-        'paid_at'
+        'paid_at',
+        'canceled_reason',
+        'canceled_by',
     ];
 
     public function user()

@@ -485,16 +485,24 @@ class FilmManageController extends Controller
 
         // Xử lý luồng ngừng chiếu phim (ENDED)
         if ($action === 'stop') {
+            
+            $validated = $request->validate([
+                'cancel_reason' => 'required|string|max:255'
+            ], [
+                'cancel_reason.required' => 'Vui lòng nhập lý do ngừng chiếu.',
+                'cancel_reason.max' => 'Lý do ngừng chiếu tối đa 255 ký tự.',
+            ]);
+            $cancelReason = trim($validated['cancel_reason']);
 
             // Tạo một mảng để chứa danh sách các đơn hàng cần gửi mail sau khi cập nhật xong DB
             $bookingsToEmail = [];
 
-            DB::transaction(function () use ($movie, $id, &$bookingsToEmail) {
+            DB::transaction(function () use ($movie, $id, &$bookingsToEmail, $cancelReason) {
 
                 // 1. Cập nhật trạng thái phim thành ENDED và gán ngày kết thúc chiếu là hôm nay
                 $movie->update([
                     'status' => 'ENDED',
-                    'end_date' => now()->toDateString()
+                    'end_date' => now()->toDateString(),
                 ]);
 
                 // 2. Tìm tất cả các suất chiếu tương lai của bộ phim này
@@ -507,19 +515,25 @@ class FilmManageController extends Controller
 
                 // 3. Chuyển trạng thái của các suất chiếu tương lai đó thành CANCELLED (Đã hủy)
                 Showtime::whereIn('id', $showtimeIds)
-                    ->update(['status' => 'CANCELLED']);
+                    ->update([
+                        'status' => 'CANCELLED',
+                        'cancel_reason' => $cancelReason,
+                        'cancelled_at' => now(),
+                    ]);
 
                 // 4. Lấy các đơn đặt vé (PAID hoặc PENDING) liên quan đến các suất chiếu bị hủy
                 $bookings = Booking::whereIn('showtime_id', $showtimeIds)
                     ->whereIn('status', ['PAID', 'PENDING'])
-                    ->with(['user', 'showtime.movie'])   // ← Thêm dòng này
+                    ->with(['user', 'showtime.movie'])
                     ->get();
 
-
-
                 // 5. Hủy các đơn hàng và chuyển trạng thái thanh toán của đơn PAID sang REFUNDED (hoàn tiền)
+                $adminId = auth()->id();
+
                 foreach ($bookings as $b) {
                     $b->status = 'CANCELLED';
+                    $b->canceled_reason = $cancelReason;
+                    $b->canceled_by = $adminId;
 
                     if ($b->payment_status === 'PAID') {
                         $b->payment_status = 'REFUNDED';
@@ -537,6 +551,17 @@ class FilmManageController extends Controller
                     }
 
                     $b->save();
+                    
+                    // Lưu lý do hủy vào bảng BookingCancellation
+                    \App\Models\BookingCancellation::updateOrCreate([
+                        'booking_id' => $b->id,
+                    ], [
+                        'type' => 'CANCELLATION',
+                        'canceled_by' => $adminId,
+                        'reason' => $cancelReason,
+                        'refund_status' => null,
+                        'notes' => ['source' => 'film_stopped'],
+                    ]);
 
                     // KHÔNG gửi mail trực tiếp ở đây nữa. Gom đơn hàng vào mảng tạm
                     if ($b->user && $b->user->email) {
@@ -549,10 +574,9 @@ class FilmManageController extends Controller
                             ];
                         }
                         $bookingsToEmail[$userId]['bookings'][] = $b;
-
-
                     }
                 }
+
             });
 
             // --- ĐƯA LUỒNG GỬI MAIL RA NGOÀI TRANSACTION VÀ VÒNG LẶP CẬP NHẬT DB ---
