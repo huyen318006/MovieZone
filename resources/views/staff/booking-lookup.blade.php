@@ -844,16 +844,11 @@ const BookingLookup = (() => {
         // Section 8: Tickets/QR
         if (d.tickets && d.tickets.length > 0) {
             let ticketHtml = d.tickets.map(t => {
-                const statusBadge = `<span class="badge-status badge-${t.status === 'USED' ? 'PAID' : t.status === 'UNUSED' ? 'PENDING' : 'CANCELLED'}">${t.status}</span>`;
-                const checkinInfo = t.status === 'USED' && t.checked_in_by
-                    ? `<div class="ticket-checkin">✅ Check-in: ${fmtDate(t.checked_in_at)} bởi ${t.checked_in_by.name}</div>` : '';
                 return `<div class="ticket-card">
                     <div class="ticket-info">
                         <div class="ticket-code">${t.ticket_code}</div>
                         <div class="ticket-seat">Ghế: ${t.seat_code || 'N/A'}</div>
-                        ${checkinInfo}
                     </div>
-                    ${statusBadge}
                 </div>`;
             }).join('');
             html += `<div class="detail-section">

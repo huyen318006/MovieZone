@@ -788,16 +788,9 @@
                     <span class="ticket-info-label">Ghế</span>
                     <span class="ticket-info-value">${ticket.seat_code || 'N/A'} (${ticket.seat_type || ''})</span>
                 </div>
-                <div class="ticket-info-item">
-                    <span class="ticket-info-label">Trạng thái</span>
-                    <span class="ticket-info-value status-badge ${ticket.status?.toLowerCase()}">${ticket.status}</span>
-                </div>
+
             </div>
-            ${ticket.checked_in_at ? `
-                            <div style="margin-top:12px; padding:10px 14px; background:rgba(245,158,11,0.1); border-radius:8px; font-size:13px;">
-                                <i class="bi bi-info-circle"></i> Đã in vé lúc <strong>${formatDateTime(ticket.checked_in_at)}</strong> bởi <strong>${ticket.checked_in_by_name || 'N/A'}</strong>
-                            </div>
-                        ` : ''}
+
         </div>
         ${data.can_checkin ? `
                         <div class="confirm-card-actions">
@@ -859,8 +852,7 @@
             <span style="flex:1; font-size:13px; min-width:0;">
                 ${isScanned ? '<i class="bi bi-arrow-left-short" style="color:var(--staff-primary); font-weight:700;" title="Vé vừa quét"></i>' : ''}
             </span>
-            <span class="status-badge ${t.status.toLowerCase()}">${t.status}</span>
-            ${t.checked_in_at ? `<span style="font-size:11px; color:var(--staff-text-muted);">${formatDateTime(t.checked_in_at)}</span>` : ''}
+
 
         </div>
     `
