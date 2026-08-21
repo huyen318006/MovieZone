@@ -4,7 +4,7 @@
 
 @section('content')
 
-    <form method="POST" action="{{ \App\Helpers\TabAuthHelper::route('update.film', ['id' => $movie_id->id]) }}" enctype="multipart/form-data">
+    <form id="update-film-form" method="POST" action="{{ \App\Helpers\TabAuthHelper::route('update.film', ['id' => $movie_id->id]) }}" enctype="multipart/form-data">
 
         @csrf
 
@@ -152,7 +152,7 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Thời lượng (phút) <span class="text-danger">*</span></label>
                                 <input type="number" name="duration_minutes" value="{{ $movie_id->duration_minutes }}"
-                                    class="form-control @error('duration_minutes') is-invalid @enderror" required>
+                                    class="form-control @error('duration_minutes') is-invalid @enderror" required readonly>
                                 @error('duration_minutes')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -487,6 +487,57 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = false;
         }
     });
+    // Form submit intercept
+    const updateForm = document.getElementById('update-film-form');
+    if (updateForm) {
+        updateForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const endDate = document.getElementById('end_date')?.value;
+            
+            if (!endDate) {
+                updateForm.submit();
+                return;
+            }
+
+            try {
+                const res = await fetch("{{ \App\Helpers\TabAuthHelper::route('admin.film.check_affected', ['id' => $movie_id->id]) }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({ end_date: endDate })
+                });
+
+                const data = await res.json();
+                
+                if (data && data.affected_showtimes > 0) {
+                    const msg = `CẢNH BÁO: Việc thay đổi ngày kết thúc sớm sẽ tự động HỦY ${data.affected_showtimes} suất chiếu và HOÀN TIỀN cho ${data.affected_bookings} vé đặt trước.\n\nVui lòng nhập lý do hủy suất chiếu (Bắt buộc):`;
+                    const reason = prompt(msg, 'Rút ngắn lịch chiếu phim');
+                    
+                    if (reason === null) {
+                        return; // Người dùng bấm Hủy
+                    }
+                    if (reason.trim() === '') {
+                        alert('Bạn phải nhập lý do hủy để có thể tiếp tục cập nhật.');
+                        return;
+                    }
+                    
+                    // Thêm input ẩn chứa lý do hủy
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'cancel_reason';
+                    input.value = reason;
+                    updateForm.appendChild(input);
+                }
+                
+                updateForm.submit();
+            } catch (err) {
+                console.error(err);
+                alert('Đã xảy ra lỗi khi kiểm tra ảnh hưởng suất chiếu.');
+            }
+        });
+    }
 });
 </script>
 @endpush
