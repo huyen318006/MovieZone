@@ -236,6 +236,7 @@ Route::middleware(['tab.auth', 'admin'])->controller(FilmManageController::class
     //sửa thông tin film
     Route::get('/admin/view/update/film/{id}','viewupdate')->name('admin.view.update.film');
     Route::post('/admin/updatefilm/{id}','update')->name('update.film');
+    Route::post('/admin/film/{id}/check-affected', 'checkAffectedShowtimes')->name('admin.film.check_affected');
     Route::post('/movies/check-slots',  'apiCheckSlots')->name('admin.movies.check-slots');
 
     //bắt đầu phần khó liên quan đến trạng thái thanh toán suất chiếu cụ thể

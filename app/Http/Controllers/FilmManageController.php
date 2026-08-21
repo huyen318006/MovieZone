@@ -346,6 +346,31 @@ class FilmManageController extends Controller
         ]);
     }
 
+    public function checkAffectedShowtimes(Request $request, $id)
+    {
+        $endDate = $request->input('end_date');
+        if (!$endDate) {
+            return response()->json(['affected_showtimes' => 0, 'affected_bookings' => 0]);
+        }
+
+        $endOfDay = Carbon::parse($endDate)->endOfDay();
+
+        $showtimes = Showtime::where('movie_id', $id)
+            ->where('start_time', '>', $endOfDay)
+            ->where('status', '!=', 'CANCELLED');
+
+        $showtimeCount = $showtimes->count();
+
+        $bookingCount = Booking::whereIn('showtime_id', $showtimes->pluck('id'))
+            ->whereIn('status', ['PAID', 'PENDING'])
+            ->count();
+
+        return response()->json([
+            'affected_showtimes' => $showtimeCount,
+            'affected_bookings' => $bookingCount
+        ]);
+    }
+
     /** Hướng giải quyết cập nhật phim theo nghiệp vụ rạp chiếu
      * ae có thể tham khảo =)
      * Cập nhật thông tin phim theo đúng nghiệp vụ rạp chiếu.
@@ -427,6 +452,101 @@ class FilmManageController extends Controller
                     'movie_id' => $movie->id,
                     'type_name_room' => (string) $roomType,
                 ]);
+            }
+        }
+
+        // ── Xử lý huỷ suất chiếu và hoàn tiền nếu ngày kết thúc bị rút ngắn ──
+        if ($request->filled('cancel_reason') && $payload['end_date']) {
+            $endOfDay = Carbon::parse($payload['end_date'])->endOfDay();
+            $cancelReason = $request->input('cancel_reason');
+
+            $bookingsToEmail = [];
+
+            DB::transaction(function () use ($id, $endOfDay, $cancelReason, &$bookingsToEmail) {
+                $showtimes = Showtime::where('movie_id', $id)
+                    ->where('start_time', '>', $endOfDay)
+                    ->where('status', '!=', 'CANCELLED')
+                    ->get();
+
+                if ($showtimes->count() > 0) {
+                    $showtimeIds = $showtimes->pluck('id');
+                    
+                    Showtime::whereIn('id', $showtimeIds)->update([
+                        'status' => 'CANCELLED',
+                        'cancel_reason' => $cancelReason,
+                        'cancelled_at' => now(),
+                    ]);
+
+                    $bookings = Booking::whereIn('showtime_id', $showtimeIds)
+                        ->whereIn('status', ['PAID', 'PENDING'])
+                        ->with(['user', 'showtime.movie'])
+                        ->get();
+
+                    $adminId = auth()->id();
+
+                    foreach ($bookings as $b) {
+                        $b->status = 'CANCELLED';
+                        $b->canceled_reason = $cancelReason;
+                        $b->canceled_by = $adminId;
+
+                        if ($b->payment_status === 'PAID') {
+                            $b->payment_status = 'REFUNDED';
+                            $refundAmount = (int) round((float) ($b->final_amount ?? 0));
+                            
+                            // 1. Hoàn lại số tiền VND đã thanh toán thành xu
+                            if ($refundAmount > 0 && $b->user_id) {
+                                $coin = Coin::firstOrCreate(
+                                    ['user_id' => $b->user_id],
+                                    ['balance' => 0]
+                                );
+                                $coin->balance = (int) $coin->balance + $refundAmount;
+                                $coin->save();
+                            }
+
+                            // 2. Hoàn lại số xu gốc đã sử dụng để giảm giá đơn hàng
+                            if ($b->user_id) {
+                                $redeemTx = \App\Models\PointTransaction::where('booking_id', $b->id)
+                                    ->where('type', 'REDEEM')
+                                    ->first();
+                                if ($redeemTx) {
+                                    app(\App\Services\CoinRedemptionService::class)->refundCoins(
+                                        $b->user_id,
+                                        abs($redeemTx->points),
+                                        $b->id
+                                    );
+                                }
+                            }
+                        }
+                        $b->save();
+
+                        \App\Models\BookingCancellation::updateOrCreate([
+                            'booking_id' => $b->id,
+                        ], [
+                            'type' => 'CANCELLATION',
+                            'canceled_by' => $adminId,
+                            'reason' => $cancelReason,
+                            'refund_status' => null,
+                            'notes' => json_encode(['source' => 'early_end_date']),
+                        ]);
+
+                        if ($b->user && $b->user->email) {
+                            $userId = $b->user_id;
+                            if (!isset($bookingsToEmail[$userId])) {
+                                $bookingsToEmail[$userId] = ['user' => $b->user, 'bookings' => []];
+                            }
+                            $bookingsToEmail[$userId]['bookings'][] = $b;
+                        }
+                    }
+                }
+            });
+
+            foreach ($bookingsToEmail as $data) {
+                try {
+                    Mail::to($data['user']->email)->send(new FilmCancelledNotification($data['bookings']));
+                    usleep(500000);
+                } catch (\Exception $e) {
+                    Log::error("Lỗi gửi mail: " . $e->getMessage());
+                }
             }
         }
 
@@ -539,6 +659,8 @@ class FilmManageController extends Controller
                         $b->payment_status = 'REFUNDED';
 
                         $refundAmount = (int) round((float) ($b->final_amount ?? 0));
+                        
+                        // 1. Hoàn lại số tiền VND đã thanh toán thành xu
                         if ($refundAmount > 0 && $b->user_id) {
                             $coin = Coin::firstOrCreate(
                                 ['user_id' => $b->user_id],
@@ -547,6 +669,20 @@ class FilmManageController extends Controller
 
                             $coin->balance = (int) $coin->balance + $refundAmount;
                             $coin->save();
+                        }
+
+                        // 2. Hoàn lại số xu gốc đã sử dụng để giảm giá đơn hàng
+                        if ($b->user_id) {
+                            $redeemTx = \App\Models\PointTransaction::where('booking_id', $b->id)
+                                ->where('type', 'REDEEM')
+                                ->first();
+                            if ($redeemTx) {
+                                app(\App\Services\CoinRedemptionService::class)->refundCoins(
+                                    $b->user_id,
+                                    abs($redeemTx->points),
+                                    $b->id
+                                );
+                            }
                         }
                     }
 
