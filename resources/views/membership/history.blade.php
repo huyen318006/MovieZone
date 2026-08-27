@@ -102,15 +102,27 @@
                                             <span class="badge bg-success"><i class="bi bi-plus-circle me-1"></i> Cộng Coin</span>
                                         @elseif($t->type === 'REDEEM')
                                             <span class="badge bg-warning text-dark"><i class="bi bi-dash-circle me-1"></i> Sử dụng</span>
+                                        @elseif($t->type === 'ADJUST' && $t->points > 0)
+                                            <span class="badge bg-primary"><i class="bi bi-arrow-return-left me-1"></i> Hoàn Xu</span>
+                                        @elseif($t->type === 'ADJUST' && $t->points < 0)
+                                            <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i> Thu Hồi</span>
                                         @else
                                             <span class="badge bg-info text-dark"><i class="bi bi-gear-fill me-1"></i> Điều chỉnh</span>
                                         @endif
                                     </td>
                                     <td>
-                                        @if($t->booking)
-                                            Tích lũy từ đơn hàng đặt vé xem phim
-                                        @else
+                                        @if($t->type === 'ADJUST' && $t->points > 0)
+                                            Hoàn tiền vé do hủy đơn hàng
+                                        @elseif($t->type === 'ADJUST' && $t->points < 0)
+                                            Thu hồi coin thưởng do hủy đơn hàng
+                                        @elseif($t->type === 'REDEEM')
+                                            Sử dụng coin giảm giá khi đặt vé
+                                        @elseif($t->type === 'EARN' && $t->booking)
+                                            Thưởng coin tích lũy khi mua vé
+                                        @elseif($t->type === 'EARN')
                                             Điểm danh hằng ngày nhận Coin thưởng
+                                        @else
+                                            Điều chỉnh số dư coin hệ thống
                                         @endif
                                     </td>
                                     <td>

@@ -684,6 +684,31 @@ class FilmManageController extends Controller
                                 );
                             }
                         }
+
+                        // 3. Mở khóa / Hoàn lại Voucher đã sử dụng cho đơn hàng (nếu có)
+                        \App\Models\VoucherUsage::where('booking_id', $b->id)->delete();
+
+                        // 4. Thu hồi số xu thưởng (EARN) đã cộng cho đơn hàng này (nếu có)
+                        $earnTx = \App\Models\PointTransaction::where('booking_id', $b->id)
+                            ->where('type', 'EARN')
+                            ->first();
+                        if ($earnTx && $earnTx->points > 0 && $b->user_id) {
+                            $earnedCoins = abs((int) $earnTx->points);
+                            $coin = \App\Models\Coin::firstOrCreate(
+                                ['user_id' => $b->user_id],
+                                ['balance' => 0]
+                            );
+                            $coin->balance = max(0, (int) $coin->balance - $earnedCoins);
+                            $coin->save();
+
+                            \App\Models\PointTransaction::create([
+                                'user_id'    => $b->user_id,
+                                'booking_id' => $b->id,
+                                'points'     => -$earnedCoins,
+                                'type'       => 'ADJUST',
+                                'created_at' => now(),
+                            ]);
+                        }
                     }
 
                     $b->save();

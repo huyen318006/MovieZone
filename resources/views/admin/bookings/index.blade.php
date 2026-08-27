@@ -278,9 +278,17 @@
                                             <td class="text-muted">Tiền Combo:</td>
                                             <td class="text-end" id="summary-combo-amount"></td>
                                         </tr>
-                                        <tr id="summary-discount-row">
-                                            <td class="text-muted">Giảm giá (<span id="summary-voucher-code"></span>):</td>
-                                            <td class="text-end text-success" id="summary-discount-amount"></td>
+                                        <tr id="summary-tier-row" style="display: none;">
+                                            <td class="text-muted" id="summary-tier-label">Ưu đãi Hạng thẻ:</td>
+                                            <td class="text-end text-success" id="summary-tier-amount"></td>
+                                        </tr>
+                                        <tr id="summary-voucher-row" style="display: none;">
+                                            <td class="text-muted">Mã Voucher (<span id="summary-voucher-code"></span>):</td>
+                                            <td class="text-end text-success" id="summary-voucher-amount"></td>
+                                        </tr>
+                                        <tr id="summary-coin-row" style="display: none;">
+                                            <td class="text-muted">Thanh toán bằng Xu:</td>
+                                            <td class="text-end text-success" id="summary-coin-amount"></td>
                                         </tr>
                                         <tr class="border-top">
                                             <td class="fw-bold fs-5">Tổng tiền:</td>
@@ -657,15 +665,38 @@
                             document.getElementById('summary-ticket-amount').textContent = formatVND(b.total_ticket_amount);
                             document.getElementById('summary-combo-amount').textContent = formatVND(b.total_combo_amount);
                             
-                            const discountRow = document.getElementById('summary-discount-row');
-                            if (b.discount_amount > 0) {
-                                discountRow.style.display = 'table-row';
-                                document.getElementById('summary-discount-amount').textContent = '-' + formatVND(b.discount_amount);
-                                const voucherCode = res.vouchers && res.vouchers.length > 0 ? res.vouchers[0].code : 'VOUCHER';
-                                document.getElementById('summary-voucher-code').textContent = voucherCode;
+                            const p = res.pricing_breakdown || {};
+
+                            // 1. Dòng Ưu đãi Hạng thẻ
+                            const tierRow = document.getElementById('summary-tier-row');
+                            if (p.tier_discount_amount > 0 && p.tier_name !== 'BRONZE') {
+                                tierRow.style.display = 'table-row';
+                                document.getElementById('summary-tier-label').textContent = `Ưu đãi Hạng ${p.tier_name} (${p.tier_percent}% vé):`;
+                                document.getElementById('summary-tier-amount').textContent = '-' + formatVND(p.tier_discount_amount);
                             } else {
-                                discountRow.style.display = 'none';
+                                tierRow.style.display = 'none';
                             }
+
+                            // 2. Dòng Mã Voucher
+                            const voucherRow = document.getElementById('summary-voucher-row');
+                            if (p.voucher_discount_amount > 0) {
+                                voucherRow.style.display = 'table-row';
+                                const vCode = res.vouchers && res.vouchers.length > 0 ? res.vouchers[0].code : 'VOUCHER';
+                                document.getElementById('summary-voucher-code').textContent = vCode;
+                                document.getElementById('summary-voucher-amount').textContent = '-' + formatVND(p.voucher_discount_amount);
+                            } else {
+                                voucherRow.style.display = 'none';
+                            }
+
+                            // 3. Dòng Thanh toán bằng Xu
+                            const coinRow = document.getElementById('summary-coin-row');
+                            if (p.coin_discount_amount > 0) {
+                                coinRow.style.display = 'table-row';
+                                document.getElementById('summary-coin-amount').textContent = '-' + formatVND(p.coin_discount_amount);
+                            } else {
+                                coinRow.style.display = 'none';
+                            }
+
                             document.getElementById('summary-final-amount').textContent = formatVND(b.final_amount);
 
                             // Tickets

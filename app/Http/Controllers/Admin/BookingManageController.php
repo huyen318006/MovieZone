@@ -188,12 +188,43 @@ class BookingManageController extends Controller
                 ];
             });
 
+        // Lấy thông tin Hạng thẻ & Bóc tách chi tiết giảm giá
+        $tierName = 'BRONZE';
+        $tierPercent = 0;
+        $tierDiscountAmount = 0;
+
+        if ($booking->user_id) {
+            $userMem = \App\Models\UserMembership::with('level')
+                ->where('user_id', $booking->user_id)
+                ->first();
+            if ($userMem && $userMem->level) {
+                $tierName = strtoupper($userMem->level->name);
+                $tierPercent = (float) ($userMem->level->discount_percent ?? 0);
+                $tierDiscountAmount = (float) round(($booking->total_ticket_amount * $tierPercent) / 100);
+            }
+        }
+
+        // Lấy số Xu khách đã sử dụng cho đơn hàng
+        $redeemTx = DB::table('point_transactions')
+            ->where('booking_id', $booking->id)
+            ->where('type', 'REDEEM')
+            ->first();
+        $coinDiscountAmount = $redeemTx ? abs((int) $redeemTx->points) : 0;
+        $voucherDiscountAmount = (float) max(0, $booking->discount_amount - $tierDiscountAmount - $coinDiscountAmount);
+
         return response()->json([
-            'success'         => true,
-            'booking'         => $booking,
-            'vouchers'        => $voucherUsages,
-            'audit_logs'      => $auditLogs,
-            'late_payment'    => $booking->latePaymentAlert,
+            'success'           => true,
+            'booking'           => $booking,
+            'vouchers'          => $voucherUsages,
+            'audit_logs'        => $auditLogs,
+            'late_payment'      => $booking->latePaymentAlert,
+            'pricing_breakdown' => [
+                'tier_name'               => $tierName,
+                'tier_percent'            => $tierPercent,
+                'tier_discount_amount'    => $tierDiscountAmount,
+                'voucher_discount_amount' => $voucherDiscountAmount,
+                'coin_discount_amount'    => $coinDiscountAmount,
+            ],
         ], 200);
     }
 
@@ -228,6 +259,7 @@ class BookingManageController extends Controller
         DB::beginTransaction();
         try {
             $oldStatus = $booking->status;
+            $oldPaymentStatus = $booking->payment_status;
 
             // 1. Cập nhật trạng thái booking sang CANCELLED và cập nhật trạng thái thanh toán tương ứng
             $booking->status = 'CANCELLED';
@@ -241,7 +273,28 @@ class BookingManageController extends Controller
             // 2. Hủy các vé liên quan (Cập nhật trạng thái vé sang CANCELLED)
             Ticket::where('booking_id', $booking->id)->update(['status' => 'CANCELLED']);
 
-            // 2.5. Hoàn xu nếu khách đã dùng xu để giảm giá
+            // 2.5a. Hoàn xu cho số tiền VND thực tế đã thanh toán (final_amount)
+            if ($oldPaymentStatus === 'PAID') {
+                $refundAmount = (int) round((float) ($booking->final_amount ?? 0));
+                if ($refundAmount > 0 && $booking->user_id) {
+                    $coin = \App\Models\Coin::firstOrCreate(
+                        ['user_id' => $booking->user_id],
+                        ['balance' => 0]
+                    );
+                    $coin->balance = (int) $coin->balance + $refundAmount;
+                    $coin->save();
+
+                    \App\Models\PointTransaction::create([
+                        'user_id'    => $booking->user_id,
+                        'booking_id' => $booking->id,
+                        'points'     => $refundAmount,
+                        'type'       => 'ADJUST',
+                        'created_at' => now(),
+                    ]);
+                }
+            }
+
+            // 2.5b. Hoàn lại số xu gốc đã sử dụng để giảm giá đơn hàng (nếu có)
             $redeemTx = \App\Models\PointTransaction::where('booking_id', $booking->id)
                 ->where('type', 'REDEEM')
                 ->first();
@@ -253,16 +306,38 @@ class BookingManageController extends Controller
                 );
             }
 
-            // 3. Giải phóng ghế (Nếu ghế chưa SOLD, hệ thống giải phóng ghế)
-            // Nếu trạng thái thanh toán cũ là UNPAID thì ghế chưa được coi là SOLD chính thức
-            if ($booking->payment_status !== 'PAID') {
-                $showtimeSeatIds = DB::table('booking_seats')
-                    ->where('booking_id', $booking->id)
-                    ->pluck('showtime_seat_id');
+            // 2.5c. Mở khóa / Hoàn lại Voucher đã sử dụng cho đơn hàng (nếu có)
+            \App\Models\VoucherUsage::where('booking_id', $booking->id)->delete();
 
-                if ($showtimeSeatIds->isNotEmpty()) {
-                    ShowtimeSeat::whereIn('id', $showtimeSeatIds)->update(['status' => 'AVAILABLE']);
-                }
+            // 2.5d. Thu hồi số xu thưởng (EARN) đã cộng cho đơn hàng này (nếu có)
+            $earnTx = \App\Models\PointTransaction::where('booking_id', $booking->id)
+                ->where('type', 'EARN')
+                ->first();
+            if ($earnTx && $earnTx->points > 0 && $booking->user_id) {
+                $earnedCoins = abs((int) $earnTx->points);
+                $coin = \App\Models\Coin::firstOrCreate(
+                    ['user_id' => $booking->user_id],
+                    ['balance' => 0]
+                );
+                $coin->balance = max(0, (int) $coin->balance - $earnedCoins);
+                $coin->save();
+
+                \App\Models\PointTransaction::create([
+                    'user_id'    => $booking->user_id,
+                    'booking_id' => $booking->id,
+                    'points'     => -$earnedCoins,
+                    'type'       => 'ADJUST',
+                    'created_at' => now(),
+                ]);
+            }
+
+            // 3. Giải phóng ghế trên sơ đồ phòng chiếu
+            $showtimeSeatIds = DB::table('booking_seats')
+                ->where('booking_id', $booking->id)
+                ->pluck('showtime_seat_id');
+
+            if ($showtimeSeatIds->isNotEmpty()) {
+                ShowtimeSeat::whereIn('id', $showtimeSeatIds)->update(['status' => 'AVAILABLE']);
             }
 
             // 4. Lưu lý do hủy vào bảng phụ
