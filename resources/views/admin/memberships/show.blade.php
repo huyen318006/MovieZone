@@ -203,6 +203,10 @@
                                             <span class="badge bg-success">+ Cộng Coin</span>
                                         @elseif($pt->type === 'REDEEM')
                                             <span class="badge bg-warning text-dark">- Sử dụng</span>
+                                        @elseif($pt->type === 'ADJUST' && $pt->points > 0)
+                                            <span class="badge bg-primary">↩️ Hoàn Xu</span>
+                                        @elseif($pt->type === 'ADJUST' && $pt->points < 0)
+                                            <span class="badge bg-danger">🚫 Thu Hồi</span>
                                         @else
                                             <span class="badge bg-info text-dark">⚙️ Điều chỉnh</span>
                                         @endif
