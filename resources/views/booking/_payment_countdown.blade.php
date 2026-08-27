@@ -1,6 +1,6 @@
 {{-- ============================================================
      PAYMENT COUNTDOWN TIMER - Bộ đếm ngược riêng cho trang thanh toán
-     Timer 5 phút tính từ lúc tạo đơn hàng (SepayOrder.created_at)
+     Timer 10 phút tính từ lúc tạo đơn hàng (SepayOrder.created_at)
      Tách biệt với timer giữ ghế 5 phút ở trang chọn ghế/combo/confirm
      ============================================================ --}}
 
@@ -13,7 +13,7 @@
             </div>
             <div class="countdown-label">
                 <span class="countdown-label-text">Thời gian thanh toán</span>
-                <span class="countdown-time" id="paymentCountdownClock">05:00</span>
+                <span class="countdown-time" id="paymentCountdownClock">10:00</span>
             </div>
         </div>
         <div class="countdown-right">
@@ -31,7 +31,7 @@
             <i class="fa-solid fa-clock-rotate-left"></i>
         </div>
         <h3>Hết thời gian thanh toán!</h3>
-        <p>Thời gian thanh toán 5 phút đã hết. Đơn hàng của bạn đã bị huỷ. Vui lòng đặt vé lại.</p>
+        <p>Thời gian thanh toán 10 phút đã hết. Đơn hàng của bạn đã bị huỷ. Vui lòng đặt vé lại.</p>
         <div class="expired-countdown-redirect">
             <div class="expired-spinner"></div>
             <span>Đang chuyển về trang chủ... (<span id="paymentRedirectCountdown">5</span>s)</span>
@@ -324,9 +324,9 @@
 
 <script>
 (function() {
-    // Timer thanh toán tính từ expiresAt của SepayOrder (5 phút từ lúc tạo đơn)
+    // Timer thanh toán tính từ expiresAt của SepayOrder (10 phút từ lúc tạo đơn)
     const expiresAt = new Date("{{ $expiresAt }}").getTime();
-    const totalSeconds = 300; // 5 phút
+    const totalSeconds = 600; // 10 phút
     const clockEl = document.getElementById('paymentCountdownClock');
     const barEl = document.getElementById('paymentCountdownBar');
     const fillEl = document.getElementById('paymentCountdownFill');
