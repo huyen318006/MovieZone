@@ -30,7 +30,8 @@
             @if($booking->payment_status === 'REFUNDED')
                 <p style="margin: 0; color: #5cb85c;"><strong>Trạng thái thanh toán:</strong> <strong style="text-transform: uppercase;">Hoàn tiền</strong></p>
                 <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">
-                    <i>(Hệ thống sẽ cập nhật quy đổi số tiền của quý khách vào điểm COIN trên hệ thống. 1 coin = 1đ).</i>
+                    <i>(Hệ thống sẽ cập nhật quy đổi số tiền của quý khách vào điểm COIN trên hệ thống. 1 coin = 1đ).</i><br>
+                    <i>* Nếu quý khách có sử dụng Mã giảm giá (Voucher) cho đơn hàng này, lượt sử dụng của mã đã được hoàn lại tự động để quý khách dùng cho lần sau.</i>
                 </p>
             @endif
         </div>

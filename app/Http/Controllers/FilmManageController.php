@@ -517,6 +517,10 @@ class FilmManageController extends Controller
                                 }
                             }
                         }
+
+                        // 3. Khôi phục lại Voucher (nếu có sử dụng)
+                        \App\Models\VoucherUsage::where('booking_id', $b->id)->delete();
+
                         $b->save();
 
                         \App\Models\BookingCancellation::updateOrCreate([
@@ -685,6 +689,9 @@ class FilmManageController extends Controller
                             }
                         }
                     }
+
+                    // 3. Khôi phục lại Voucher (nếu có sử dụng)
+                    \App\Models\VoucherUsage::where('booking_id', $b->id)->delete();
 
                     $b->save();
                     
