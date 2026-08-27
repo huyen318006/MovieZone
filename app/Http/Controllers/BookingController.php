@@ -865,8 +865,8 @@ $request->validate([
                 ->with('error', 'Hết thời gian giữ ghế. Vui lòng chọn lại.');
         }
 
-        // Cấp thêm 5 phút dành riêng cho bước chuyển khoản thanh toán QR
-        $paymentExpireAt = now()->addMinutes($this->holdMinutes());
+        // Cấp thêm 10 phút dành riêng cho bước chuyển khoản thanh toán QR
+        $paymentExpireAt = now()->addMinutes((int) config('sepay.order_expiry_minutes', 10));
 
         // GUARD: Kiểm tra đã tạo booking cho session này chưa
         $existingOrderCode = session('pending_order_code');
@@ -1023,7 +1023,7 @@ $booking = $existingOrder->booking;
                     'updated_at' => now(),
                 ]);
 
-                // Gia hạn cache giữ ghế theo thời gian thanh toán 5 phút mới
+                // Gia hạn cache giữ ghế theo thời gian thanh toán 10 phút mới
                 $cacheKey = 'seat_held_' . $showtimeId . '_' . $seat->id;
                 Cache::put($cacheKey, Auth::id(), $paymentExpireAt);
             }
