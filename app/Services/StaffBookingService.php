@@ -534,7 +534,7 @@ class StaffBookingService
                 'final_amount'       => $finalAmount,
                 'status'             => $status,
                 'payment_status'     => 'UNPAID',
-                'expired_at'         => now()->addMinutes(15),
+                'expired_at'         => now()->addMinutes(10),
             ]);
 
             // ── TẠO BOOKING SEATS ──

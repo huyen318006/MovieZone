@@ -4,6 +4,9 @@
 @section('page-title', 'Bán Vé — Chọn Ghế')
 
 @section('content')
+@include('booking._countdown_timer', [
+    'seatResetUrl' => \App\Helpers\TabAuthHelper::route('staff.sell-seat', $showtime->id)
+])
 <div class="sell-seat-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-white">Sơ đồ phòng chiếu: {{ $showtime->room->name }}</h4>
@@ -795,6 +798,13 @@ if (selectedSeats.size > 0) {
                     btn.classList.remove('HELD');
                     btn.classList.add(seatTypeClass(seatType));
                     btn.disabled = false;
+                }
+
+                if (window.startCountdownTimer) {
+                    const validResult = results.find(r => r.expiresAt && r.serverTime);
+                    if (validResult) {
+                        window.startCountdownTimer(validResult.expiresAt, validResult.serverTime);
+                    }
                 }
             } catch (error) {
                 console.error(error);

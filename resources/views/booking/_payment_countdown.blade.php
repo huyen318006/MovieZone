@@ -34,10 +34,10 @@
         <p>Thời gian thanh toán 10 phút đã hết. Đơn hàng của bạn đã bị huỷ. Vui lòng đặt vé lại.</p>
         <div class="expired-countdown-redirect">
             <div class="expired-spinner"></div>
-            <span>Đang chuyển về trang chủ... (<span id="paymentRedirectCountdown">5</span>s)</span>
+            <span>Đang tự động chuyển hướng... (<span id="paymentRedirectCountdown">5</span>s)</span>
         </div>
-        <a href="{{ route('showtimes') }}" class="expired-btn-back">
-            <i class="fa-solid fa-arrow-left"></i> Chọn suất chiếu
+        <a href="{{ isset($redirectUrl) ? $redirectUrl : route('showtimes') }}" class="expired-btn-back">
+            <i class="fa-solid fa-arrow-left"></i> Quay lại
         </a>
     </div>
 </div>
@@ -409,7 +409,8 @@
             }
             if (redirectSeconds <= 0) {
                 clearInterval(redirectInterval);
-                window.location.href = "{{ route('showtimes') }}";
+                const redirectUrl = "{{ isset($redirectUrl) ? $redirectUrl : route('showtimes') }}";
+                window.location.href = redirectUrl;
             }
         }, 1000);
     }

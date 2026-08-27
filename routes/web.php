@@ -554,6 +554,8 @@ Route::middleware(['tab.auth'])->group(function () {
     Route::get('/staff/sell-tickets/confirm', [BookTicketsController::class, 'confirm'])->name('staff.sell-tickets.confirm');
     Route::post('/staff/sell-tickets/checkout', [BookTicketsController::class, 'checkout'])->name('staff.sell-tickets.checkout');
     Route::get('/staff/sell-tickets/payment/{orderCode}', [BookTicketsController::class, 'payment'])->name('staff.sell-tickets.payment');
+    Route::post('/staff/sell-tickets/cancel/{orderCode}', [BookTicketsController::class, 'cancelBookingAndRelease'])->name('staff.sell-tickets.cancel');
+    Route::post('/staff/sell-tickets/release-on-back', [BookTicketsController::class, 'releaseOnBack'])->name('staff.sell-tickets.releaseOnBack');
 });
 
 /* --------------------- UC-STAFF-06: bán sản phẩm lẻ ------------------ */

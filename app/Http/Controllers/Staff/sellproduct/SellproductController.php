@@ -213,9 +213,10 @@ class SellproductController extends Controller
         $bankCode = config('sepay.bank_code');
         $bankAccount = config('sepay.bank_account');
         $pollingInterval = config('sepay.polling_interval', 5000);
+        $expiresAt = $order->getExpiresAt()->toIso8601String();
 
         return view('staff.sellproduct.payment', compact(
-            'order', 'qrUrl', 'bankCode', 'bankAccount', 'pollingInterval'
+            'order', 'qrUrl', 'bankCode', 'bankAccount', 'pollingInterval', 'expiresAt'
         ));
     }
 

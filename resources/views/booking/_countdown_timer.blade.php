@@ -37,11 +37,12 @@
             <span>Đang chuyển về chọn ghế... (<span id="redirectCountdown">3</span>s)</span>
         </div>
         @php
-            // M1-FIX: Hỗ trợ cả $resolvedShowtimeId (từ confirm.blade) và $showtime_id (từ seat.blade)
             $resolvedShowtimeId = $resolvedShowtimeId ?? $showtime_id ?? (session('booking_tam.showtime_id') ?? null);
-            $seatResetUrl = $resolvedShowtimeId
-                ? \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId]) . (str_contains(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId]), '?') ? '&' : '?') . 'reset=1'
-                : \App\Helpers\TabAuthHelper::route('showtimes');
+            if (!isset($seatResetUrl)) {
+                $seatResetUrl = $resolvedShowtimeId
+                    ? \App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId]) . (str_contains(\App\Helpers\TabAuthHelper::route('booking.seat', ['showtime_id' => $resolvedShowtimeId]), '?') ? '&' : '?') . 'reset=1'
+                    : \App\Helpers\TabAuthHelper::route('showtimes');
+            }
         @endphp
         <a href="{{ $seatResetUrl }}" class="expired-btn-back">
             <i class="fa-solid fa-arrow-left"></i> Chọn ghế lại
@@ -332,23 +333,12 @@
 <script>
 (function() {
     // === SERVER-AUTHORITATIVE COUNTDOWN ===
-    // holdExpiresAt và serverTime là ISO8601 timestamps từ backend
-    const holdExpiresAtRaw = @json($holdExpiresAt ?? null);
-    const serverTimeRaw = @json($serverTime ?? null);
-    const totalSeconds = {{ $holdTotalSeconds ?? 300 }};
-
-    // Nếu chưa có holdExpiresAt (chưa hold ghế nào), ẩn countdown
-    if (!holdExpiresAtRaw) {
-        const bar = document.getElementById('bookingCountdownBar');
-        if (bar) bar.style.display = 'none';
-        return;
-    }
-
-    const expiresAt = new Date(holdExpiresAtRaw).getTime();
-
-    // Tính clock offset: chênh lệch giữa đồng hồ server và client
-    // Giúp timer chính xác ngay cả khi client chỉnh đồng hồ máy
+    let holdExpiresAtRaw = @json($holdExpiresAt ?? null);
+    let serverTimeRaw = @json($serverTime ?? null);
+    let totalSeconds = {{ $holdTotalSeconds ?? 300 }};
+    let expiresAt = holdExpiresAtRaw ? new Date(holdExpiresAtRaw).getTime() : null;
     let clockOffset = 0;
+
     if (serverTimeRaw) {
         const serverMs = new Date(serverTimeRaw).getTime();
         clockOffset = serverMs - Date.now();
@@ -359,83 +349,41 @@
     const fillEl = document.getElementById('countdownProgressFill');
     const overlay = document.getElementById('countdownExpiredOverlay');
     const redirectCountdownEl = document.getElementById('redirectCountdown');
-
-    // Lấy showtime_id từ URL hoặc session để build redirect URL (có ?reset=1)
     const seatPageUrl = @json($seatResetUrl);
+    let interval = null;
+    let expired = false;
 
-    /**
-     * Tính thời gian còn lại dựa trên server timestamp + clock offset.
-     * Resilient against: tab background, CPU suspend, browser throttle, client clock change.
-     */
+    // Nếu chưa có holdExpiresAt ban đầu, ẩn countdown
+    if (!holdExpiresAtRaw && barEl) {
+        barEl.style.display = 'none';
+    }
+
     function getSecondsLeft() {
+        if (!expiresAt) return 0;
         const effectiveNow = Date.now() + clockOffset;
         return Math.max(0, Math.floor((expiresAt - effectiveNow) / 1000));
     }
 
     function updateDisplay() {
         if (!clockEl || !fillEl) return;
-
         const safe = getSecondsLeft();
         const m = Math.floor(safe / 60).toString().padStart(2, '0');
         const s = (safe % 60).toString().padStart(2, '0');
         clockEl.textContent = m + ':' + s;
 
-        // Progress bar
         const pct = (safe / totalSeconds) * 100;
         fillEl.style.width = pct + '%';
 
-        // Danger mode khi còn <= 60 giây
         if (safe <= 60 && safe > 0 && barEl) {
             barEl.classList.add('danger');
         }
     }
 
-    let expired = false;
-    const interval = setInterval(function() {
-        const remaining = getSecondsLeft();
-        if (remaining <= 0) {
-            clearInterval(interval);
-            expired = true;
-            updateDisplay();
-            showExpiredModal();
-            return;
-        }
-        updateDisplay();
-    }, 1000);
-
-    // Hiển thị ngay khi load
-    updateDisplay();
-    // Nếu đã hết hạn ngay từ đầu
-    if (getSecondsLeft() <= 0) {
-        clearInterval(interval);
-        expired = true;
-        showExpiredModal();
-    }
-
-    /**
-     * VISIBILITY CHANGE: Khi user quay lại tab sau khi tab bị background,
-     * tính lại thời gian ngay lập tức (không chờ setInterval 1 giây tiếp theo).
-     */
-    document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible' && !expired) {
-            const remaining = getSecondsLeft();
-            updateDisplay();
-            if (remaining <= 0) {
-                clearInterval(interval);
-                expired = true;
-                showExpiredModal();
-            }
-        }
-    });
-
     function showExpiredModal() {
         if (!overlay) return;
         overlay.classList.add('show');
-
-        // Phát event để trang payment biết countdown đã hết
         window.dispatchEvent(new CustomEvent('countdownExpired'));
 
-        // Đếm ngược redirect 3 giây
         let redirectSeconds = 3;
         const redirectInterval = setInterval(function() {
             redirectSeconds--;
@@ -448,5 +396,52 @@
             }
         }, 1000);
     }
+
+    window.startCountdownTimer = function(newExpiresAt, newServerTime) {
+        if (newExpiresAt) {
+            expiresAt = new Date(newExpiresAt).getTime();
+        }
+        if (newServerTime) {
+            clockOffset = new Date(newServerTime).getTime() - Date.now();
+        }
+        if (barEl) barEl.style.display = 'block';
+        expired = false;
+        if (interval) clearInterval(interval);
+
+        updateDisplay();
+        if (getSecondsLeft() <= 0) {
+            expired = true;
+            showExpiredModal();
+            return;
+        }
+
+        interval = setInterval(function() {
+            const remaining = getSecondsLeft();
+            if (remaining <= 0) {
+                clearInterval(interval);
+                expired = true;
+                updateDisplay();
+                showExpiredModal();
+                return;
+            }
+            updateDisplay();
+        }, 1000);
+    };
+
+    if (expiresAt) {
+        window.startCountdownTimer();
+    }
+
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible' && !expired && expiresAt) {
+            const remaining = getSecondsLeft();
+            updateDisplay();
+            if (remaining <= 0) {
+                clearInterval(interval);
+                expired = true;
+                showExpiredModal();
+            }
+        }
+    });
 })();
 </script>

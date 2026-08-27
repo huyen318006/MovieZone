@@ -4,6 +4,12 @@
 @section('page-title', 'Bán Vé — Thanh Toán QR')
 
 @section('content')
+    {{-- COUNTDOWN TIMER THANH TOÁN (10 phút) --}}
+    @include('booking._payment_countdown', [
+        'expiresAt' => $expiresAt,
+        'redirectUrl' => \App\Helpers\TabAuthHelper::route('staff.sell-tickets')
+    ])
+
     <div class="staff-payment-wrapper">
         <div class="payment-shell">
             <div class="payment-card payment-summary-card">
@@ -148,13 +154,62 @@
                 </div>
 
                 <div class="action-row">
-                    <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}" class="cancel-link">
-                        <i class="bi bi-arrow-left"></i> Huỷ và quay lại
-                    </a>
+                    <form action="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets.cancel', ['orderCode' => $order->order_code]) }}" method="POST" style="display: inline;">
+                        @csrf
+                        <button type="submit" class="cancel-link border-0" onclick="return confirm('Bạn có chắc muốn hủy thanh toán và chọn lại ghế?')">
+                            <i class="bi bi-arrow-left"></i> Huỷ và quay lại
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
+
+    <script>
+    const releaseOnBackUrl = '{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets.releaseOnBack') }}';
+    const paymentShowtimeId = '{{ $order->getBookingInfo('showtime_id') ?? '' }}';
+    const paymentSeatIds = @json($order->getBookingSeats() ? collect($order->getBookingSeats())->map(fn($s) => $s['showtime_seat_id'] ?? null)->filter()->values()->all() : []);
+    const paymentOrderCode = '{{ $order->order_code }}';
+
+    function releaseBookingSessionOnBack() {
+        if (!paymentShowtimeId || !paymentSeatIds.length) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('showtime_id', paymentShowtimeId);
+        formData.append('order_code', paymentOrderCode);
+        formData.append('_token', '{{ csrf_token() }}');
+        paymentSeatIds.forEach(id => formData.append('seat_ids[]', id));
+
+        navigator.sendBeacon(releaseOnBackUrl, formData);
+    }
+
+    window.addEventListener('beforeunload', function(e) {
+        // Chỉ chạy khi page bị unload mà không phải form submit.
+        if (document.activeElement && document.activeElement.tagName === 'BUTTON' && document.activeElement.type === 'submit') {
+            return;
+        }
+        releaseBookingSessionOnBack();
+    });
+
+    window.addEventListener('pagehide', function(e) {
+        if (document.activeElement && document.activeElement.tagName === 'BUTTON' && document.activeElement.type === 'submit') {
+            return;
+        }
+        releaseBookingSessionOnBack();
+    });
+
+    // Ép reload lại trang nếu người dùng back lại đây từ ngân hàng, để cập nhật trạng thái mới nhất
+    window.addEventListener("pageshow", function (event) {
+        var historyTraversal = event.persisted || 
+                               (typeof window.performance != "undefined" && 
+                                window.performance.navigation.type === 2);
+        if (historyTraversal) {
+            window.location.reload();
+        }
+    });
+    </script>
 @endsection
 
 @push('styles')

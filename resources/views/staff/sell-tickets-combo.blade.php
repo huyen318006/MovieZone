@@ -7,7 +7,7 @@
 <div class="sell-combo-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0 text-white">Chọn combo / đồ ăn lẻ</h4>
-        <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}" class="btn btn-outline-light btn-sm">
+        <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-seat', session('booking.showtime_id')) }}" class="btn btn-outline-light btn-sm">
             <i class="bi bi-arrow-left"></i> Quay lại
         </a>
     </div>
@@ -200,6 +200,53 @@
         });
 
         calcTotal();
+    });
+
+    const releaseOnBackUrl = '{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets.releaseOnBack') }}';
+    const comboShowtimeId = '{{ session('booking.showtime_id') }}';
+    const comboSeatIds = @json(session('booking.seats', []));
+
+    function releaseBookingSessionOnBackCombo() {
+        if (!comboShowtimeId || !comboSeatIds.length) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('showtime_id', comboShowtimeId);
+        formData.append('_token', '{{ csrf_token() }}');
+        comboSeatIds.forEach(id => formData.append('seat_ids[]', id));
+
+        navigator.sendBeacon(releaseOnBackUrl, formData);
+    }
+
+    window.addEventListener('beforeunload', function(e) {
+        if (document.activeElement && document.activeElement.tagName === 'BUTTON' && document.activeElement.type === 'submit') {
+            return;
+        }
+        if (document.activeElement && document.activeElement.tagName === 'A' && document.activeElement.classList.contains('btn-outline-light')) {
+            return;
+        }
+        releaseBookingSessionOnBackCombo();
+    });
+
+    window.addEventListener('pagehide', function(e) {
+        if (document.activeElement && document.activeElement.tagName === 'BUTTON' && document.activeElement.type === 'submit') {
+            return;
+        }
+        if (document.activeElement && document.activeElement.tagName === 'A' && document.activeElement.classList.contains('btn-outline-light')) {
+            return;
+        }
+        releaseBookingSessionOnBackCombo();
+    });
+
+    window.addEventListener("pageshow", function (event) {
+        var historyTraversal = event.persisted || 
+                               (typeof window.performance != "undefined" && 
+                                window.performance.navigation.type === 2);
+        if (historyTraversal && comboShowtimeId) {
+            var resetUrl = "{{ \App\Helpers\TabAuthHelper::route('staff.sell-seat', 'SHOWTIME_ID_PLACEHOLDER') }}".replace('SHOWTIME_ID_PLACEHOLDER', comboShowtimeId);
+            window.location.replace(resetUrl);
+        }
     });
 </script>
 @endsection

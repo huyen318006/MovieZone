@@ -35,6 +35,47 @@ class BookTicketsController extends Controller
 // hàm lấy ra ghế của suất chiếu đó + thông tin phim, phòng
     public function sell_seat($id)
     {
+        // ── AUTO CLEANUP BẰNG CÁCH HỦY ĐƠN PENDING CỦA NHÂN VIÊN TRÊN SUẤT CHIẾU NÀY ──
+        // Khắc phục triệt để lỗi "kẹt ghế" khi nhân viên ấn Back (lùi trang) từ trang thanh toán
+        $pendingOrders = \App\Models\SepayOrder::whereHas('booking', function ($q) use ($id) {
+            $q->where('showtime_id', $id)
+              ->where('user_id', \Illuminate\Support\Facades\Auth::id())
+              ->whereIn('status', ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT']);
+        })->where('status', 'pending')->get();
+
+        foreach ($pendingOrders as $order) {
+            $booking = $order->booking;
+            if ($booking) {
+                $booking->update([
+                    'status' => 'CANCELLED',
+                    'payment_status' => 'FAILED',
+                ]);
+                \App\Models\BookingCancellation::updateOrCreate(
+                    ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
+                    [
+                        'type'       => 'CANCELLATION',
+                        'canceled_by' => \Illuminate\Support\Facades\Auth::id(),
+                        'reason'     => 'Nhân viên tải lại sơ đồ ghế, tự động hủy đơn cũ chưa thanh toán.',
+                    ]
+                );
+
+                // Giải phóng ghế trong cache
+                $bookingSeats = \Illuminate\Support\Facades\DB::table('booking_seats')
+                    ->where('booking_id', $booking->id)
+                    ->pluck('showtime_seat_id');
+
+                foreach ($bookingSeats as $showtimeSeatId) {
+                    $cacheKey = 'seat_held_' . $id . '_' . $showtimeSeatId;
+                    \Illuminate\Support\Facades\Cache::forget($cacheKey);
+                }
+            }
+            $order->update(['status' => 'expired']);
+        }
+        
+        $masterTimerKey = 'hold_timer_' . \Illuminate\Support\Facades\Auth::id() . '_' . $id;
+        \Illuminate\Support\Facades\Cache::forget($masterTimerKey);
+        // ── END AUTO CLEANUP ──
+
         $data = $this->staffBookingService->sell_seat($id);
 
         $showtime = $data['showtime'];  // có sẵn ->movie (tên phim, poster...) và ->room (tên phòng)
@@ -324,9 +365,10 @@ class BookTicketsController extends Controller
         $bankCode = config('sepay.bank_code');
         $bankAccount = config('sepay.bank_account');
         $pollingInterval = config('sepay.polling_interval', 5000);
+        $expiresAt = $order->getExpiresAt()->toIso8601String();
 
         return view('staff.sell-tickets-payment', compact(
-            'order', 'qrUrl', 'bankCode', 'bankAccount', 'pollingInterval'
+            'order', 'qrUrl', 'bankCode', 'bankAccount', 'pollingInterval', 'expiresAt'
         ));
     }
 
@@ -394,9 +436,123 @@ class BookTicketsController extends Controller
                 'error'        => $e->getMessage(),
             ]);
 
-            return redirect(TabAuthHelper::route('staff.sell-tickets'))
+            return redirect(\App\Helpers\TabAuthHelper::route('staff.sell-tickets'))
                 ->with('error', 'Lỗi xác nhận thanh toán: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Hủy booking từ trang thanh toán (Staff), giải phóng ghế, quay lại trang chọn ghế.
+     */
+    public function cancelBookingAndRelease(string $orderCode)
+    {
+        $order = \App\Models\SepayOrder::where('order_code', $orderCode)->first();
+
+        if (! $order) {
+            return redirect(\App\Helpers\TabAuthHelper::route('staff.sell-tickets'))
+                ->with('error', 'Đơn hàng không tồn tại.');
+        }
+
+        $showtimeId = $order->getBookingInfo('showtime_id');
+        $booking = $order->booking;
+
+        if ($booking && in_array($booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
+            $booking->update([
+                'status' => 'CANCELLED',
+                'payment_status' => $booking->payment_status === 'PAID' ? 'REFUNDED' : 'FAILED',
+            ]);
+
+            \App\Models\BookingCancellation::updateOrCreate(
+                ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
+                [
+                    'type'       => 'CANCELLATION',
+                    'canceled_by' => \Illuminate\Support\Facades\Auth::id(),
+                    'reason'     => 'Nhân viên tự hủy đơn hàng từ trang thanh toán.',
+                ]
+            );
+
+            // Giải phóng ghế trong cache
+            $bookingSeats = \Illuminate\Support\Facades\DB::table('booking_seats')
+                ->where('booking_id', $booking->id)
+                ->pluck('showtime_seat_id');
+
+            foreach ($bookingSeats as $showtimeSeatId) {
+                $cacheKey = 'seat_held_' . $booking->showtime_id . '_' . $showtimeSeatId;
+                \Illuminate\Support\Facades\Cache::forget($cacheKey);
+            }
+        }
+
+        if ($order->status === 'pending') {
+            $order->update(['status' => 'expired']);
+        }
+
+        if (\Illuminate\Support\Facades\Auth::check() && $showtimeId) {
+            $masterTimerKey = 'hold_timer_' . \Illuminate\Support\Facades\Auth::id() . '_' . $showtimeId;
+            \Illuminate\Support\Facades\Cache::forget($masterTimerKey);
+        }
+
+        if ($showtimeId) {
+            return redirect(\App\Helpers\TabAuthHelper::route('staff.sell-seat', ['id' => $showtimeId]))
+                ->with('success', 'Đã hủy đơn hàng. Bạn có thể chọn ghế mới.');
+        }
+
+        return redirect(\App\Helpers\TabAuthHelper::route('staff.sell-tickets'))
+            ->with('success', 'Đã hủy đơn hàng thành công.');
+    }
+
+    public function releaseOnBack(Request $request)
+    {
+        $showtimeId = $request->input('showtime_id');
+        $seatIdsRaw = $request->input('seat_ids');
+
+        $seatIds = [];
+        if (is_array($seatIdsRaw)) {
+            $seatIds = array_map('strval', $seatIdsRaw);
+        } elseif (is_string($seatIdsRaw)) {
+            $decoded = json_decode($seatIdsRaw, true);
+            if (is_array($decoded)) {
+                $seatIds = array_map('strval', $decoded);
+            } else {
+                $seatIds = [$seatIdsRaw];
+            }
+        }
+
+        if (\Illuminate\Support\Facades\Auth::check() && $showtimeId) {
+            foreach ($seatIds as $seatId) {
+                $cacheKey = 'seat_held_' . $showtimeId . '_' . $seatId;
+                if (\Illuminate\Support\Facades\Cache::get($cacheKey) == \Illuminate\Support\Facades\Auth::id()) {
+                    \Illuminate\Support\Facades\Cache::forget($cacheKey);
+                }
+            }
+
+            $masterTimerKey = 'hold_timer_' . \Illuminate\Support\Facades\Auth::id() . '_' . $showtimeId;
+            \Illuminate\Support\Facades\Cache::forget($masterTimerKey);
+        }
+
+        // Tự động tìm order pending của staff này và hủy
+        $orderCode = $request->input('order_code');
+        if ($orderCode) {
+            $order = \App\Models\SepayOrder::where('order_code', $orderCode)->first();
+            if ($order && $order->booking && in_array($order->booking->status, ['PENDING', 'PENDING_PAYMENT', 'PENDING_CASH_PAYMENT'])) {
+                $booking = $order->booking;
+                $booking->update([
+                    'status' => 'CANCELLED',
+                    'payment_status' => 'FAILED',
+                ]);
+                $order->update(['status' => 'expired']);
+
+                \App\Models\BookingCancellation::updateOrCreate(
+                    ['booking_id' => $booking->id, 'type' => 'CANCELLATION'],
+                    [
+                        'type'       => 'CANCELLATION',
+                        'canceled_by' => \Illuminate\Support\Facades\Auth::id(),
+                        'reason'     => 'Nhân viên thoát khỏi trang thanh toán.',
+                    ]
+                );
+            }
+        }
+
+        return response()->json(['success' => true]);
     }
 }
 

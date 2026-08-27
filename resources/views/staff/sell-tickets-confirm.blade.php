@@ -233,7 +233,7 @@
 
                 {{-- Các nút hành động --}}
                 <div class="confirm-actions">
-                    <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets') }}" class="btn-back">
+                    <a href="{{ \App\Helpers\TabAuthHelper::route('staff.sell-seat', $showtime->id) }}" class="btn-back">
                         <i class="fa-solid fa-arrow-left"></i>
                         Quay lại chọn ghế
                     </a>
@@ -600,5 +600,56 @@
             }
         }
     </style>
+
+    <script>
+    const releaseOnBackUrl = '{{ \App\Helpers\TabAuthHelper::route('staff.sell-tickets.releaseOnBack') }}';
+    const confirmShowtimeId = '{{ $showtime->id ?? '' }}';
+    const confirmSeatIds = @json(collect($seats ?? [])->map(function($s) { return is_object($s) ? ($s->id ?? null) : ($s['id'] ?? null); })->filter()->values()->all());
+
+    function releaseBookingSessionOnBackConfirm() {
+        if (!confirmShowtimeId || !confirmSeatIds.length) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('showtime_id', confirmShowtimeId);
+        formData.append('_token', '{{ csrf_token() }}');
+        confirmSeatIds.forEach(id => formData.append('seat_ids[]', id));
+
+        navigator.sendBeacon(releaseOnBackUrl, formData);
+    }
+
+    window.addEventListener('beforeunload', function(e) {
+        if (document.activeElement && document.activeElement.tagName === 'BUTTON' && document.activeElement.type === 'submit') {
+            return;
+        }
+        // Nếu người dùng ấn nút quay lại chọn ghế (thẻ a.btn-back), ta không nhả ghế để họ có thể chọn tiếp
+        if (document.activeElement && document.activeElement.tagName === 'A' && document.activeElement.classList.contains('btn-back')) {
+            return;
+        }
+        releaseBookingSessionOnBackConfirm();
+    });
+
+    window.addEventListener('pagehide', function(e) {
+        if (document.activeElement && document.activeElement.tagName === 'BUTTON' && document.activeElement.type === 'submit') {
+            return;
+        }
+        if (document.activeElement && document.activeElement.tagName === 'A' && document.activeElement.classList.contains('btn-back')) {
+            return;
+        }
+        releaseBookingSessionOnBackConfirm();
+    });
+
+    // Nếu người dùng back (mũi tên trình duyệt) về trang này, đẩy họ về trang chọn ghế để load lại state chuẩn nhất
+    window.addEventListener("pageshow", function (event) {
+        var historyTraversal = event.persisted || 
+                               (typeof window.performance != "undefined" && 
+                                window.performance.navigation.type === 2);
+        if (historyTraversal && confirmShowtimeId) {
+            var resetUrl = "{{ \App\Helpers\TabAuthHelper::route('staff.sell-seat', 'SHOWTIME_ID_PLACEHOLDER') }}".replace('SHOWTIME_ID_PLACEHOLDER', confirmShowtimeId);
+            window.location.replace(resetUrl);
+        }
+    });
+    </script>
 
 @endsection
