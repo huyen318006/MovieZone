@@ -22,18 +22,34 @@ class ReviewController extends Controller
         // BR01: Chỉ Customer có booking PAID hoặc CHECKED_IN cho phim đó mới được đánh giá.
         $isCustomer = UserRole::where('user_id', $userId)->where('role_id', 3)->exists();
         
-        $hasBooking = Booking::where('user_id', $userId)
+        // KIỂM TRA VÉ HỢP LỆ 
+        $hasBooking = false; 
+
+        // Lấy ra toàn bộ các đơn đặt vé của User này đối với bộ phim hiện tại
+        $userBookings = Booking::where('user_id', $userId)
             ->whereHas('showtime', function ($query) use ($movie) {
                 $query->where('movie_id', $movie->id);
             })
-            ->where(function ($query) {
-                $query->where('status', 'PAID')
-                      ->orWhere('payment_status', 'PAID')
-                      ->orWhereHas('tickets', function ($q) {
-                          $q->whereNotNull('checked_in_at');
-                      });
-            })
-            ->exists();
+            ->get();
+
+        // Duyệt qua từng đơn hàng để kiểm tra điều kiện
+        foreach ($userBookings as $booking) {
+            // đã được thanh toán chưa
+            $isPaid = ($booking->status === 'PAID' || $booking->payment_status === 'PAID');
+
+            // đã bắt đầu chiếu hay chưa
+            $showtimeStartTime = $booking->showtime->start_time; 
+            $hasMovieStarted = (strtotime($showtimeStartTime) <= time()); 
+
+            //  đã check-in vào rạp chưa
+            $hasCheckedIn = $booking->tickets()->whereNotNull('checked_in_at')->exists();
+
+            // D. Điều kiện hợp lệ: (Đã thanh toán Xong + Phim đã chiếu rồi) / (Đã check-in thực tế)
+            if (($isPaid && $hasMovieStarted) || $hasCheckedIn) {
+                $hasBooking = true; 
+                break; 
+            }
+        }
 
         if (!$isCustomer || !$hasBooking) {
             return back()->withErrors(['review' => 'Bạn cần có vé hợp lệ để đánh giá phim này.'])->withInput();
