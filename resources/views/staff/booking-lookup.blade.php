@@ -772,8 +772,8 @@ const BookingLookup = (() => {
         html += `<div class="detail-section">
             <div class="detail-section-title"><i class="bi bi-film"></i> Phim & Suất chiếu</div>
             <div class="detail-row"><span class="detail-label">Tên phim</span><span class="detail-value">${d.movie?.title || 'N/A'}</span></div>
-            <div class="detail-row"><span class="detail-label">Định dạng</span><span class="detail-value">${d.showtime?.format || 'N/A'}</span></div>
-            <div class="detail-row"><span class="detail-label">Ngôn ngữ</span><span class="detail-value">${d.showtime?.language_type || 'N/A'}</span></div>
+            <div class="detail-row"><span class="detail-label">Định dạng</span><span class="detail-value">${d.showtime?.format || d.room?.room_type || 'N/A'}</span></div>
+            <div class="detail-row"><span class="detail-label">Ngôn ngữ</span><span class="detail-value">${d.showtime?.language || d.movie?.language || 'N/A'}</span></div>
             <div class="detail-row"><span class="detail-label">Giờ chiếu</span><span class="detail-value">${fmtDate(d.showtime?.start_time)}</span></div>
             <div class="detail-row"><span class="detail-label">Kết thúc</span><span class="detail-value">${fmtDate(d.showtime?.end_time)}</span></div>
         </div>`;
