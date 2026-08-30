@@ -75,9 +75,9 @@ class BookingLookupController extends Controller
                 'id'            => $booking->id,
                 'booking_code'  => $booking->booking_code,
                 'customer'      => [
-                    'name'  => $booking->user?->name ?? 'N/A',
-                    'phone' => DataMaskHelper::maskPhone($booking->user?->phone),
-                    'email' => DataMaskHelper::maskEmail($booking->user?->email),
+                    'name'  => $booking->customer_name ?? $booking->user?->name ?? 'N/A',
+                    'phone' => DataMaskHelper::maskPhone($booking->customer_phone ?? $booking->user?->phone),
+                    'email' => DataMaskHelper::maskEmail($booking->customer_email ?? $booking->user?->email),
                 ],
                 'movie'         => [
                     'title' => $booking->showtime?->movie?->title ?? 'N/A',
@@ -154,21 +154,24 @@ class BookingLookupController extends Controller
             'booking_code' => $booking->booking_code,
 
             'customer' => [
-                'name'  => $booking->user?->name ?? 'N/A',
-                'phone' => DataMaskHelper::maskPhone($booking->user?->phone),
-                'email' => DataMaskHelper::maskEmail($booking->user?->email),
+                'name'  => $booking->customer_name ?? $booking->user?->name ?? 'N/A',
+                'phone' => DataMaskHelper::maskPhone($booking->customer_phone ?? $booking->user?->phone),
+                'email' => DataMaskHelper::maskEmail($booking->customer_email ?? $booking->user?->email),
             ],
 
             'movie' => [
-                'id'     => $booking->showtime?->movie?->id,
-                'title'  => $booking->showtime?->movie?->title ?? 'N/A',
-                'poster' => $booking->showtime?->movie?->poster_url,
+                'id'       => $booking->showtime?->movie?->id,
+                'title'    => $booking->showtime?->movie?->title ?? 'N/A',
+                'poster'   => $booking->showtime?->movie?->poster_url,
+                'language' => $booking->showtime?->movie?->language,
             ],
 
             'showtime' => [
                 'id'            => $booking->showtime?->id,
                 'start_time'    => $booking->showtime?->start_time,
                 'end_time'      => $booking->showtime?->end_time,
+                'format'        => $booking->showtime?->room?->room_type,
+                'language'      => $booking->showtime?->movie?->language,
                 'status'        => $booking->showtime?->status,
                 'cancel_reason' => $booking->showtime?->cancel_reason,
             ],

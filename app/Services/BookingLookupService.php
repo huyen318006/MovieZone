@@ -55,12 +55,18 @@ class BookingLookupService
             case 'phone':
                 $phone = $this->normalizePhone($searchValue);
                 $userIds = User::where('phone', $phone)->pluck('id');
-                $query->whereIn('user_id', $userIds);
+                $query->where(function ($q) use ($userIds, $phone) {
+                    $q->whereIn('user_id', $userIds)
+                      ->orWhere('customer_phone', $phone);
+                });
                 break;
 
             case 'email':
                 $userIds = User::where('email', $searchValue)->pluck('id');
-                $query->whereIn('user_id', $userIds);
+                $query->where(function ($q) use ($userIds, $searchValue) {
+                    $q->whereIn('user_id', $userIds)
+                      ->orWhere('customer_email', $searchValue);
+                });
                 break;
         }
 
@@ -122,7 +128,7 @@ class BookingLookupService
         return Booking::with([
             'user:id,name,phone,email',
             'showtime:id,cinema_id,movie_id,room_id,start_time,end_time,status,cancel_reason',
-            'showtime.movie:id,title,poster_url',
+            'showtime.movie:id,title,poster_url,language',
             'showtime.cinema:id,name,address',
             'showtime.room:id,name,room_type',
             'bookingSeats:id,booking_id,seat_code,seat_type,price',

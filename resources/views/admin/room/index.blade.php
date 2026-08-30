@@ -124,12 +124,7 @@
                                         <span class="text-muted">Không có</span>
                                     @endif
 
-                                    {{-- Hiển thị chi tiết ràng buộc --}}
-                                    @if($room->held_seats_count > 0)
-                                        <span class="badge text-bg-info ms-1" title="Ghế đang được giữ">
-                                            <i class="bi bi-hand-index me-1"></i>{{ $room->held_seats_count }} giữ
-                                        </span>
-                                    @endif
+                                    {{-- Badge giữ đã ẩn theo yêu cầu --}}
                                     @if($room->sold_seats_count > 0)
                                         <span class="badge text-bg-success ms-1" title="Ghế đã bán">
                                             <i class="bi bi-ticket-perforated me-1"></i>{{ $room->sold_seats_count }} bán
