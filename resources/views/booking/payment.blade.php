@@ -393,4 +393,7 @@
     }
 </style>
 
+{{-- Kiểm tra suất chiếu bị huỷ bởi admin (polling mỗi 3s) --}}
+@include('booking._showtime_cancelled_check', ['checkShowtimeId' => $order->getBookingInfo('showtime_id')])
+
 @endsection
