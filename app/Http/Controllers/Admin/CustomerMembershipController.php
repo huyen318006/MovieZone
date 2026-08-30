@@ -95,7 +95,7 @@ class CustomerMembershipController extends Controller
     {
         $request->validate([
             'action_type' => 'required|in:ADD,DEDUCT',
-            'amount'      => 'required|integer|min:1',
+            'amount'      => 'required|integer|min:1|max:100000000',
             'reason'      => 'required|string|max:255',
         ], [
             'action_type.required' => 'Vui lòng chọn loại điều chỉnh (Cộng hoặc Trừ).',
@@ -103,6 +103,7 @@ class CustomerMembershipController extends Controller
             'amount.required'      => 'Vui lòng nhập số Coin.',
             'amount.integer'       => 'Số Coin phải là số nguyên.',
             'amount.min'           => 'Số Coin phải lớn hơn 0.',
+            'amount.max'           => 'Số Coin cho mỗi lần điều chỉnh tối đa là 100.000.000 Coin.',
             'reason.required'      => 'Vui lòng nhập lý do điều chỉnh bắt buộc.',
             'reason.max'           => 'Lý do tối đa 255 ký tự.',
         ]);
@@ -212,13 +213,14 @@ class CustomerMembershipController extends Controller
             'user_ids'    => 'required|array|min:1',
             'user_ids.*'  => 'integer|exists:users,id',
             'action_type' => 'required|in:ADD,DEDUCT',
-            'amount'      => 'required|integer|min:1',
+            'amount'      => 'required|integer|min:1|max:100000000',
             'reason'      => 'required|string|max:255',
         ], [
             'user_ids.required'    => 'Vui lòng chọn ít nhất 1 khách hàng.',
             'action_type.required' => 'Vui lòng chọn loại điều chỉnh (Cộng hoặc Trừ).',
             'amount.required'      => 'Vui lòng nhập số Coin.',
             'amount.min'           => 'Số Coin phải lớn hơn 0.',
+            'amount.max'           => 'Số Coin cho mỗi lần điều chỉnh tối đa là 100.000.000 Coin.',
             'reason.required'      => 'Vui lòng nhập lý do điều chỉnh bắt buộc.',
         ]);
 
