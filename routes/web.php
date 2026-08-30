@@ -346,6 +346,9 @@ Route::middleware(['tab.auth', 'cache.headers:private;max_age=0;no_cache;no_stor
 
     // Hủy thanh toán và quay lại chọn ghế
     Route::post('/booking/cancel/{orderCode}', [BookingController::class, 'cancelBookingAndRelease'])->name('booking.cancel');
+
+    // API kiểm tra trạng thái suất chiếu (polling từ client khi khách đang booking)
+    Route::get('/booking/showtime-status', [BookingController::class, 'checkShowtimeStatus'])->name('booking.showtime.status');
 });
 
 //UC-04 quan ly ghe

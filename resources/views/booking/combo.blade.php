@@ -334,6 +334,9 @@
 
 </div>
 
+{{-- Kiểm tra suất chiếu bị huỷ bởi admin (polling mỗi 3s) --}}
+@include('booking._showtime_cancelled_check', ['checkShowtimeId' => $bookingTam['showtime_id'] ?? null])
+
 @endsection
 
 @push('scripts')

@@ -834,4 +834,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 </script>
 
+{{-- Kiểm tra suất chiếu bị huỷ bởi admin (polling mỗi 3s) --}}
+@include('booking._showtime_cancelled_check', ['checkShowtimeId' => $showtime_id ?? ($showtime->id ?? null)])
+
 @endsection

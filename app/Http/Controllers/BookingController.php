@@ -123,6 +123,13 @@ class BookingController extends Controller
         $showtime = Showtime::with(['movie', 'room'])
             ->findOrFail($showtime_id);
 
+        // Nếu suất chiếu đã bị admin huỷ → redirect về trang chủ
+        if ($showtime->status === 'CANCELLED') {
+            session()->forget('booking_tam');
+            return redirect()->route('home')
+                ->with('error', 'Suất chiếu đã bị huỷ bởi quản trị viên. Vui lòng chọn suất chiếu khác.');
+        }
+
         if (now()->greaterThan($showtime->start_time)) {
             return redirect()->back()->with('error', 'Suất chiếu này đã bắt đầu.');
         }
@@ -354,6 +361,16 @@ class BookingController extends Controller
         $seatId = $request->seat_id;
         $action = $request->action;
         $cacheKey = 'seat_held_'.$showtimeId.'_'.$seatId;
+
+        // Kiểm tra suất chiếu đã bị huỷ chưa
+        $showtime = Showtime::find($showtimeId);
+        if (! $showtime || $showtime->status === 'CANCELLED') {
+            return response()->json([
+                'success' => false,
+                'error_type' => 'CANCELLED',
+                'message' => 'Suất chiếu đã bị huỷ bởi quản trị viên.',
+            ]);
+        }
 
         if ($action === 'hold') {
             $seat = ShowtimeSeat::with('seat')->find($seatId);
@@ -1472,5 +1489,57 @@ $orphanCodes = []; // Gom mã ghế trống đang bị bỏ lẻ (do chính khá
             return redirect()->route('home')
                 ->with('error', 'Lỗi xử lý thanh toán: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * API kiểm tra trạng thái suất chiếu (polling từ client).
+     * Khi admin huỷ suất chiếu, khách đang ở màn hình chọn ghế / combo / confirm / payment
+     * sẽ được thông báo và chuyển hướng về trang chủ.
+     */
+    public function checkShowtimeStatus(Request $request)
+    {
+        $showtimeId = $request->input('showtime_id');
+
+        if (! $showtimeId) {
+            return response()->json(['status' => 'INVALID', 'message' => 'Thiếu showtime_id.']);
+        }
+
+        $showtime = Showtime::find($showtimeId);
+
+        if (! $showtime) {
+            return response()->json([
+                'status' => 'NOT_FOUND',
+                'message' => 'Suất chiếu không tồn tại.',
+            ]);
+        }
+
+        if ($showtime->status === 'CANCELLED') {
+            // Giải phóng ghế và xoá session booking tạm cho user hiện tại
+            if (Auth::check()) {
+                $showtimeSeatIds = DB::table('showtime_seats')
+                    ->where('showtime_id', $showtimeId)
+                    ->pluck('id');
+
+                foreach ($showtimeSeatIds as $stId) {
+                    $seatKey = 'seat_held_' . $showtimeId . '_' . $stId;
+                    if (Cache::get($seatKey) == Auth::id()) {
+                        Cache::forget($seatKey);
+                    }
+                }
+
+                $masterTimerKey = 'hold_timer_' . Auth::id() . '_' . $showtimeId;
+                Cache::forget($masterTimerKey);
+            }
+
+            session()->forget('booking_tam');
+
+            return response()->json([
+                'status' => 'CANCELLED',
+                'message' => 'Suất chiếu đã bị huỷ bởi quản trị viên.',
+                'reason' => $showtime->cancel_reason ?? 'Không rõ lý do',
+            ]);
+        }
+
+        return response()->json(['status' => $showtime->status]);
     }
 }

@@ -1303,4 +1303,8 @@ const seatIds = seatIdAttr.split(',');
         filter: brightness(1.1);
     }
 </style>
+
+{{-- Kiểm tra suất chiếu bị huỷ bởi admin (polling mỗi 3s) --}}
+@include('booking._showtime_cancelled_check', ['checkShowtimeId' => $showtime->id])
+
 @endsection
