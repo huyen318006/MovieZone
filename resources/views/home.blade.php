@@ -2,11 +2,57 @@
 
 @push('styles')
 <style>
-    body {
-        padding-top: 0 !important;
+    .hero-slider {
+        position: relative;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden;
+        display: grid;
+        grid-template-areas: "slide";
+        background: transparent;
+    }
+
+    .hero-slide {
+        grid-area: slide;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0;
+        transition: opacity 1s ease-in-out;
+        display: block !important;
+    }
+
+    .hero-slide.active {
+        opacity: 1;
+        z-index: 2;
+    }
+
+    .hero-slide a {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        line-height: 0 !important;
+        text-decoration: none;
+    }
+
+    .hero-slide img {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
     }
 </style>
 @endpush
+
 @section('content')
 
 {{-- HERO SECTION --}}
@@ -15,12 +61,12 @@
     @forelse($banners ?? [] as $index => $banner)
         <div class="hero-slide {{ $index === 0 ? 'active' : '' }}">
             @if($banner->link_url)
-                    <div class="hero-buttons">
-                        <a href="{{ $banner->link_url }}">
-                            <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title }}" style="width: 100%; height: 100%;">
-                        </a>
-                    </div>
-                @endif
+                <a href="{{ $banner->link_url }}">
+                    <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title ?? 'Banner' }}">
+                </a>
+            @else
+                <img src="{{ asset('storage/' . $banner->image_url) }}" alt="{{ $banner->title ?? 'Banner' }}">
+            @endif
         </div>
     @empty
     @endforelse

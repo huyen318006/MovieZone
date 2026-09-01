@@ -49,6 +49,7 @@ class ReviewController extends Controller
                 $hasBooking = true; 
                 break; 
             }
+            return back()->withErrors(['review' => 'Bạn cần có vé đã thanh toán và đã checkin để đánh giá phim này.'])->withInput();
         }
 
         if (!$isCustomer || !$hasBooking) {

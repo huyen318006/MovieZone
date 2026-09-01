@@ -26,7 +26,7 @@
 
     <div class="header-right">
 
-        <div class="search-wrapper">
+        {{-- <div class="search-wrapper">
 
             <button class="icon-btn">
                 <i class="bi bi-search"></i>
@@ -34,7 +34,7 @@
 
             <input type="text" placeholder="Tìm phim..." class="search-input">
 
-        </div>
+        </div> --}}
 
 @php
     $currentUser = \App\Helpers\TabAuthHelper::currentUser();
