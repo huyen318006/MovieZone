@@ -186,39 +186,39 @@ class SellproductController extends Controller
      * Hiển thị trang thanh toán của đơn: QR và polling cho online,
      * hoặc nút xác nhận thu tiền cho tiền mặt.
      */
-    public function payment(string $orderCode)
-    {
-        $order = $this->sepayService->getOrderByCode($orderCode);
+        public function payment(string $orderCode)
+        {
+            $order = $this->sepayService->getOrderByCode($orderCode);
 
-        if (! $order) {
-            return redirect()->route('staff.sell-products')
-                ->with('error', 'Đơn hàng không tồn tại.');
+            if (! $order) {
+                return redirect()->route('staff.sell-products')
+                    ->with('error', 'Đơn hàng không tồn tại.');
+            }
+
+            if ($order->isPaid()) {
+                return redirect()->route('staff.sell-products.success', [
+                    'orderCode' => $order->order_code,
+                    'paymentMethod' => ($order->metadata['payment_method'] ?? 'ONLINE'),
+                ]);
+            }
+
+            if ($order->isExpired()) {
+                $order->markAsExpired();
+
+                return redirect()->route('staff.sell-products')
+                    ->with('error', 'Đơn hàng đã hết hạn. Vui lòng tạo lại.');
+            }
+
+            $qrUrl = $this->sepayService->generateQrUrl($order);
+            $bankCode = config('sepay.bank_code');
+            $bankAccount = config('sepay.bank_account');
+            $pollingInterval = config('sepay.polling_interval', 5000);
+            $expiresAt = $order->getExpiresAt()->toIso8601String();
+
+            return view('staff.sellproduct.payment', compact(
+                'order', 'qrUrl', 'bankCode', 'bankAccount', 'pollingInterval', 'expiresAt'
+            ));
         }
-
-        if ($order->isPaid()) {
-            return redirect()->route('staff.sell-products.success', [
-                'orderCode' => $order->order_code,
-                'paymentMethod' => ($order->metadata['payment_method'] ?? 'ONLINE'),
-            ]);
-        }
-
-        if ($order->isExpired()) {
-            $order->markAsExpired();
-
-            return redirect()->route('staff.sell-products')
-                ->with('error', 'Đơn hàng đã hết hạn. Vui lòng tạo lại.');
-        }
-
-        $qrUrl = $this->sepayService->generateQrUrl($order);
-        $bankCode = config('sepay.bank_code');
-        $bankAccount = config('sepay.bank_account');
-        $pollingInterval = config('sepay.polling_interval', 5000);
-        $expiresAt = $order->getExpiresAt()->toIso8601String();
-
-        return view('staff.sellproduct.payment', compact(
-            'order', 'qrUrl', 'bankCode', 'bankAccount', 'pollingInterval', 'expiresAt'
-        ));
-    }
 
     /**
      * Xác nhận nhân viên đã thu tiền mặt, cập nhật các bảng liên quan sang paid,
@@ -318,6 +318,7 @@ class SellproductController extends Controller
      * Kiểm tra đơn đã paid, render hóa đơn HTML và tự mở hộp thoại in.
      * Tên hàm giữ nguyên để tương thích với route hiện tại.
      */
+    // đây  là hàm gọi đến khi click vào in hóa đơn ở trang success 
     public function downloadInvoice(string $orderCode)
     {
         $order = $this->sepayService->getOrderByCode($orderCode);

@@ -6,10 +6,14 @@ use App\Helpers\DataMaskHelper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Staff\BookingSearchRequest;
 use App\Models\Cinema;
+use App\Models\Booking;
+use App\Models\BookingCancellation;
 use App\Services\AuditLogService;
 use App\Services\BookingLookupService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * S2-05: Controller cho UC-STAFF-03 Tra cứu Booking/Vé.
@@ -33,6 +37,57 @@ class BookingLookupController extends Controller
         return view('staff.booking-lookup', compact('cinemas'));
     }
 
+    /**
+     * Staff xác minh booking của suất bị gián đoạn và duyệt bồi thường 50%.
+     */
+    public function approveInterruptedCompensation(int $id): JsonResponse
+    {
+        try {
+            $refundAmount = DB::transaction(function () use ($id) {
+                $booking = Booking::with('showtime')->lockForUpdate()->find($id);
+                if (! $booking) {
+                    abort(404, 'Không tìm thấy booking.');
+                }
+
+                $cancellation = BookingCancellation::query()
+                    ->where('booking_id', $booking->id)
+                    ->where('type', 'CANCELLATION')
+                    ->lockForUpdate()
+                    ->first();
+
+                $notes = $cancellation?->notes ?? [];
+                $isEligible = $booking->status === 'CANCELLED'
+                    && $booking->payment_status === 'PAID'
+                    && ($cancellation?->refund_status === 'pending_verification')
+                    && (($notes['source'] ?? null) === 'screening_interrupted');
+
+                if (! $isEligible) {
+                    abort(422, 'Booking không thuộc diện chờ xác minh bồi thường sự cố.');
+                }
+                $refundAmount = (int) round(((float) $booking->final_amount) * 0.5);
+
+                $notes['compensation_percent'] = 50;
+                $notes['compensation_amount'] = $refundAmount;
+                $notes['compensation_method'] = 'CASH_COUNTER';
+                $notes['verified_by'] = Auth::id();
+                $notes['verified_at'] = now()->toIso8601String();
+                $cancellation->update(['refund_status' => 'refunded', 'notes' => $notes]);
+
+                AuditLogService::log('APPROVE_INTERRUPTED_COMPENSATION', 'Booking', $booking->id, null, [
+                    'booking_code' => $booking->booking_code,
+                    'compensation_percent' => 50,
+                    'compensation_amount' => $refundAmount,
+                    'verified_by' => Auth::id(),
+                ]);
+
+                return $refundAmount;
+            });
+
+            return response()->json(['success' => true, 'message' => "Đã xác nhận hoàn tiền mặt 50% ({$refundAmount}đ) tại quầy."]);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], $e->getStatusCode());
+        }
+    }
     /**
      * API: Tìm kiếm booking.
      * GET /api/staff/bookings/search
@@ -240,6 +295,10 @@ class BookingLookupController extends Controller
 
             'status'         => $booking->status,
             'payment_status' => $booking->payment_status,
+            'cancellation'   => $booking->cancellation ? [
+                'refund_status' => $booking->cancellation->refund_status,
+                'notes'         => $booking->cancellation->notes,
+            ] : null,
             'expired_at'     => $booking->expired_at,
             'paid_at'        => $booking->paid_at,
             'created_at'     => $booking->created_at,

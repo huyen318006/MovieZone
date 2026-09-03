@@ -346,6 +346,7 @@ class FilmManageController extends Controller
         ]);
     }
 
+    //hàm gọi rút ngắn thời gian end của film
     public function checkAffectedShowtimes(Request $request, $id)
     {
         $endDate = $request->input('end_date');
@@ -470,7 +471,7 @@ class FilmManageController extends Controller
 
                 if ($showtimes->count() > 0) {
                     $showtimeIds = $showtimes->pluck('id');
-                    
+
                     Showtime::whereIn('id', $showtimeIds)->update([
                         'status' => 'CANCELLED',
                         'cancel_reason' => $cancelReason,
@@ -485,14 +486,17 @@ class FilmManageController extends Controller
                     $adminId = auth()->id();
 
                     foreach ($bookings as $b) {
-                        $b->status = 'CANCELLED';
+                    $isInterruptedScreening = $b->showtime
+                        && $b->showtime->start_time->lessThanOrEqualTo(now());
+
+                    $b->status = 'CANCELLED';
                         $b->canceled_reason = $cancelReason;
                         $b->canceled_by = $adminId;
 
-                        if ($b->payment_status === 'PAID') {
+                        if ($b->payment_status === 'PAID' && ! $isInterruptedScreening) {
                             $b->payment_status = 'REFUNDED';
                             $refundAmount = (int) round((float) ($b->final_amount ?? 0));
-                            
+
                             // 1. Hoàn lại số tiền VND đã thanh toán thành xu
                             if ($refundAmount > 0 && $b->user_id) {
                                 $coin = Coin::firstOrCreate(
@@ -525,6 +529,7 @@ class FilmManageController extends Controller
 
                         \App\Models\BookingCancellation::updateOrCreate([
                             'booking_id' => $b->id,
+                            'type' => 'CANCELLATION',
                         ], [
                             'type' => 'CANCELLATION',
                             'canceled_by' => $adminId,
@@ -533,7 +538,7 @@ class FilmManageController extends Controller
                             'notes' => json_encode(['source' => 'early_end_date']),
                         ]);
 
-                        if ($b->user && $b->user->email) {
+                        if (! $isInterruptedScreening && $b->user && $b->user->email) {
                             $userId = $b->user_id;
                             if (!isset($bookingsToEmail[$userId])) {
                                 $bookingsToEmail[$userId] = ['user' => $b->user, 'bookings' => []];
@@ -585,7 +590,7 @@ class FilmManageController extends Controller
 
         // Lấy danh sách suất chiếu trong tương lai của phim này (chưa bị hủy)
         $showtimes = Showtime::where('movie_id', $id)
-            ->where('start_time', '>', now())
+            ->where('end_time', '>', now())
             ->where('status', '!=', 'CANCELLED');
 
         // Đếm số lượng suất chiếu tương lai
@@ -609,7 +614,7 @@ class FilmManageController extends Controller
 
         // Xử lý luồng ngừng chiếu phim (ENDED)
         if ($action === 'stop') {
-            
+
             $validated = $request->validate([
                 'cancel_reason' => 'required|string|max:255'
             ], [
@@ -631,7 +636,7 @@ class FilmManageController extends Controller
 
                 // 2. Tìm tất cả các suất chiếu tương lai của bộ phim này
                 $showtimes = Showtime::where('movie_id', $id)
-                    ->where('start_time', '>', now())
+                    ->where('end_time', '>', now())
                     ->where('status', '!=', 'CANCELLED')
                     ->get();
 
@@ -655,15 +660,18 @@ class FilmManageController extends Controller
                 $adminId = auth()->id();
 
                 foreach ($bookings as $b) {
+                    $isInterruptedScreening = $b->showtime
+                        && $b->showtime->start_time->lessThanOrEqualTo(now());
+
                     $b->status = 'CANCELLED';
                     $b->canceled_reason = $cancelReason;
                     $b->canceled_by = $adminId;
 
-                    if ($b->payment_status === 'PAID') {
+                    if ($b->payment_status === 'PAID' && ! $isInterruptedScreening) {
                         $b->payment_status = 'REFUNDED';
 
                         $refundAmount = (int) round((float) ($b->final_amount ?? 0));
-                        
+
                         // 1. Hoàn lại số tiền VND đã thanh toán thành xu
                         if ($refundAmount > 0 && $b->user_id) {
                             $coin = Coin::firstOrCreate(
@@ -719,20 +727,23 @@ class FilmManageController extends Controller
                     \App\Models\VoucherUsage::where('booking_id', $b->id)->delete();
 
                     $b->save();
-                    
+
                     // Lưu lý do hủy vào bảng BookingCancellation
                     \App\Models\BookingCancellation::updateOrCreate([
                         'booking_id' => $b->id,
+                        'type' => 'CANCELLATION',
                     ], [
                         'type' => 'CANCELLATION',
                         'canceled_by' => $adminId,
                         'reason' => $cancelReason,
-                        'refund_status' => null,
-                        'notes' => ['source' => 'film_stopped'],
+                        'refund_status' => $isInterruptedScreening ? 'pending_verification' : null,
+                        'notes' => $isInterruptedScreening
+                            ? ['source' => 'screening_interrupted', 'compensation_percent' => 50]
+                            : ['source' => 'film_stopped'],
                     ]);
 
                     // KHÔNG gửi mail trực tiếp ở đây nữa. Gom đơn hàng vào mảng tạm
-                    if ($b->user && $b->user->email) {
+                    if (! $isInterruptedScreening && $b->user && $b->user->email) {
                         $userId = $b->user_id;
 
                         if (!isset($bookingsToEmail[$userId])) {

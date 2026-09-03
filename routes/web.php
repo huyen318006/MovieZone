@@ -497,6 +497,9 @@ Route::middleware(['tab.auth', 'staff.permission:booking.lookup'])
         Route::get('/api/bookings/{id}/audit-logs', [BookingLookupController::class, 'auditLogs'])
             ->name('api.bookings.audit-logs');
 
+        Route::post('/api/bookings/{id}/approve-interrupted-compensation', [BookingLookupController::class, 'approveInterruptedCompensation'])
+            ->name('api.bookings.approve-interrupted-compensation');
+
         Route::get('/api/cinemas', [BookingLookupController::class, 'cinemas'])
             ->name('api.cinemas');
     });

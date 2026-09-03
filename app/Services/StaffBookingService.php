@@ -53,7 +53,7 @@ class StaffBookingService
 
 
                 )
-                ->where('showtimes.start_time', '>=', $time_now)   // chỉ lấy suất chiếu chưa chiếu
+                ->where('showtimes.start_time', '>', $time_now)   // chỉ lấy suất chiếu chưa bắt đầu
                 ->where('showtimes.status', 'OPEN')
                 ->where('movies.title', 'like', '%' . $keyword . '%') // lọc theo keyword
                 ->orderBy('movies.title')
@@ -81,7 +81,7 @@ class StaffBookingService
 
 
             )
-            ->where('showtimes.start_time', '>=', $time_now)   // chỉ lấy suất chiếu chưa chiếu
+            ->where('showtimes.start_time', '>', $time_now)   // chỉ lấy suất chiếu chưa bắt đầu
             ->where('showtimes.status', 'OPEN')
             ->orderBy('movies.title')
             ->orderBy('showtimes.start_time')
