@@ -352,6 +352,13 @@
     const seatPageUrl = @json($seatResetUrl);
     let interval = null;
     let expired = false;
+    let suppressed = false; // Khi form checkout đang submit → chặn modal expired
+
+    // API cho bên ngoài gọi: dừng countdown khi đang submit thanh toán
+    window.suppressCountdown = function() {
+        suppressed = true;
+        if (interval) clearInterval(interval);
+    };
 
     // Nếu chưa có holdExpiresAt ban đầu, ẩn countdown
     if (!holdExpiresAtRaw && barEl) {
@@ -380,7 +387,7 @@
     }
 
     function showExpiredModal() {
-        if (!overlay) return;
+        if (!overlay || suppressed) return; // Nếu đang submit thanh toán → không hiện modal
         overlay.classList.add('show');
         window.dispatchEvent(new CustomEvent('countdownExpired'));
 
@@ -433,7 +440,7 @@
     }
 
     document.addEventListener('visibilitychange', function() {
-        if (document.visibilityState === 'visible' && !expired && expiresAt) {
+        if (document.visibilityState === 'visible' && !expired && !suppressed && expiresAt) {
             const remaining = getSecondsLeft();
             updateDisplay();
             if (remaining <= 0) {
