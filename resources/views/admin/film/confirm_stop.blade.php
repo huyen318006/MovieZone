@@ -28,7 +28,8 @@
                         <ul class="mb-0 text-muted ps-3">
                             <li class="mb-2">Trạng thái phim sẽ được chuyển sang <strong>Ngừng chiếu (ENDED)</strong> và lưu ngày kết thúc chiếu là ngày hôm nay.</li>
                             <li class="mb-2">Tất cả <strong>{{ $showtimeCount }}</strong> suất chiếu tương lai của phim này sẽ bị hủy (CANCELLED).</li>
-                            <li class="mb-0">Tất cả <strong>{{ $bookingCount }}</strong> đơn đặt vé tương lai sẽ bị hủy, các hóa đơn đã thanh toán sẽ tự động chuyển sang trạng thái chờ hoàn tiền (REFUNDED).</li>
+                            <li class="mb-2">Booking của suất chưa bắt đầu: đơn đã thanh toán được hoàn <strong>100%</strong> vào COIN; đơn chưa thanh toán chỉ bị hủy.</li>
+                            <li class="mb-0">Booking của suất đang chiếu: đơn bị hủy và chuyển sang <strong>chờ staff xác nhận hoàn tiền mặt tại quầy</strong> với mức <strong>50%</strong> giá trị đã thanh toán.</li>
                         </ul>
                     </div>
                 </div>
@@ -36,7 +37,7 @@
                 <form action="{{ \App\Helpers\TabAuthHelper::route('admin.film.toggle_status', ['id' => $movie->id]) }}" method="POST">
                     @csrf
                     <input type="hidden" name="toggle_action" value="stop">
-                    
+
                     <div class="mb-4">
                         <label for="cancel_reason" class="form-label fw-bold">Lý do ngừng chiếu <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3" maxlength="255" required placeholder="Nhập lý do ngừng chiếu bộ phim này..."></textarea>

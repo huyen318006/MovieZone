@@ -882,7 +882,38 @@ const BookingLookup = (() => {
             <div class="detail-row"><span class="detail-label">Tạo lúc</span><span class="detail-value">${fmtDate(d.created_at)}</span></div>
         </div>`;
 
+        const isPendingCompensation = d.status === 'CANCELLED'
+            && d.payment_status === 'PAID'
+            && d.cancellation?.refund_status === 'pending_verification'
+            && d.cancellation?.notes?.source === 'screening_interrupted';
+        if (isPendingCompensation) {
+            html += `<div class="detail-section" style="padding:12px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;">
+                <div class="detail-section-title"><i class="bi bi-exclamation-triangle"></i> Chờ bồi thường</div>
+                <p style="font-size:13px;color:var(--staff-text-muted);margin:0 0 10px;">Suất chiếu bị gián đoạn. Xác nhận khách đã nhận lại 50% giá trị thanh toán bằng tiền mặt tại quầy.</p>
+                <button type="button" class="btn-search" style="width:100%;justify-content:center;" onclick="BookingLookup.approveInterruptedCompensation(${d.id})">
+                    <i class="bi bi-cash-coin"></i> Xác nhận hoàn tiền mặt 50%
+                </button>
+            </div>`;
+        }
+
         body.innerHTML = html;
+    }
+
+    async function approveInterruptedCompensation(bookingId) {
+        if (!window.confirm('Xác nhận khách đã nhận 50% giá trị booking bằng tiền mặt tại quầy?')) return;
+
+        try {
+            const resp = await fetch(API_URL(`/bookings/${bookingId}/approve-interrupted-compensation`), {
+                method: 'POST',
+                headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': CSRF_TOKEN },
+            });
+            const json = await resp.json();
+            if (!resp.ok || !json.success) throw new Error(json.message || 'Không thể duyệt bồi thường.');
+            window.alert(json.message);
+            openDetail(bookingId);
+        } catch (err) {
+            window.alert(err.message);
+        }
     }
 
     // ══════ HELPERS ══════
@@ -991,7 +1022,7 @@ const BookingLookup = (() => {
     document.addEventListener('DOMContentLoaded', init);
 
     // ── Public API ──
-    return { search, openDetail, closeDetail, toggleFilters, applyFilters, clearFilters, focusSearch, retrySearch, useRecent };
+    return { search, openDetail, approveInterruptedCompensation, closeDetail, toggleFilters, applyFilters, clearFilters, focusSearch, retrySearch, useRecent };
 })();
 </script>
 @endpush
