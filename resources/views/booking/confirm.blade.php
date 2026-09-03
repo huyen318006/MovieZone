@@ -832,6 +832,30 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.replace(resetUrl);
         }
     });
+
+    // FIX RACE CONDITION: Khi user bấm "Xác nhận & Thanh toán", dừng countdown timer
+    // để tránh modal "hết giờ" hiện ra trong lúc server đang xử lý thanh toán.
+    // Backend sẽ tự validate lại timer — nếu thực sự hết thì backend redirect về trang ghế.
+    (function() {
+        const checkoutForm = document.querySelector('form[action*="checkout"]');
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', function() {
+                // Suppress countdown timer — ngăn modal expired override redirect
+                if (typeof window.suppressCountdown === 'function') {
+                    window.suppressCountdown();
+                }
+
+                // Disable nút submit để chống double-click
+                const submitBtn = checkoutForm.querySelector('.btn-confirm');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
+                    submitBtn.style.opacity = '0.7';
+                    submitBtn.style.cursor = 'not-allowed';
+                }
+            });
+        }
+    })();
 </script>
 
 {{-- Kiểm tra suất chiếu bị huỷ bởi admin (polling mỗi 3s) --}}
